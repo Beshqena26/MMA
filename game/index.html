@@ -11,7 +11,7 @@
 <div class="ov">
   <div class="hd">
     <div style="display:flex;align-items:center;gap:8px">
-      <div class="logo">SKY<em>DROP</em><sup>II</sup></div>
+      <div class="logo"><em>MMA</em></div>
       <div class="live-tag"><span class="live-dot"></span>LIVE</div>
     </div>
     <div class="hdr">
@@ -59,8 +59,8 @@
         <div class="stl show s1" id="stl">PLACE YOUR BETS</div>
         <div class="alrt" id="alrt">⚠</div>
         <div class="cine" id="cine"><div class="c1" id="cineMain">1.00×</div><div class="c2" id="cineSub">MULTIPLIER</div></div>
-        <div class="ag"><div class="an" id="altN">0</div><div class="at"><div class="af" id="altF"></div></div><div class="au">ALT</div></div>
-        <div class="bm cm" id="crashMsg"><div class="bt">CHUTE OPENED</div><div class="bb" id="crashVal">1.00×</div></div>
+        <div class="ag" style="display:none"><div class="an" id="altN">0</div><div class="at"><div class="af" id="altF"></div></div><div class="au">ALT</div></div>
+        <div class="bm cm" id="crashMsg"><div class="bt">KNOCKOUT!</div><div class="bb" id="crashVal">1.00×</div></div>
         <div class="bm wm" id="winMsg"><div class="bt">CASHED OUT</div><div class="bb" id="winAmt">+$0</div></div>
       </div>
       <div class="bp" id="betPanel">
@@ -187,7 +187,7 @@
 <div class="menu-overlay" id="menuOverlay"></div>
 <div class="menu-panel" id="menuPanel">
   <div class="menu-head">
-    <div class="menu-avatar" id="menuAvatarBtn" style="cursor:pointer" onclick="closeMenu();openAvatarModal()">🧑‍✈️</div>
+    <div class="menu-avatar" id="menuAvatarBtn" style="cursor:pointer" onclick="closeMenu();openAvatarModal()">🥊</div>
     <div class="menu-user">
       <div class="menu-user-name" id="menuUserName">Player</div>
       <div class="menu-user-id">MMA</div>
@@ -225,42 +225,41 @@
 <div class="mo" id="infoModal">
   <div class="mx" style="max-width:560px">
     <button class="mc" onclick="document.getElementById('infoModal').classList.remove('open')">✕</button>
-    <div class="mt2">🪂 HOW TO PLAY</div>
+    <div class="mt2">HOW TO PLAY</div>
     <div class="ms" style="margin-top:14px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
         <span style="background:linear-gradient(135deg,#4caf50,#66bb6a);color:#fff;font-weight:800;font-size:13px;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center">1</span>
         <span style="font-weight:700;font-size:14px;color:var(--txt)">PLACE YOUR BET</span>
       </div>
-      <p style="color:var(--dim);font-size:12px;line-height:1.6;margin:0">A rocket launches and flies to a random altitude. While it climbs, you have <b style="color:var(--acc)" id="limBetTime">6 seconds</b> to place your bet. You can place up to <b style="color:var(--txt)">2 bets</b> simultaneously.</p>
+      <p style="color:var(--dim);font-size:12px;line-height:1.6;margin:0">Two fighters enter the octagon. You have <b style="color:var(--acc)" id="limBetTime">6 seconds</b> to place your bet before the fight begins. You can place up to <b style="color:var(--txt)">2 bets</b> simultaneously.</p>
     </div>
     <div class="ms" style="margin-top:10px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
         <span style="background:linear-gradient(135deg,#ff9800,#ffb74d);color:#fff;font-weight:800;font-size:13px;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center">2</span>
-        <span style="font-weight:700;font-size:14px;color:var(--txt)">PILOT JUMPS — MULTIPLIER STARTS</span>
+        <span style="font-weight:700;font-size:14px;color:var(--txt)">FIGHT BEGINS — MULTIPLIER STARTS</span>
       </div>
-      <p style="color:var(--dim);font-size:12px;line-height:1.6;margin:0">Bets close and a pilot <b style="color:var(--wrn)">jumps out</b> of the rocket. The <b style="color:var(--txt)">multiplier starts at 1.00×</b> and increases as the pilot falls. The longer you wait, the higher the multiplier — but the risk grows.</p>
+      <p style="color:var(--dim);font-size:12px;line-height:1.6;margin:0">Bets close and the <b style="color:var(--wrn)">masked fighter</b> attacks. The <b style="color:var(--txt)">multiplier starts at 1.00x</b> and increases as the fight intensifies. The longer you wait, the higher the multiplier — but the risk grows.</p>
     </div>
     <div class="ms" style="margin-top:10px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
         <span style="background:linear-gradient(135deg,#ffd700,#ffeb3b);color:#1a1a1a;font-weight:800;font-size:13px;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center">3</span>
         <span style="font-weight:700;font-size:14px;color:var(--txt)">CASH OUT TO WIN</span>
       </div>
-      <p style="color:var(--dim);font-size:12px;line-height:1.6;margin:0">Hit <b style="color:var(--gld)">Cash Out</b> anytime during the freefall to lock in your winnings. Your payout = bet × current multiplier. For example: $5 bet at 3.50× = <b style="color:var(--acc)">$17.50 win</b>.</p>
+      <p style="color:var(--dim);font-size:12px;line-height:1.6;margin:0">Hit <b style="color:var(--gld)">Cash Out</b> anytime during the fight to lock in your winnings. Your payout = bet x current multiplier. For example: $5 bet at 3.50x = <b style="color:var(--acc)">$17.50 win</b>.</p>
     </div>
     <div class="ms" style="margin-top:10px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
         <span style="background:linear-gradient(135deg,#f44336,#ef5350);color:#fff;font-weight:800;font-size:13px;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center">4</span>
-        <span style="font-weight:700;font-size:14px;color:var(--txt)">PARACHUTE = ROUND OVER</span>
+        <span style="font-weight:700;font-size:14px;color:var(--txt)">KNOCKOUT = ROUND OVER</span>
       </div>
-      <p style="color:var(--dim);font-size:12px;line-height:1.6;margin:0">At a random point, the pilot's <b style="color:var(--dng)">parachute opens</b> and the round ends. If you haven't cashed out yet — <b style="color:var(--dng)">you lose your bet</b>. Every round has a different crash point.</p>
+      <p style="color:var(--dim);font-size:12px;line-height:1.6;margin:0">At a random point, the masked fighter delivers a <b style="color:var(--dng)">knockout blow</b> and the round ends. If you haven't cashed out yet — <b style="color:var(--dng)">you lose your bet</b>. Every round has a different crash point.</p>
     </div>
     <div style="margin-top:16px;padding:12px;background:rgba(76,175,80,.06);border:1px solid rgba(76,175,80,.15);border-radius:8px">
-      <div style="font-weight:700;font-size:12px;color:var(--acc);margin-bottom:6px">💡 TIPS</div>
+      <div style="font-weight:700;font-size:12px;color:var(--acc);margin-bottom:6px">TIPS</div>
       <p style="color:var(--dim);font-size:11px;line-height:1.7;margin:0">
-        <b style="color:var(--txt)">Auto Cash Out</b> — Set a target multiplier in the Auto tab. Your bet will automatically cash out when it's reached.<br>
-        <b style="color:var(--txt)">Two Bets</b> — Use one bet for safe low multiplier (1.5×) and another for risky high multiplier.<br>
-        <b style="color:var(--txt)">Altitude Varies</b> — The rocket flies to a different height each round. Higher altitude doesn't mean higher crash point.<br>
-        <b style="color:var(--txt)">Multiplier Tokens</b> — Collect floating ×tokens during freefall for bonus multiplier boosts.
+        <b style="color:var(--txt)">Auto Cash Out</b> — Set a target multiplier. Your bet automatically cashes out when reached.<br>
+        <b style="color:var(--txt)">Two Bets</b> — Use one bet for safe low multiplier (1.5x) and another for risky high multiplier.<br>
+        <b style="color:var(--txt)">Power Moves</b> — Collect floating tokens during the fight for bonus multiplier boosts.
       </p>
     </div>
   </div>
@@ -272,10 +271,10 @@
     <div class="mt2">📋 GAME RULES</div>
     <div class="ms" style="margin-top:12px">
       <p style="color:var(--dim);font-size:12px;line-height:1.8;margin:0">
-        <b style="color:var(--txt)">1.</b> Each round, a rocket launches to a random altitude. Players have 6 seconds to place bets.<br>
-        <b style="color:var(--txt)">2.</b> After bets close, a pilot jumps and the multiplier starts at 1.00×.<br>
+        <b style="color:var(--txt)">1.</b> Each round, two fighters enter the octagon. Players have 6 seconds to place bets.<br>
+        <b style="color:var(--txt)">2.</b> After bets close, the fight begins and the multiplier starts at 1.00×.<br>
         <b style="color:var(--txt)">3.</b> Cash out anytime to win bet × multiplier.<br>
-        <b style="color:var(--txt)">4.</b> Parachute opens at a random point — uncashed bets are lost.<br>
+        <b style="color:var(--txt)">4.</b> Knockout happens at a random point — uncashed bets are lost.<br>
         <b style="color:var(--txt)">5.</b> Crash point is random each round. No pattern.<br>
         <b style="color:var(--txt)">6.</b> House edge applies to all bets.
       </p>
@@ -333,9 +332,9 @@
     <div class="mt2">📄 TERMS & CONDITIONS</div>
     <div class="ms"><h4>1. GENERAL</h4><p>MMA is a multiplayer crash-style entertainment game. By placing a bet, you confirm that you have read, understood, and agreed to these Terms & Conditions. The operator reserves the right to modify these terms at any time. Continued use of the game after changes constitutes acceptance of the updated terms.</p></div>
     <div class="ms"><h4>2. ELIGIBILITY</h4><p>You must be at least 18 years of age (or the legal gambling age in your jurisdiction, whichever is higher) to participate. It is your sole responsibility to ensure that your use of this game complies with the laws applicable in your jurisdiction. The operator accepts no liability for unauthorized use.</p></div>
-    <div class="ms"><h4>3. GAME MECHANICS</h4><p>Each round, a skydiver ascends with a rising multiplier. The multiplier may stop at any point (parachute opens), ending the round. If you do not cash out before the parachute opens, your bet is lost. The crash point for each round is determined by a provably fair algorithm. The outcome of each round is independent and cannot be predicted or influenced by the player.</p></div>
+    <div class="ms"><h4>3. GAME MECHANICS</h4><p>Each round, a skydiver ascends with a rising multiplier. The multiplier may stop at any point (knockout happens), ending the round. If you do not cash out before the knockout happens, your bet is lost. The crash point for each round is determined by a provably fair algorithm. The outcome of each round is independent and cannot be predicted or influenced by the player.</p></div>
     <div class="ms"><h4>4. BETTING LIMITS</h4><p>Minimum bet: $0.10 per bet slot. Maximum bet: $100.00 per bet slot. Maximum payout: $10,000.00 per individual bet. Players may place up to 2 simultaneous bets per round. The operator reserves the right to adjust these limits at any time.</p></div>
-    <div class="ms"><h4>5. CASHOUT & PAYOUTS</h4><p>You may cash out at any time while the multiplier is active. Your payout is calculated as: Bet Amount × Multiplier at the time of cashout, capped at $10,000. Once a cashout is confirmed, it cannot be reversed. If the parachute opens before you cash out, the entire bet amount is forfeited. In the event of a network disconnection during an active round, uncashed bets will be treated as lost.</p></div>
+    <div class="ms"><h4>5. CASHOUT & PAYOUTS</h4><p>You may cash out at any time while the multiplier is active. Your payout is calculated as: Bet Amount × Multiplier at the time of cashout, capped at $10,000. Once a cashout is confirmed, it cannot be reversed. If the knockout happens before you cash out, the entire bet amount is forfeited. In the event of a network disconnection during an active round, uncashed bets will be treated as lost.</p></div>
     <div class="ms"><h4>6. AUTO-BET & AUTO-CASHOUT</h4><p>The auto-bet feature will automatically place a bet of the selected amount at the start of each new round. The auto-cashout feature will automatically cash out at the specified multiplier. It is your responsibility to configure and monitor these features. The operator is not liable for any losses resulting from the use of automated features.</p></div>
     <div class="ms"><h4>7. PROVABLE FAIRNESS</h4><p>Each round's crash point is generated using a cryptographically secure algorithm. Players can verify the fairness of past rounds using the provided hash. The system guarantees that the crash point is determined before any bets are placed and cannot be altered after the round begins.</p></div>
     <div class="ms"><h4>8. RESPONSIBLE GAMING</h4><p>Gambling should be viewed as entertainment, not as a source of income. Never bet more than you can afford to lose. If you feel that your gambling behavior is becoming problematic, please seek professional help. The operator supports responsible gaming and may impose cooling-off periods or account restrictions if excessive gambling patterns are detected.</p></div>
@@ -452,7 +451,7 @@
     <div class="modal-scroll">
       <div style="font-size:11px;color:var(--dim);margin-bottom:12px;line-height:1.5">Pick your avatar and set a nickname before you start playing.</div>
       <div style="text-align:center;margin:12px 0">
-        <div id="avatarPreview" style="width:60px;height:60px;border-radius:50%;background:rgba(76,175,80,.12);display:inline-flex;align-items:center;justify-content:center;font-size:30px;box-shadow:0 4px 20px rgba(76,175,80,.15);border:3px solid rgba(76,175,80,.4)">🧑‍✈️</div>
+        <div id="avatarPreview" style="width:60px;height:60px;border-radius:50%;background:rgba(76,175,80,.12);display:inline-flex;align-items:center;justify-content:center;font-size:30px;box-shadow:0 4px 20px rgba(76,175,80,.15);border:3px solid rgba(76,175,80,.4)">🥊</div>
         <div style="font-size:9px;color:var(--dim);margin-top:6px;letter-spacing:1px">CURRENT AVATAR</div>
       </div>
       <div style="font-size:10px;color:var(--dim);letter-spacing:1px;margin-bottom:6px;font-weight:600">PILOTS</div>
@@ -475,6 +474,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="firebase-init.js"></script>
+<script src="mma-render.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -646,11 +646,14 @@ function openAvatarModal(){
 
 // ======================== CANVAS ========================
 var cv=document.getElementById('c');if(!cv){cv=document.createElement('canvas');document.body.appendChild(cv)}var cx=cv.getContext('2d');
-function resize(){cv.width=innerWidth;cv.height=innerHeight}
+function resize(){cv.width=innerWidth;cv.height=innerHeight;if(typeof initCrowd==='function')initCrowd()}
 resize();addEventListener('resize',resize);
 function w2s(wx,wy){var anchor=innerWidth<900?.3:.45;return{x:cv.width*.5-(G.camera.cx-wx),y:cv.height*anchor-(wy-G.camera.y)}}
 function makeStars(){G.stars=[];for(var i=0;i<200;i++)G.stars.push({x:Math.random()*3000,y:Math.random()*2000,r:Math.random()*1.8+.2,ph:Math.random()*6.28,sp:Math.random()*.01+.003})}
 makeStars();
+// MMA fighter + crowd init
+if(typeof initFighterState==='function')initFighterState();
+if(typeof initCrowd==='function')initCrowd();
 
 // ======================== CRASH POINT ========================
 function genCrash(){
@@ -1161,7 +1164,7 @@ function startBettingPhase(){
   try{hideCine()}catch(e){}
   try{$('rInfo').textContent='ROUND #'+G.roundNum}catch(e){}
   try{$('timerBar').style.width='100%';$('timerBar').classList.remove('urgent')}catch(e){}
-  try{setSt('✈ PLACE BETS — '+Math.ceil(G.phaseTimer)+'s','s1')}catch(e){}
+  try{setSt('PLACE YOUR BETS — '+Math.ceil(G.phaseTimer)+'s','s1')}catch(e){}
   try{populateSidebar()}catch(e){}
   try{sfx.stopFreefall();sfx.play('launch')}catch(e){}
   // Auto bet
@@ -1170,14 +1173,14 @@ function startBettingPhase(){
 
 function startExplodePhase(){
   G.phase='EXPLODE';G.phaseTimer=0;
-  try{lockPanels(true);setSt('🚀 BETS CLOSED','s2');setCine('3...','GET READY');G.camera.zoomTarget=1.6}catch(e){}
+  try{lockPanels(true);setSt('FIGHTERS READY','s2');setCine('3...','FIGHTERS READY');G.camera.zoomTarget=1.6}catch(e){}
 }
 
 function startFreefallPhase(){
   G.phase='FREEFALL';G.phaseTimer=0;
   if(!G.mult||G.mult<1){G.mult=1.0;G.speed=CFG.multSpeed||0.002}
   G.lastMultFloor=Math.floor(G.mult);
-  try{setSt('🪂 FREEFALL — CASH OUT ANYTIME!','s3');setCine(G.mult.toFixed(2)+'×','MULTIPLIER');G.camera.zoomTarget=0.95;updAllBtns();sfx.startFreefall()}catch(e){}
+  try{setSt('FIGHT! — CASH OUT ANYTIME!','s3');setCine(G.mult.toFixed(2)+'×','MULTIPLIER');G.camera.zoomTarget=0.95;updAllBtns();sfx.startFreefall()}catch(e){}
 }
 
 function startCrashPhase(){
@@ -1194,7 +1197,7 @@ function startCrashPhase(){
   for(var i=0;i<2;i++){if(G.bets[i].placed&&!G.bets[i].out){G.totP-=G.bets[i].amount;G.betHistory.unshift({round:G.roundNum,bet:G.bets[i].amount,mult:G.crashPt,win:0,time:new Date()});if(G.betHistory.length>200)G.betHistory.pop()}}
   // Fake loss feed
   for(var j=0;j<3+Math.floor(Math.random()*4);j++){(function(jj){setTimeout(function(){fakeFeed(0,false)},jj*80)})(j)}
-  try{$('cineMain').textContent=G.crashPt.toFixed(2)+'×';$('cineSub').textContent='CHUTE OPENED';$('cine').className='cine show crashed dng';setSt('🪂 ROUND OVER — '+G.crashPt.toFixed(2)+'×','s4');updAllBtns()}catch(e){}
+  try{$('cineMain').textContent=G.crashPt.toFixed(2)+'×';$('cineSub').textContent='KNOCKOUT!';$('cine').className='cine show crashed dng';setSt('KNOCKOUT — '+G.crashPt.toFixed(2)+'×','s4');updAllBtns()}catch(e){}
   G.totR++;if(G.crashPt>G.hiCr)G.hiCr=G.crashPt;
   try{addHist(G.crashPt)}catch(e){}
   try{savePrevRound();populatePrevTab()}catch(e){}
@@ -1211,7 +1214,7 @@ function _updateMultAndUI(){
   // UI
   setCine(G.mult.toFixed(2)+'×','FREEFALL');
   try{$('cine').className='cine show'+(G.mult>=8?' gold':G.mult>=4?' wrn':'')}catch(e){}
-  setSt('🪂 CASH OUT — '+G.mult.toFixed(2)+'×','s3');
+  setSt('FIGHT — '+G.mult.toFixed(2)+'×','s3');
   // Update bet button amounts
   try{for(var i=0;i<2;i++){if(G.bets[i].placed&&!G.bets[i].out){$('btn'+(i+1)).querySelector('.bb-amount').textContent=(G.bets[i].amount*G.mult).toFixed(2)+' USD'}}}catch(e){}
   // Auto cashout
@@ -1264,7 +1267,7 @@ function update(ts){
       G.phaseTimer-=G.dt;
       var pct=G.phaseTimer/BET_TIME;
       try{$('timerBar').style.width=(pct*100)+'%';$('timerBar').classList.toggle('urgent',pct<.4)}catch(e){}
-      setSt('✈ PLACE BETS — '+Math.ceil(Math.max(0,G.phaseTimer))+'s','s1');
+      setSt('PLACE YOUR BETS — '+Math.ceil(Math.max(0,G.phaseTimer))+'s','s1');
       var p=(BET_TIME-G.phaseTimer)/BET_TIME,thrust,turnAngle;
       if(p<0.15){thrust=50+p*180;turnAngle=Math.PI*.47-p*0.7}
       else if(p<0.5){var tp=(p-0.15)/0.35;thrust=80+tp*120;turnAngle=Math.PI*.4-tp*0.35}
@@ -1299,7 +1302,7 @@ function update(ts){
       if(!G.pilot.ejected){
         G.camera.cx+=(G.rocket.x-G.camera.cx)*.08;G.camera.y+=(G.rocket.y-G.camera.y)*.08;
         G.camera.zoomTarget=1.15;
-        var cd=3-Math.floor(G.phaseTimer/.2);if(cd>=1)setCine(cd+'...','GET READY');
+        var cd=3-Math.floor(G.phaseTimer/.2);if(cd>=1)setCine(cd+'...','FIGHTERS READY');
         G.alt=Math.max(0,G.rocket.y*10);updAlt();
       }else{
         G.pilot.vy-=G.dt*25;G.pilot.y+=G.pilot.vy*G.dt;G.pilot.x+=G.pilot.vx*G.dt;G.pilot.x+=Math.sin(G.time*4)*G.dt*3;
@@ -1349,7 +1352,7 @@ function update(ts){
       G.tokens.forEach(function(tk){if(tk.collected)return;var dx=Math.abs(G.pilot.x-tk.x),dy=G.pilot.y-tk.y;if(dy<50&&dy>-50&&dx<80){tk.collected=true;tk.fadeOut=1;sfx.play('token');var sp=w2s(tk.x,tk.y);var _prevMult=G.mult;var _tkMul=(1+(tk.mult-1)*_tkBoost);G.mult*=_tkMul;G.crashPt*=_tkMul;var _addedX=G.mult-_prevMult;spawnParticles(sp.x,sp.y,'gold',8);showTokenPop(sp.x-30,sp.y-40,_prevMult.toFixed(2)+'× + '+_addedX.toFixed(2)+'× = '+G.mult.toFixed(2)+'×','boost')}});
       G.tokens=G.tokens.filter(function(tk){if(tk.collected){tk.fadeOut-=G.dt*3;return tk.fadeOut>0}var sy=w2s(tk.x,tk.y).y;return sy>-100&&sy<cv.height+200});
       _updateBlackHoles();
-      if(Math.random()<G.dt*.15){showAlert(['💨 CROSSWIND','⚠ TURBULENCE','💨 WIND SHEAR'][Math.floor(Math.random()*3)]);sfx.play('wind');G.camera.shake=2}
+      if(Math.random()<G.dt*.15){showAlert(['BODY SHOT!','UPPERCUT!','SPINNING KICK!'][Math.floor(Math.random()*3)]);sfx.play('wind');G.camera.shake=2}
       var mf=Math.floor(G.mult);if(mf>G.lastMultFloor&&mf>=2){sfx.play('tick');G.lastMultFloor=mf}
       if(Math.random()<.025)fakeFeed(G.mult*(.5+Math.random()*.6),true);
       }catch(ffErr){G.pilot._bhSuck=null;G.pilot._bhScale=1}
@@ -1395,12 +1398,15 @@ function update(ts){
     G.camera.zoomX+=(cv.width*.5-G.camera.zoomX)*.2;
     G.camera.zoomY+=((innerWidth<900?cv.height*.3:cv.height*.45)-G.camera.zoomY)*.2;
     G.camera.shake*=.94;
+    // MMA: update tension + fighters each frame
+    if(typeof getTension==='function')G.tension=getTension(G.mult);
+    if(typeof updateFighters==='function')updateFighters();
   }catch(e){console.error('Update:',e)}
   try{render()}catch(re){}
   requestAnimationFrame(update);
 }
 
-function render(){
+function _render_skydrop_DISABLED(){
   try{
   const W=cv.width,H=cv.height;cx.save();
   if(G.camera.shake>.1)cx.translate((Math.random()-.5)*G.camera.shake,(Math.random()-.5)*G.camera.shake);
