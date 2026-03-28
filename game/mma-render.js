@@ -947,6 +947,9 @@ function _drawArena(W, H, acx, acy, arenaR, t) {
 }
 
 // =================== DRAW FIGHTERS ===================
+// Kings Move inspired 3D cartoon fighter renderer
+// Replace from line 949 to line 1616 in mma-render.js
+
 function _drawFighters(W, H, acx, acy, arenaR, t) {
   var f1 = G.f1, f2 = G.f2;
   if (!f1 || !f2) return;
@@ -962,21 +965,76 @@ function _drawFighters(W, H, acx, acy, arenaR, t) {
   _drawSingleFighter(f1, true, scale, t, time, 'blue');
 }
 
+// Helper: lighten a hex color
+function _lighten(hex, amount) {
+  if (hex.charAt(0) === '#') hex = hex.substr(1);
+  var r = Math.min(255, parseInt(hex.substr(0, 2), 16) + amount);
+  var g = Math.min(255, parseInt(hex.substr(2, 2), 16) + amount);
+  var b = Math.min(255, parseInt(hex.substr(4, 2), 16) + amount);
+  return 'rgb(' + r + ',' + g + ',' + b + ')';
+}
+
+// Helper: draw a thick muscular limb segment with gradient shading
+function _drawMuscleSegment(startX, startY, endX, endY, widthStart, widthEnd, baseColor, highlightColor, shadowColor, bulge) {
+  var dx = endX - startX, dy = endY - startY;
+  var len = Math.sqrt(dx * dx + dy * dy) || 1;
+  var nx = -dy / len, ny = dx / len; // normal perpendicular
+  var mx = (startX + endX) / 2, my = (startY + endY) / 2;
+  var bulgeFactor = bulge || 0;
+
+  // Outer shape with muscle bulge
+  cx.beginPath();
+  cx.moveTo(startX + nx * widthStart, startY + ny * widthStart);
+  cx.quadraticCurveTo(
+    mx + nx * (widthStart + widthEnd) / 2 * (1 + bulgeFactor),
+    my + ny * (widthStart + widthEnd) / 2 * (1 + bulgeFactor),
+    endX + nx * widthEnd, endY + ny * widthEnd
+  );
+  cx.lineTo(endX - nx * widthEnd, endY - ny * widthEnd);
+  cx.quadraticCurveTo(
+    mx - nx * (widthStart + widthEnd) / 2 * (1 + bulgeFactor * 0.3),
+    my - ny * (widthStart + widthEnd) / 2 * (1 + bulgeFactor * 0.3),
+    startX - nx * widthStart, startY - ny * widthStart
+  );
+  cx.closePath();
+
+  // Gradient fill simulating 3D volume
+  var grad = cx.createLinearGradient(
+    mx + nx * widthStart * 1.2, my + ny * widthStart * 1.2,
+    mx - nx * widthStart * 1.2, my - ny * widthStart * 1.2
+  );
+  grad.addColorStop(0, highlightColor);
+  grad.addColorStop(0.4, baseColor);
+  grad.addColorStop(1, shadowColor);
+  cx.fillStyle = grad;
+  cx.fill();
+
+  // Specular highlight along top edge
+  cx.save();
+  cx.globalAlpha = 0.15;
+  cx.beginPath();
+  cx.moveTo(startX + nx * widthStart * 0.7, startY + ny * widthStart * 0.7);
+  cx.quadraticCurveTo(
+    mx + nx * (widthStart + widthEnd) / 2 * (0.8 + bulgeFactor * 0.5),
+    my + ny * (widthStart + widthEnd) / 2 * (0.8 + bulgeFactor * 0.5),
+    endX + nx * widthEnd * 0.5, endY + ny * widthEnd * 0.5
+  );
+  cx.lineWidth = widthStart * 0.5;
+  cx.strokeStyle = '#fff';
+  cx.stroke();
+  cx.restore();
+}
+
 function _drawSingleFighter(f, isMasked, scale, t, time, corner) {
   var px = f.x, py = f.y;
-  var facing = isMasked ? 1 : -1; // F1 faces right, F2 faces left
-  var sc = scale * 2.2; // bigger fighters
+  var facing = isMasked ? 1 : -1;
+  var sc = scale * 3.5; // MUCH bigger fighters — Kings Move scale
 
   cx.save();
   cx.translate(px, py);
   cx.scale(sc, sc);
 
-  // Hit flash overlay
-  if (f.hitFlash > 0) {
-    cx.globalAlpha = 1;
-  }
-
-  // KO falling for F2
+  // KO falling for unmasked fighter
   var fallAngle = 0;
   if (!isMasked && G.phase === 'CRASH') {
     var fallProg = Math.min(1, (G.koTimer || 0) / 0.6);
@@ -984,24 +1042,25 @@ function _drawSingleFighter(f, isMasked, scale, t, time, corner) {
     cx.rotate(fallAngle);
   }
 
-  // Walk cycle bob
+  // Walk cycle bob and breathing
   var bob = Math.sin(f.walkCycle) * 1.5;
   var breathe = Math.sin(time * 3) * 0.5;
+  var sway = Math.sin(f.walkCycle * 0.7) * 0.8;
 
-  // === SHADOW on ground ===
-  cx.fillStyle = 'rgba(0, 0, 0, 0.25)';
-  cx.beginPath();
-  cx.ellipse(0, 22 + bob, 16, 4, 0, 0, Math.PI * 2);
-  cx.fill();
+  // Color scheme — rich tones for gradient shading
+  var skinBase, skinHi, skinMid, skinLo, skinDeep;
+  var shortsCol, shortsHi, shortsLo, glovesCol, glovesHi, glovesLo, accentCol;
 
-  // Color scheme
-  var skinTone, skinDark, skinLight, shortsCol, glovesCol, accentCol;
   if (isMasked) {
-    skinTone = '#c8956c'; skinDark = '#a07050'; skinLight = '#daa882';
-    shortsCol = '#1a4a8a'; glovesCol = '#1844aa'; accentCol = '#4488ff';
+    skinBase = '#c8956c'; skinHi = '#e8c09a'; skinMid = '#c8956c'; skinLo = '#9a6d48'; skinDeep = '#704828';
+    shortsCol = '#1a4a8a'; shortsHi = '#2a6abf'; shortsLo = '#0c2a55';
+    glovesCol = '#1844aa'; glovesHi = '#3366dd'; glovesLo = '#0a2266';
+    accentCol = '#4488ff';
   } else {
-    skinTone = '#d4a574'; skinDark = '#b88858'; skinLight = '#e8bc90';
-    shortsCol = '#8a1a1a'; glovesCol = '#aa2222'; accentCol = '#ff4444';
+    skinBase = '#d4a574'; skinHi = '#f0cca0'; skinMid = '#d4a574'; skinLo = '#a87a50'; skinDeep = '#7a5530';
+    shortsCol = '#8a1a1a'; shortsHi = '#bb3333'; shortsLo = '#551010';
+    glovesCol = '#aa2222'; glovesHi = '#dd4444'; glovesLo = '#661111';
+    accentCol = '#ff4444';
   }
 
   // Punch/kick state
@@ -1016,600 +1075,1182 @@ function _drawSingleFighter(f, isMasked, scale, t, time, corner) {
   }
   var legAngle = Math.sin(f.walkCycle) * 2.5;
 
-  // ═══ LEGS (thick, muscular with knee joints) ═══
-  var hipY = 5 + bob;
-  var kneeYBack = 14 + bob + legAngle;
-  var footYBack = 22 + bob;
-  var kneeYFront = 14 + bob - legAngle;
-  var footYFront = 22 + bob;
-
-  // Back leg — thigh
+  // === GROUND SHADOW ===
   cx.save();
-  var thighW = 4.5;
-  cx.fillStyle = skinTone;
+  cx.globalAlpha = 0.3;
+  var shadowG = cx.createRadialGradient(0, 24 + bob, 0, 0, 24 + bob, 20);
+  shadowG.addColorStop(0, 'rgba(0,0,0,0.5)');
+  shadowG.addColorStop(1, 'rgba(0,0,0,0)');
+  cx.fillStyle = shadowG;
   cx.beginPath();
-  cx.moveTo(-5 * facing - thighW, hipY);
-  cx.quadraticCurveTo(-6 * facing - thighW * 1.2, (hipY + kneeYBack) / 2, -5 * facing - legAngle - thighW * 0.8, kneeYBack);
-  cx.lineTo(-5 * facing - legAngle + thighW * 0.8, kneeYBack);
-  cx.quadraticCurveTo(-6 * facing + thighW * 0.8, (hipY + kneeYBack) / 2, -5 * facing + thighW, hipY);
-  cx.closePath();
-  cx.fill();
-  // Thigh muscle highlight
-  cx.fillStyle = skinLight;
-  cx.globalAlpha = 0.2;
-  cx.beginPath();
-  cx.ellipse(-5.5 * facing - legAngle * 0.3, (hipY + kneeYBack) / 2, thighW * 0.5, 4, 0, 0, Math.PI * 2);
-  cx.fill();
-  cx.globalAlpha = 1;
-
-  // Back leg — calf
-  cx.fillStyle = skinTone;
-  cx.beginPath();
-  cx.moveTo(-5 * facing - legAngle - 3, kneeYBack);
-  cx.quadraticCurveTo(-5 * facing - legAngle * 0.8 - 3.5, (kneeYBack + footYBack) / 2, -5 * facing - legAngle * 0.5 - 2, footYBack);
-  cx.lineTo(-5 * facing - legAngle * 0.5 + 2, footYBack);
-  cx.quadraticCurveTo(-5 * facing - legAngle * 0.8 + 3.5, (kneeYBack + footYBack) / 2, -5 * facing - legAngle + 3, kneeYBack);
-  cx.closePath();
-  cx.fill();
-  // Calf muscle bulge
-  cx.fillStyle = skinDark;
-  cx.globalAlpha = 0.12;
-  cx.beginPath();
-  cx.ellipse(-5 * facing - legAngle * 0.7, kneeYBack + 3, 3, 3.5, 0, 0, Math.PI * 2);
-  cx.fill();
-  cx.globalAlpha = 1;
-
-  // Front leg — thigh
-  var frontKneeX = 5 * facing + (kickExtend > 0 ? kickExtend * 0.3 * facing : legAngle);
-  var frontFootX = 5 * facing + (kickExtend > 0 ? kickExtend * facing : legAngle * 0.5);
-  var frontFootY = kickExtend > 0 ? 12 + bob : footYFront;
-  cx.fillStyle = skinTone;
-  cx.beginPath();
-  cx.moveTo(5 * facing - thighW, hipY);
-  cx.quadraticCurveTo(frontKneeX - thighW * 1.1, (hipY + kneeYFront) / 2, frontKneeX - thighW * 0.7, kneeYFront);
-  cx.lineTo(frontKneeX + thighW * 0.7, kneeYFront);
-  cx.quadraticCurveTo(frontKneeX + thighW * 0.8, (hipY + kneeYFront) / 2, 5 * facing + thighW, hipY);
-  cx.closePath();
-  cx.fill();
-
-  // Front leg — calf
-  cx.fillStyle = skinTone;
-  cx.beginPath();
-  cx.moveTo(frontKneeX - 3, kneeYFront);
-  cx.quadraticCurveTo(frontFootX - 3, (kneeYFront + frontFootY) / 2, frontFootX - 2, frontFootY);
-  cx.lineTo(frontFootX + 2, frontFootY);
-  cx.quadraticCurveTo(frontFootX + 3, (kneeYFront + frontFootY) / 2, frontKneeX + 3, kneeYFront);
-  cx.closePath();
+  cx.ellipse(0, 24 + bob, 20, 5, 0, 0, Math.PI * 2);
   cx.fill();
   cx.restore();
 
-  // Feet
-  cx.fillStyle = '#222';
-  cx.beginPath();
-  cx.ellipse(-5 * facing - legAngle * 0.5, footYBack, 3.5, 1.8, 0.1 * facing, 0, Math.PI * 2);
-  cx.fill();
-  cx.beginPath();
-  cx.ellipse(frontFootX, frontFootY, 3.5, 1.8, -0.1 * facing, 0, Math.PI * 2);
-  cx.fill();
+  // ═══════════════════════════════════════════════
+  // LEGS — thick muscular thighs and calves
+  // ═══════════════════════════════════════════════
+  var hipY = 6 + bob;
+  var kneeYBack = 16 + bob + legAngle;
+  var footYBack = 24 + bob;
+  var kneeYFront = 16 + bob - legAngle;
+  var footYFront = 24 + bob;
 
-  // ═══ SHORTS (MMA fight shorts with waistband + stripe) ═══
-  var shortsG = cx.createLinearGradient(0, 1 + bob, 0, 12 + bob);
-  shortsG.addColorStop(0, shortsCol);
-  shortsG.addColorStop(1, _darken(shortsCol, 25));
-  cx.fillStyle = shortsG;
+  // --- BACK LEG ---
+  // Back thigh
+  var backThighStartX = -5 * facing;
+  var backKneeX = -5 * facing - legAngle;
+  _drawMuscleSegment(
+    backThighStartX, hipY, backKneeX, kneeYBack,
+    5.5, 4, skinMid, skinHi, skinLo, 0.3
+  );
+  // Quad highlight on back thigh
+  cx.save();
+  cx.globalAlpha = 0.12;
+  var quadG = cx.createRadialGradient(
+    (backThighStartX + backKneeX) / 2, (hipY + kneeYBack) / 2 - 1, 0,
+    (backThighStartX + backKneeX) / 2, (hipY + kneeYBack) / 2, 5
+  );
+  quadG.addColorStop(0, skinHi);
+  quadG.addColorStop(1, 'rgba(0,0,0,0)');
+  cx.fillStyle = quadG;
   cx.beginPath();
-  cx.moveTo(-7.5, 1 + bob);
-  cx.lineTo(-8.5, 12 + bob);
-  cx.quadraticCurveTo(0, 13 + bob, 8.5, 12 + bob);
-  cx.lineTo(7.5, 1 + bob);
+  cx.ellipse((backThighStartX + backKneeX) / 2, (hipY + kneeYBack) / 2, 4, 5, 0, 0, Math.PI * 2);
+  cx.fill();
+  cx.restore();
+
+  // Back calf
+  var backFootX = -5 * facing - legAngle * 0.5;
+  _drawMuscleSegment(
+    backKneeX, kneeYBack, backFootX, footYBack,
+    4, 2.5, skinMid, skinHi, skinLo, 0.4
+  );
+  // Calf muscle bulge highlight
+  cx.save();
+  cx.globalAlpha = 0.15;
+  cx.fillStyle = skinHi;
+  cx.beginPath();
+  cx.ellipse(backKneeX - 0.5 * facing, kneeYBack + 3, 3, 3, 0, 0, Math.PI * 2);
+  cx.fill();
+  cx.restore();
+
+  // --- FRONT LEG ---
+  var frontKneeX = 5 * facing + (kickExtend > 0 ? kickExtend * 0.3 * facing : legAngle);
+  var frontFootX = 5 * facing + (kickExtend > 0 ? kickExtend * facing : legAngle * 0.5);
+  var frontFootY = kickExtend > 0 ? 12 + bob : footYFront;
+
+  // Front thigh (slightly thicker — closer to camera)
+  _drawMuscleSegment(
+    5 * facing, hipY, frontKneeX, kneeYFront,
+    6, 4.5, skinMid, skinHi, skinLo, 0.35
+  );
+  // Quad sweep highlight
+  cx.save();
+  cx.globalAlpha = 0.15;
+  var quadG2 = cx.createRadialGradient(
+    (5 * facing + frontKneeX) / 2 + 1 * facing, (hipY + kneeYFront) / 2 - 1, 0,
+    (5 * facing + frontKneeX) / 2, (hipY + kneeYFront) / 2, 6
+  );
+  quadG2.addColorStop(0, skinHi);
+  quadG2.addColorStop(1, 'rgba(0,0,0,0)');
+  cx.fillStyle = quadG2;
+  cx.beginPath();
+  cx.ellipse((5 * facing + frontKneeX) / 2, (hipY + kneeYFront) / 2, 5, 5.5, 0, 0, Math.PI * 2);
+  cx.fill();
+  cx.restore();
+
+  // Front calf
+  _drawMuscleSegment(
+    frontKneeX, kneeYFront, frontFootX, frontFootY,
+    4.5, 2.5, skinMid, skinHi, skinLo, 0.4
+  );
+
+  // --- FEET (MMA barefoot with ankle wrap) ---
+  // Back foot
+  cx.save();
+  var footG1 = cx.createRadialGradient(backFootX, footYBack, 0, backFootX, footYBack, 4);
+  footG1.addColorStop(0, '#333');
+  footG1.addColorStop(1, '#111');
+  cx.fillStyle = footG1;
+  cx.beginPath();
+  cx.ellipse(backFootX, footYBack, 4.5, 2, 0.1 * facing, 0, Math.PI * 2);
+  cx.fill();
+  cx.restore();
+  // Front foot
+  cx.save();
+  var footG2 = cx.createRadialGradient(frontFootX, frontFootY, 0, frontFootX, frontFootY, 4);
+  footG2.addColorStop(0, '#333');
+  footG2.addColorStop(1, '#111');
+  cx.fillStyle = footG2;
+  cx.beginPath();
+  cx.ellipse(frontFootX, frontFootY, 4.5, 2, -0.1 * facing, 0, Math.PI * 2);
+  cx.fill();
+  cx.restore();
+
+  // Ankle wraps
+  cx.strokeStyle = 'rgba(255,255,255,0.15)';
+  cx.lineWidth = 0.6;
+  cx.beginPath(); cx.ellipse(backFootX, footYBack - 1.5, 3, 1.8, 0, 0, Math.PI * 2); cx.stroke();
+  cx.beginPath(); cx.ellipse(frontFootX, frontFootY - 1.5, 3, 1.8, 0, 0, Math.PI * 2); cx.stroke();
+
+  // ═══════════════════════════════════════════════
+  // SHORTS — MMA fight shorts with gradient + stripe + logo
+  // ═══════════════════════════════════════════════
+  var shortsTop = 1 + bob;
+  var shortsBot = 14 + bob;
+  cx.save();
+  var sG = cx.createLinearGradient(-9, shortsTop, 9, shortsBot);
+  sG.addColorStop(0, shortsHi);
+  sG.addColorStop(0.3, shortsCol);
+  sG.addColorStop(1, shortsLo);
+  cx.fillStyle = sG;
+  cx.beginPath();
+  cx.moveTo(-9, shortsTop);
+  cx.quadraticCurveTo(-10.5, (shortsTop + shortsBot) / 2, -10, shortsBot);
+  cx.quadraticCurveTo(0, shortsBot + 1.5, 10, shortsBot);
+  cx.quadraticCurveTo(10.5, (shortsTop + shortsBot) / 2, 9, shortsTop);
   cx.closePath();
   cx.fill();
-  // Side stripes
-  cx.fillStyle = accentCol;
-  cx.globalAlpha = 0.5;
-  cx.fillRect(-8, 2 + bob, 1.5, 9);
-  cx.fillRect(6.5, 2 + bob, 1.5, 9);
-  cx.globalAlpha = 1;
-  // Waistband
-  cx.fillStyle = 'rgba(255,255,255,0.2)';
-  cx.fillRect(-7.5, 0.5 + bob, 15, 2);
-  // Sponsor patch hint
-  cx.fillStyle = 'rgba(255,255,255,0.06)';
-  cx.fillRect(-3, 5 + bob, 6, 3);
 
-  // ═══ TORSO (muscular with shading) ═══
-  var torsoTop = -12 + bob + breathe;
+  // White side stripes
+  cx.fillStyle = 'rgba(255,255,255,0.55)';
+  cx.beginPath();
+  cx.moveTo(-9.2, shortsTop + 1); cx.lineTo(-8, shortsTop + 1);
+  cx.lineTo(-8.8, shortsBot - 1); cx.lineTo(-10, shortsBot - 1);
+  cx.closePath(); cx.fill();
+  cx.beginPath();
+  cx.moveTo(8, shortsTop + 1); cx.lineTo(9.2, shortsTop + 1);
+  cx.lineTo(10, shortsBot - 1); cx.lineTo(8.8, shortsBot - 1);
+  cx.closePath(); cx.fill();
+
+  // Waistband with elastic detail
+  var wbG = cx.createLinearGradient(0, shortsTop - 1, 0, shortsTop + 2.5);
+  wbG.addColorStop(0, 'rgba(255,255,255,0.3)');
+  wbG.addColorStop(0.5, 'rgba(255,255,255,0.1)');
+  wbG.addColorStop(1, 'rgba(0,0,0,0.1)');
+  cx.fillStyle = wbG;
+  cx.fillRect(-9, shortsTop - 0.5, 18, 2.5);
+
+  // Sponsor logo patch (subtle rectangle)
+  cx.fillStyle = 'rgba(255,255,255,0.08)';
+  cx.fillRect(-4, shortsTop + 5, 8, 4);
+  // Tiny brand text hint
+  cx.fillStyle = 'rgba(255,255,255,0.12)';
+  cx.fillRect(-2.5, shortsTop + 6, 5, 1.5);
+
+  // Shorts fabric fold shadow
+  cx.globalAlpha = 0.08;
+  cx.fillStyle = '#000';
+  cx.beginPath();
+  cx.moveTo(0, shortsTop + 2);
+  cx.quadraticCurveTo(-1, shortsBot - 2, 0, shortsBot);
+  cx.quadraticCurveTo(1, shortsBot - 2, 0, shortsTop + 2);
+  cx.fill();
+  cx.globalAlpha = 1;
+  cx.restore();
+
+  // ═══════════════════════════════════════════════
+  // TORSO — wide V-taper, muscular with 3D gradient shading
+  // ═══════════════════════════════════════════════
+  var torsoTop = -14 + bob + breathe;
   var torsoBot = 2 + bob;
-  // Main torso shape — V-taper
-  var torsoG = cx.createLinearGradient(-7, torsoTop, 7, torsoBot);
-  torsoG.addColorStop(0, skinLight);
-  torsoG.addColorStop(0.5, skinTone);
-  torsoG.addColorStop(1, skinDark);
-  cx.fillStyle = torsoG;
+  var shoulderW = 11; // Very broad shoulders
+  var waistW = 8;     // Narrow waist for V-taper
+
+  cx.save();
+  // Main torso shape
   cx.beginPath();
-  cx.moveTo(-7, torsoTop + 2); // left shoulder
-  cx.quadraticCurveTo(-8, torsoTop + 6, -7, torsoBot); // left side
-  cx.lineTo(7, torsoBot); // bottom
-  cx.quadraticCurveTo(8, torsoTop + 6, 7, torsoTop + 2); // right side
-  cx.quadraticCurveTo(0, torsoTop, -7, torsoTop + 2); // top (chest)
+  cx.moveTo(-shoulderW, torsoTop + 2);
+  cx.quadraticCurveTo(-shoulderW - 1, torsoTop + 7, -waistW, torsoBot);
+  cx.lineTo(waistW, torsoBot);
+  cx.quadraticCurveTo(shoulderW + 1, torsoTop + 7, shoulderW, torsoTop + 2);
+  cx.quadraticCurveTo(shoulderW * 0.3, torsoTop - 1, -shoulderW, torsoTop + 2);
   cx.closePath();
+
+  // Side-lit torso gradient (left side brighter)
+  var torsoG = cx.createLinearGradient(-shoulderW - 2, torsoTop, shoulderW + 2, torsoBot);
+  torsoG.addColorStop(0, skinHi);
+  torsoG.addColorStop(0.35, skinMid);
+  torsoG.addColorStop(0.7, skinLo);
+  torsoG.addColorStop(1, skinDeep);
+  cx.fillStyle = torsoG;
   cx.fill();
 
-  // Pecs — two muscle mounds
-  cx.fillStyle = skinDark;
-  cx.globalAlpha = 0.1;
+  // Pecs — two prominent muscle mounds with radial gradients
+  // Left pec
+  var pecCx1 = -4.5, pecCy = torsoTop + 5.5 + breathe * 0.3;
+  cx.save();
+  cx.globalAlpha = 0.35;
+  var pecG1 = cx.createRadialGradient(pecCx1 - 1, pecCy - 1, 0, pecCx1, pecCy, 5);
+  pecG1.addColorStop(0, skinHi);
+  pecG1.addColorStop(1, 'rgba(0,0,0,0)');
+  cx.fillStyle = pecG1;
   cx.beginPath();
-  cx.ellipse(-3.5, torsoTop + 5, 4, 2.5, -0.15, 0, Math.PI * 2);
+  cx.ellipse(pecCx1, pecCy, 5.5, 3.5, -0.15, 0, Math.PI * 2);
+  cx.fill();
+  cx.restore();
+  // Right pec
+  var pecCx2 = 4.5;
+  cx.save();
+  cx.globalAlpha = 0.25;
+  var pecG2 = cx.createRadialGradient(pecCx2 - 1, pecCy - 1, 0, pecCx2, pecCy, 5);
+  pecG2.addColorStop(0, skinHi);
+  pecG2.addColorStop(1, 'rgba(0,0,0,0)');
+  cx.fillStyle = pecG2;
+  cx.beginPath();
+  cx.ellipse(pecCx2, pecCy, 5.5, 3.5, 0.15, 0, Math.PI * 2);
+  cx.fill();
+  cx.restore();
+
+  // Pec shadow underneath
+  cx.save();
+  cx.globalAlpha = 0.12;
+  cx.fillStyle = skinDeep;
+  cx.beginPath();
+  cx.ellipse(-4.5, torsoTop + 7.5, 5, 1.5, -0.1, 0, Math.PI);
   cx.fill();
   cx.beginPath();
-  cx.ellipse(3.5, torsoTop + 5, 4, 2.5, 0.15, 0, Math.PI * 2);
+  cx.ellipse(4.5, torsoTop + 7.5, 5, 1.5, 0.1, 0, Math.PI);
   cx.fill();
-  cx.globalAlpha = 1;
+  cx.restore();
 
   // Pec split line
-  cx.strokeStyle = skinDark;
-  cx.globalAlpha = 0.15;
-  cx.lineWidth = 0.5;
+  cx.save();
+  cx.strokeStyle = skinDeep;
+  cx.globalAlpha = 0.2;
+  cx.lineWidth = 0.7;
   cx.beginPath();
-  cx.moveTo(0, torsoTop + 2.5);
-  cx.lineTo(0, torsoTop + 7);
+  cx.moveTo(0, torsoTop + 3);
+  cx.quadraticCurveTo(-0.3, torsoTop + 5, 0, torsoTop + 8);
   cx.stroke();
-  cx.globalAlpha = 1;
+  cx.restore();
 
-  // Abs — 6-pack with shading
-  cx.strokeStyle = skinDark;
+  // Abs — 6-pack with individual muscle bellies
+  cx.save();
   cx.globalAlpha = 0.12;
-  cx.lineWidth = 0.4;
-  // Center line
-  cx.beginPath(); cx.moveTo(0, torsoTop + 7); cx.lineTo(0, torsoBot - 1); cx.stroke();
-  // Horizontal lines
+  cx.fillStyle = skinDeep;
+  // Center line (linea alba)
+  cx.lineWidth = 0.5;
+  cx.strokeStyle = skinDeep;
+  cx.beginPath(); cx.moveTo(0, torsoTop + 8); cx.lineTo(0, torsoBot - 1); cx.stroke();
+  // Individual ab segments with slight gradient
   for (var ai = 0; ai < 3; ai++) {
-    var abY = torsoTop + 8 + ai * 2.8;
+    var abY = torsoTop + 9 + ai * 2.8;
+    // Left ab
     cx.beginPath();
-    cx.moveTo(-3.5, abY);
-    cx.quadraticCurveTo(0, abY + 0.3, 3.5, abY);
+    cx.ellipse(-2.5, abY + 0.5, 2.5, 1.2, 0, 0, Math.PI * 2);
+    cx.fill();
+    // Right ab
+    cx.beginPath();
+    cx.ellipse(2.5, abY + 0.5, 2.5, 1.2, 0, 0, Math.PI * 2);
+    cx.fill();
+    // Horizontal separation
+    cx.beginPath();
+    cx.moveTo(-4.5, abY);
+    cx.quadraticCurveTo(0, abY + 0.4, 4.5, abY);
     cx.stroke();
   }
-  cx.globalAlpha = 1;
+  cx.restore();
 
-  // Oblique side shadow
-  cx.fillStyle = skinDark;
-  cx.globalAlpha = 0.08;
+  // Oblique/serratus shadow on sides
+  cx.save();
+  cx.globalAlpha = 0.1;
+  cx.fillStyle = skinDeep;
+  // Left oblique (highlighted side — less shadow)
   cx.beginPath();
-  cx.ellipse(-6.5, torsoTop + 8, 2, 5, 0.2, 0, Math.PI * 2);
+  cx.ellipse(-waistW - 0.5, torsoTop + 9, 2.5, 6, 0.2, 0, Math.PI * 2);
   cx.fill();
+  // Right oblique (shadow side — deeper)
+  cx.globalAlpha = 0.18;
   cx.beginPath();
-  cx.ellipse(6.5, torsoTop + 8, 2, 5, -0.2, 0, Math.PI * 2);
+  cx.ellipse(waistW + 0.5, torsoTop + 9, 2.5, 6, -0.2, 0, Math.PI * 2);
   cx.fill();
-  cx.globalAlpha = 1;
+  cx.restore();
 
-  // Shoulder caps (deltoids)
-  cx.fillStyle = skinTone;
-  cx.beginPath();
-  cx.ellipse(-8, torsoTop + 3, 3.5, 3, -0.3, 0, Math.PI * 2);
-  cx.fill();
-  cx.beginPath();
-  cx.ellipse(8, torsoTop + 3, 3.5, 3, 0.3, 0, Math.PI * 2);
-  cx.fill();
-  // Deltoid highlight
-  cx.fillStyle = skinLight;
-  cx.globalAlpha = 0.2;
-  cx.beginPath(); cx.ellipse(-8, torsoTop + 2, 2, 1.5, 0, 0, Math.PI * 2); cx.fill();
-  cx.beginPath(); cx.ellipse(8, torsoTop + 2, 2, 1.5, 0, 0, Math.PI * 2); cx.fill();
-  cx.globalAlpha = 1;
-
-  // ═══ ARMS + GLOVES (with bicep/forearm thickness) ═══
-  var guardY = -13 + bob;
-  var guardX = 10 * facing;
-  var shoulderY = torsoTop + 3;
-
-  // Arm helper function
-  function _drawArm(sx, sy, ex, ey, isFist) {
-    // Upper arm (thicker)
-    var mx = (sx + ex) / 2 + (ey - sy) * 0.12;
-    var my = (sy + ey) / 2 + (sx - ex) * 0.05;
-    cx.strokeStyle = skinTone; cx.lineWidth = 5; cx.lineCap = 'round';
-    cx.beginPath(); cx.moveTo(sx, sy); cx.quadraticCurveTo(mx, my, ex, ey); cx.stroke();
-    // Forearm shading
-    cx.strokeStyle = skinDark; cx.lineWidth = 4.5; cx.globalAlpha = 0.15;
-    cx.beginPath(); cx.moveTo(mx, my); cx.lineTo(ex, ey); cx.stroke();
-    cx.globalAlpha = 1;
-    // Bicep bulge (visible when punching)
-    if (isFist && punchExt > 5) {
-      cx.fillStyle = skinLight; cx.globalAlpha = 0.2;
-      cx.beginPath(); cx.ellipse(mx, my - 1, 3, 2, 0, 0, Math.PI * 2); cx.fill();
-      cx.globalAlpha = 1;
-    }
+  // Serratus anterior (rib muscles on sides)
+  cx.save();
+  cx.globalAlpha = 0.06;
+  cx.strokeStyle = skinDeep;
+  cx.lineWidth = 0.5;
+  for (var si = 0; si < 3; si++) {
+    var sy = torsoTop + 6 + si * 2;
+    cx.beginPath();
+    cx.moveTo(-shoulderW + 1, sy);
+    cx.quadraticCurveTo(-waistW - 1, sy + 1, -waistW, sy + 2);
+    cx.stroke();
+    cx.beginPath();
+    cx.moveTo(shoulderW - 1, sy);
+    cx.quadraticCurveTo(waistW + 1, sy + 1, waistW, sy + 2);
+    cx.stroke();
   }
+  cx.restore();
 
-  // Back arm
+  // Side lighting rim highlight on left edge
+  cx.save();
+  cx.globalAlpha = 0.12;
+  cx.strokeStyle = '#fff';
+  cx.lineWidth = 1;
+  cx.beginPath();
+  cx.moveTo(-shoulderW, torsoTop + 3);
+  cx.quadraticCurveTo(-shoulderW - 0.5, torsoTop + 7, -waistW, torsoBot);
+  cx.stroke();
+  cx.restore();
+
+  // Right side deep shadow
+  cx.save();
+  cx.globalAlpha = 0.1;
+  cx.strokeStyle = skinDeep;
+  cx.lineWidth = 1.5;
+  cx.beginPath();
+  cx.moveTo(shoulderW, torsoTop + 3);
+  cx.quadraticCurveTo(shoulderW + 0.5, torsoTop + 7, waistW, torsoBot);
+  cx.stroke();
+  cx.restore();
+
+  cx.restore(); // end torso save
+
+  // ═══════════════════════════════════════════════
+  // SHOULDER CAPS (deltoids) — large, rounded, 3D
+  // ═══════════════════════════════════════════════
+  var shoulderY = torsoTop + 3;
+  // Left deltoid
+  cx.save();
+  var dG1 = cx.createRadialGradient(-shoulderW - 1, shoulderY - 1.5, 0, -shoulderW, shoulderY, 5);
+  dG1.addColorStop(0, skinHi);
+  dG1.addColorStop(0.5, skinMid);
+  dG1.addColorStop(1, skinLo);
+  cx.fillStyle = dG1;
+  cx.beginPath();
+  cx.ellipse(-shoulderW, shoulderY, 5, 4, -0.3, 0, Math.PI * 2);
+  cx.fill();
+  // Deltoid specular
+  cx.globalAlpha = 0.2;
+  cx.fillStyle = '#fff';
+  cx.beginPath();
+  cx.ellipse(-shoulderW - 1, shoulderY - 2, 2.5, 1.5, -0.3, 0, Math.PI * 2);
+  cx.fill();
+  cx.restore();
+
+  // Right deltoid (shadow side)
+  cx.save();
+  var dG2 = cx.createRadialGradient(shoulderW - 0.5, shoulderY - 1, 0, shoulderW, shoulderY, 5);
+  dG2.addColorStop(0, skinMid);
+  dG2.addColorStop(0.5, skinLo);
+  dG2.addColorStop(1, skinDeep);
+  cx.fillStyle = dG2;
+  cx.beginPath();
+  cx.ellipse(shoulderW, shoulderY, 5, 4, 0.3, 0, Math.PI * 2);
+  cx.fill();
+  cx.restore();
+
+  // ═══════════════════════════════════════════════
+  // ARMS + GLOVES — thick biceps/forearms, gradient shaded
+  // ═══════════════════════════════════════════════
+  var guardY = -15 + bob;
+  var guardX = 12 * facing;
+
+  // --- BACK ARM ---
   var backArmX, backArmY;
+  var backBicepBulge = 0.2;
   if (punchExt > 0 && punchArm === -1) {
     backArmX = -5 * facing + punchExt * facing;
-    backArmY = -10 + bob;
+    backArmY = -12 + bob;
+    backBicepBulge = 0.6; // Bulging bicep during punch
+  } else if (f.blockTimer > 0) {
+    backArmX = -2 * facing;
+    backArmY = -20 + bob;
+    backBicepBulge = 0.4;
   } else {
     backArmX = -guardX * 0.6;
     backArmY = guardY + Math.sin(time * 5) * 1;
   }
-  _drawArm(-8 * facing, shoulderY, backArmX, backArmY, punchArm === -1);
+  // Upper arm
+  var backElbowX = (-shoulderW * facing + backArmX) / 2 + (backArmY - shoulderY) * 0.1;
+  var backElbowY = (shoulderY + backArmY) / 2 + 3;
+  _drawMuscleSegment(
+    -shoulderW * facing, shoulderY, backElbowX, backElbowY,
+    4.5, 3.5, skinMid, skinHi, skinLo, backBicepBulge
+  );
+  // Forearm
+  _drawMuscleSegment(
+    backElbowX, backElbowY, backArmX, backArmY,
+    3.5, 3, skinMid, skinHi, skinLo, 0.15
+  );
 
-  // Back glove
-  var gG = cx.createRadialGradient(backArmX, backArmY, 0, backArmX, backArmY, 4.5);
-  gG.addColorStop(0, glovesCol); gG.addColorStop(0.7, _darken(glovesCol, 20)); gG.addColorStop(1, _darken(glovesCol, 40));
-  cx.fillStyle = gG;
-  cx.beginPath(); cx.arc(backArmX, backArmY, 4.5, 0, Math.PI * 2); cx.fill();
-  // Glove wrapping lines
-  cx.strokeStyle = 'rgba(255,255,255,0.12)'; cx.lineWidth = 0.4;
-  cx.beginPath(); cx.arc(backArmX, backArmY, 3, 0.3, 2.8); cx.stroke();
-  cx.beginPath(); cx.arc(backArmX, backArmY, 4, 1, 2.2); cx.stroke();
+  // Back glove — radial gradient
+  cx.save();
+  var bgG = cx.createRadialGradient(backArmX - 1, backArmY - 1, 0, backArmX, backArmY, 6);
+  bgG.addColorStop(0, glovesHi);
+  bgG.addColorStop(0.5, glovesCol);
+  bgG.addColorStop(1, glovesLo);
+  cx.fillStyle = bgG;
+  cx.beginPath();
+  cx.arc(backArmX, backArmY, 5.5, 0, Math.PI * 2);
+  cx.fill();
+  // Glove wrapping seams
+  cx.strokeStyle = 'rgba(255,255,255,0.15)';
+  cx.lineWidth = 0.5;
+  cx.beginPath(); cx.arc(backArmX, backArmY, 3.5, 0.2, 2.9); cx.stroke();
+  cx.beginPath(); cx.arc(backArmX, backArmY, 4.5, 0.8, 2.3); cx.stroke();
   // Knuckle highlight
-  cx.fillStyle = 'rgba(255,255,255,0.2)';
-  cx.beginPath(); cx.ellipse(backArmX + 1.5 * facing, backArmY - 1.5, 2, 1, 0, 0, Math.PI * 2); cx.fill();
+  cx.globalAlpha = 0.25;
+  cx.fillStyle = '#fff';
+  cx.beginPath();
+  cx.ellipse(backArmX + 2 * facing, backArmY - 2, 2.5, 1.2, 0.2 * facing, 0, Math.PI * 2);
+  cx.fill();
+  cx.restore();
 
-  // Front arm
+  // --- FRONT ARM ---
   var frontArmX, frontArmY;
+  var frontBicepBulge = 0.2;
   if (punchExt > 0 && punchArm === 1) {
     frontArmX = 5 * facing + punchExt * facing;
-    frontArmY = -10 + bob;
+    frontArmY = -12 + bob;
+    frontBicepBulge = 0.7; // Extra bulge during punch
   } else if (f.blockTimer > 0) {
     frontArmX = 3 * facing;
-    frontArmY = -18 + bob;
+    frontArmY = -20 + bob;
+    frontBicepBulge = 0.4;
   } else {
     frontArmX = guardX;
     frontArmY = guardY + Math.sin(time * 5 + 1) * 1;
   }
-  _drawArm(8 * facing, shoulderY, frontArmX, frontArmY, punchArm === 1);
+  // Upper arm
+  var frontElbowX = (shoulderW * facing + frontArmX) / 2 + (frontArmY - shoulderY) * 0.1;
+  var frontElbowY = (shoulderY + frontArmY) / 2 + 3;
+  _drawMuscleSegment(
+    shoulderW * facing, shoulderY, frontElbowX, frontElbowY,
+    5, 4, skinMid, skinHi, skinLo, frontBicepBulge
+  );
+  // Forearm
+  _drawMuscleSegment(
+    frontElbowX, frontElbowY, frontArmX, frontArmY,
+    4, 3.2, skinMid, skinHi, skinLo, 0.15
+  );
 
-  // Front glove
-  var gG2 = cx.createRadialGradient(frontArmX, frontArmY, 0, frontArmX, frontArmY, 4.5);
-  gG2.addColorStop(0, glovesCol); gG2.addColorStop(0.7, _darken(glovesCol, 20)); gG2.addColorStop(1, _darken(glovesCol, 40));
-  cx.fillStyle = gG2;
-  cx.beginPath(); cx.arc(frontArmX, frontArmY, 4.5, 0, Math.PI * 2); cx.fill();
-  cx.strokeStyle = 'rgba(255,255,255,0.12)'; cx.lineWidth = 0.4;
-  cx.beginPath(); cx.arc(frontArmX, frontArmY, 3, 0.3, 2.8); cx.stroke();
-  cx.fillStyle = 'rgba(255,255,255,0.2)';
-  cx.beginPath(); cx.ellipse(frontArmX + 1.5 * facing, frontArmY - 1.5, 2, 1, 0, 0, Math.PI * 2); cx.fill();
+  // Bicep peak highlight when punching
+  if (punchExt > 5) {
+    cx.save();
+    cx.globalAlpha = 0.25;
+    var bicepX = (shoulderW * facing + frontElbowX) / 2;
+    var bicepY = (shoulderY + frontElbowY) / 2 - 2;
+    var bpG = cx.createRadialGradient(bicepX, bicepY, 0, bicepX, bicepY, 4);
+    bpG.addColorStop(0, skinHi);
+    bpG.addColorStop(1, 'rgba(0,0,0,0)');
+    cx.fillStyle = bpG;
+    cx.beginPath();
+    cx.ellipse(bicepX, bicepY, 4, 3, 0, 0, Math.PI * 2);
+    cx.fill();
+    cx.restore();
+  }
 
-  // ═══ PUNCH IMPACT FLASH ═══
+  // Front glove — radial gradient
+  cx.save();
+  var fgG = cx.createRadialGradient(frontArmX - 1, frontArmY - 1, 0, frontArmX, frontArmY, 6);
+  fgG.addColorStop(0, glovesHi);
+  fgG.addColorStop(0.5, glovesCol);
+  fgG.addColorStop(1, glovesLo);
+  cx.fillStyle = fgG;
+  cx.beginPath();
+  cx.arc(frontArmX, frontArmY, 5.5, 0, Math.PI * 2);
+  cx.fill();
+  // Glove seams
+  cx.strokeStyle = 'rgba(255,255,255,0.15)';
+  cx.lineWidth = 0.5;
+  cx.beginPath(); cx.arc(frontArmX, frontArmY, 3.5, 0.2, 2.9); cx.stroke();
+  cx.beginPath(); cx.arc(frontArmX, frontArmY, 4.5, 0.8, 2.3); cx.stroke();
+  // Knuckle highlight
+  cx.globalAlpha = 0.25;
+  cx.fillStyle = '#fff';
+  cx.beginPath();
+  cx.ellipse(frontArmX + 2 * facing, frontArmY - 2, 2.5, 1.2, 0.2 * facing, 0, Math.PI * 2);
+  cx.fill();
+  cx.restore();
+
+  // ═══════════════════════════════════════════════
+  // PUNCH IMPACT FLASH — large white flash + radial lines
+  // ═══════════════════════════════════════════════
   if (punchExt > 10) {
     var impX = (punchArm === 1 ? frontArmX : backArmX);
     var impY = (punchArm === 1 ? frontArmY : backArmY);
-    cx.globalAlpha = 0.5 * (punchExt / 22);
-    // White flash
+    var impIntensity = punchExt / 22;
+
+    cx.save();
+    // Outer glow
+    cx.globalAlpha = 0.3 * impIntensity;
+    var impGlow = cx.createRadialGradient(
+      impX + 6 * facing, impY, 0,
+      impX + 6 * facing, impY, 14 + punchExt * 0.5
+    );
+    impGlow.addColorStop(0, 'rgba(255,255,255,0.8)');
+    impGlow.addColorStop(0.4, 'rgba(255,240,150,0.4)');
+    impGlow.addColorStop(1, 'rgba(255,200,50,0)');
+    cx.fillStyle = impGlow;
+    cx.beginPath();
+    cx.arc(impX + 6 * facing, impY, 14 + punchExt * 0.5, 0, Math.PI * 2);
+    cx.fill();
+
+    // Core white flash
+    cx.globalAlpha = 0.6 * impIntensity;
     cx.fillStyle = '#fff';
     cx.beginPath();
-    cx.arc(impX + 5 * facing, impY, 6 + punchExt * 0.3, 0, Math.PI * 2);
+    cx.arc(impX + 5 * facing, impY, 7 + punchExt * 0.3, 0, Math.PI * 2);
     cx.fill();
+
     // Radial impact lines
-    cx.strokeStyle = 'rgba(255, 220, 80, 0.7)';
-    cx.lineWidth = 1.2;
-    for (var li = 0; li < 6; li++) {
-      var la = li / 6 * Math.PI * 2 + time * 12;
-      var inner = 6, outer = 10 + punchExt * 0.25;
+    cx.strokeStyle = 'rgba(255, 230, 100, 0.8)';
+    cx.lineWidth = 1.5;
+    cx.globalAlpha = 0.6 * impIntensity;
+    for (var li = 0; li < 8; li++) {
+      var la = li / 8 * Math.PI * 2 + time * 15;
+      var inner = 7, outer = 13 + punchExt * 0.35;
       cx.beginPath();
       cx.moveTo(impX + 5 * facing + Math.cos(la) * inner, impY + Math.sin(la) * inner);
       cx.lineTo(impX + 5 * facing + Math.cos(la) * outer, impY + Math.sin(la) * outer);
       cx.stroke();
     }
-    cx.globalAlpha = 1;
+
+    // Screen shake spark particles
+    cx.fillStyle = '#fff';
+    cx.globalAlpha = 0.5 * impIntensity;
+    for (var sp = 0; sp < 5; sp++) {
+      var spAngle = sp / 5 * Math.PI * 2 + time * 20;
+      var spDist = 8 + punchExt * 0.4 + Math.sin(time * 30 + sp * 7) * 3;
+      cx.beginPath();
+      cx.arc(
+        impX + 5 * facing + Math.cos(spAngle) * spDist,
+        impY + Math.sin(spAngle) * spDist,
+        0.8 + Math.random() * 0.5, 0, Math.PI * 2
+      );
+      cx.fill();
+    }
+    cx.restore();
   }
 
-  // ═══ KICK IMPACT ═══
+  // ═══════════════════════════════════════════════
+  // KICK IMPACT FLASH
+  // ═══════════════════════════════════════════════
   if (kickExtend > 15) {
-    cx.globalAlpha = 0.4 * (kickExtend / 24);
+    cx.save();
+    var kickImp = kickExtend / 24;
+    cx.globalAlpha = 0.4 * kickImp;
+    var kickGlow = cx.createRadialGradient(
+      frontFootX + 4 * facing, frontFootY - 4, 0,
+      frontFootX + 4 * facing, frontFootY - 4, 10 + kickExtend * 0.4
+    );
+    kickGlow.addColorStop(0, 'rgba(255,255,255,0.8)');
+    kickGlow.addColorStop(0.5, 'rgba(255,240,150,0.3)');
+    kickGlow.addColorStop(1, 'rgba(255,200,50,0)');
+    cx.fillStyle = kickGlow;
+    cx.beginPath();
+    cx.arc(frontFootX + 4 * facing, frontFootY - 4, 10 + kickExtend * 0.4, 0, Math.PI * 2);
+    cx.fill();
+    // Core flash
+    cx.globalAlpha = 0.5 * kickImp;
     cx.fillStyle = '#fff';
     cx.beginPath();
-    cx.arc(frontFootX + 3 * facing, frontFootY - 4, 5 + kickExtend * 0.2, 0, Math.PI * 2);
+    cx.arc(frontFootX + 3 * facing, frontFootY - 4, 6 + kickExtend * 0.2, 0, Math.PI * 2);
     cx.fill();
-    cx.globalAlpha = 1;
+    // Radial lines
+    cx.strokeStyle = 'rgba(255,230,100,0.6)';
+    cx.lineWidth = 1.2;
+    for (var kl = 0; kl < 6; kl++) {
+      var ka = kl / 6 * Math.PI * 2 + time * 12;
+      cx.beginPath();
+      cx.moveTo(frontFootX + 3 * facing + Math.cos(ka) * 5, frontFootY - 4 + Math.sin(ka) * 5);
+      cx.lineTo(frontFootX + 3 * facing + Math.cos(ka) * (9 + kickExtend * 0.25), frontFootY - 4 + Math.sin(ka) * (9 + kickExtend * 0.25));
+      cx.stroke();
+    }
+    cx.restore();
   }
 
-  // ═══ NECK (thick, muscular) ═══
-  var neckW = 3.5;
-  cx.fillStyle = skinTone;
-  cx.fillRect(-neckW, torsoTop - 1, neckW * 2, 5);
-  // Neck muscle (sternocleidomastoid)
-  cx.fillStyle = skinDark; cx.globalAlpha = 0.08;
-  cx.beginPath(); cx.moveTo(-neckW + 0.5, torsoTop + 3); cx.lineTo(-1, torsoTop - 1); cx.lineTo(1, torsoTop - 1); cx.lineTo(neckW - 0.5, torsoTop + 3); cx.stroke();
-  cx.globalAlpha = 1;
+  // ═══════════════════════════════════════════════
+  // NECK — thick, muscular with trapezius
+  // ═══════════════════════════════════════════════
+  var neckW = 4.5;
+  cx.save();
+  var neckG = cx.createLinearGradient(-neckW, torsoTop - 2, neckW, torsoTop + 4);
+  neckG.addColorStop(0, skinHi);
+  neckG.addColorStop(0.5, skinMid);
+  neckG.addColorStop(1, skinLo);
+  cx.fillStyle = neckG;
+  cx.beginPath();
+  cx.moveTo(-neckW, torsoTop + 3);
+  cx.quadraticCurveTo(-neckW - 0.5, torsoTop, -neckW + 1, torsoTop - 2);
+  cx.lineTo(neckW - 1, torsoTop - 2);
+  cx.quadraticCurveTo(neckW + 0.5, torsoTop, neckW, torsoTop + 3);
+  cx.closePath();
+  cx.fill();
+  // Sternocleidomastoid muscle lines
+  cx.globalAlpha = 0.1;
+  cx.strokeStyle = skinDeep;
+  cx.lineWidth = 0.6;
+  cx.beginPath();
+  cx.moveTo(-neckW + 1.5, torsoTop + 3);
+  cx.quadraticCurveTo(-1, torsoTop, 0, torsoTop - 2);
+  cx.stroke();
+  cx.beginPath();
+  cx.moveTo(neckW - 1.5, torsoTop + 3);
+  cx.quadraticCurveTo(1, torsoTop, 0, torsoTop - 2);
+  cx.stroke();
+  cx.restore();
 
-  // ═══ HEAD (larger, more detailed) ═══
-  var headY = torsoTop - 7 + breathe;
-  var headR = 7.5;
+  // Trapezius muscles (connecting neck to shoulders)
+  cx.save();
+  cx.globalAlpha = 0.15;
+  var trapG = cx.createLinearGradient(-shoulderW, shoulderY, shoulderW, shoulderY);
+  trapG.addColorStop(0, skinHi);
+  trapG.addColorStop(0.5, skinMid);
+  trapG.addColorStop(1, skinLo);
+  cx.fillStyle = trapG;
+  cx.beginPath();
+  cx.moveTo(-neckW, torsoTop - 1);
+  cx.quadraticCurveTo(-shoulderW * 0.7, torsoTop + 1, -shoulderW, shoulderY);
+  cx.lineTo(-shoulderW, shoulderY + 2);
+  cx.quadraticCurveTo(-shoulderW * 0.5, torsoTop + 3, -neckW, torsoTop + 2);
+  cx.closePath();
+  cx.fill();
+  cx.beginPath();
+  cx.moveTo(neckW, torsoTop - 1);
+  cx.quadraticCurveTo(shoulderW * 0.7, torsoTop + 1, shoulderW, shoulderY);
+  cx.lineTo(shoulderW, shoulderY + 2);
+  cx.quadraticCurveTo(shoulderW * 0.5, torsoTop + 3, neckW, torsoTop + 2);
+  cx.closePath();
+  cx.fill();
+  cx.restore();
 
-  // Head shape — slightly oval, jaw heavier
-  var headG = cx.createRadialGradient(0, headY - 1, headR * 0.3, 0, headY, headR);
-  headG.addColorStop(0, skinLight);
-  headG.addColorStop(0.6, skinTone);
-  headG.addColorStop(1, skinDark);
+  // ═══════════════════════════════════════════════
+  // HEAD — proportionally smaller (body:head ~4:1)
+  // ═══════════════════════════════════════════════
+  var headY = torsoTop - 8 + breathe;
+  var headR = 6.5; // Smaller head for exaggerated body proportion
+
+  // Head base shape — radial gradient for 3D sphere look
+  var headG = cx.createRadialGradient(-1.5, headY - 2, headR * 0.2, 0, headY, headR * 1.1);
+  headG.addColorStop(0, skinHi);
+  headG.addColorStop(0.4, skinMid);
+  headG.addColorStop(0.8, skinLo);
+  headG.addColorStop(1, skinDeep);
   cx.fillStyle = headG;
   cx.beginPath();
-  cx.ellipse(0, headY, headR * 0.9, headR, 0, 0, Math.PI * 2);
+  cx.ellipse(0, headY, headR * 0.92, headR, 0, 0, Math.PI * 2);
   cx.fill();
 
-  // Jaw definition
-  cx.fillStyle = skinDark; cx.globalAlpha = 0.06;
+  // Jaw definition — heavier, stronger
+  cx.save();
+  cx.globalAlpha = 0.1;
+  cx.fillStyle = skinDeep;
   cx.beginPath();
-  cx.moveTo(-headR * 0.7, headY + 1);
-  cx.quadraticCurveTo(-headR * 0.5, headY + headR * 0.8, 0, headY + headR);
-  cx.quadraticCurveTo(headR * 0.5, headY + headR * 0.8, headR * 0.7, headY + 1);
+  cx.moveTo(-headR * 0.75, headY + 1);
+  cx.quadraticCurveTo(-headR * 0.6, headY + headR * 0.85, 0, headY + headR * 1.05);
+  cx.quadraticCurveTo(headR * 0.6, headY + headR * 0.85, headR * 0.75, headY + 1);
+  cx.closePath();
   cx.fill();
-  cx.globalAlpha = 1;
+  cx.restore();
 
   if (isMasked) {
-    // ═══ MASKED FIGHTER (blue) — full face mask ═══
-    // Full mask covering top half of face
-    cx.fillStyle = '#12122a';
+    // ═══════════════════════════════════════════════
+    // MASKED FIGHTER — dark blue/black full-face mask
+    // ═══════════════════════════════════════════════
+
+    // Full mask covering entire head
+    cx.save();
+    var maskG = cx.createRadialGradient(-1, headY - 2, 0, 0, headY, headR * 1.1);
+    maskG.addColorStop(0, '#1a1a3a');
+    maskG.addColorStop(0.5, '#10102a');
+    maskG.addColorStop(1, '#08081a');
+    cx.fillStyle = maskG;
     cx.beginPath();
-    cx.ellipse(0, headY - 1, headR * 0.92, headR * 0.55, 0, Math.PI, Math.PI * 2);
+    cx.ellipse(0, headY, headR * 0.93, headR * 1.01, 0, 0, Math.PI * 2);
     cx.fill();
-    // Mask lower edge
-    cx.fillStyle = '#1a1a30';
+    cx.restore();
+
+    // Mask accent pattern — angular geometric lines
+    cx.save();
+    cx.strokeStyle = accentCol;
+    cx.globalAlpha = 0.2;
+    cx.lineWidth = 0.6;
+    // Center vertical stripe
     cx.beginPath();
-    cx.ellipse(0, headY, headR * 0.92, headR * 0.35, 0, 0, Math.PI);
-    cx.fill();
-    // Mask texture lines
-    cx.strokeStyle = 'rgba(68,136,255,0.12)'; cx.lineWidth = 0.3;
+    cx.moveTo(0, headY - headR * 0.85);
+    cx.lineTo(0, headY - headR * 0.3);
+    cx.stroke();
+    // V-pattern on forehead
+    cx.beginPath();
+    cx.moveTo(0, headY - headR * 0.7);
+    cx.lineTo(-4, headY - headR * 0.25);
+    cx.stroke();
+    cx.beginPath();
+    cx.moveTo(0, headY - headR * 0.7);
+    cx.lineTo(4, headY - headR * 0.25);
+    cx.stroke();
+    // Side accent arcs
+    cx.lineWidth = 0.4;
+    cx.globalAlpha = 0.12;
     for (var mi = -3; mi <= 3; mi++) {
       cx.beginPath();
-      cx.moveTo(mi * 2, headY - headR * 0.5);
+      cx.moveTo(mi * 1.8, headY - headR * 0.6);
       cx.lineTo(mi * 2.2, headY + 1);
       cx.stroke();
     }
+    // Cheek accent marks
+    cx.globalAlpha = 0.15;
+    cx.lineWidth = 0.5;
+    cx.beginPath();
+    cx.moveTo(-headR * 0.6, headY + 1);
+    cx.lineTo(-headR * 0.4, headY + 3);
+    cx.stroke();
+    cx.beginPath();
+    cx.moveTo(headR * 0.6, headY + 1);
+    cx.lineTo(headR * 0.4, headY + 3);
+    cx.stroke();
+    cx.restore();
 
-    // Eye openings — angular, aggressive shape
+    // Eye openings — angular aggressive slits
     cx.fillStyle = '#000';
-    // Left eye opening
+    // Left eye slit
     cx.beginPath();
-    cx.moveTo(-5 * facing, headY - 2.5);
-    cx.lineTo(-1.5 * facing, headY - 3);
-    cx.lineTo(-1 * facing, headY - 0.5);
-    cx.lineTo(-5.5 * facing, headY);
+    cx.moveTo(-5.5 * facing, headY - 2.5);
+    cx.lineTo(-1.5 * facing, headY - 3.2);
+    cx.lineTo(-0.8 * facing, headY - 0.5);
+    cx.lineTo(-5.8 * facing, headY + 0.2);
     cx.closePath();
     cx.fill();
-    // Right eye opening
+    // Right eye slit
     cx.beginPath();
-    cx.moveTo(1 * facing, headY - 3);
-    cx.lineTo(4.5 * facing, headY - 2.5);
-    cx.lineTo(5 * facing, headY);
-    cx.lineTo(0.5 * facing, headY - 0.5);
+    cx.moveTo(0.8 * facing, headY - 3.2);
+    cx.lineTo(5 * facing, headY - 2.5);
+    cx.lineTo(5.3 * facing, headY + 0.2);
+    cx.lineTo(0.3 * facing, headY - 0.5);
     cx.closePath();
     cx.fill();
 
-    // Glowing eyes inside openings
-    cx.fillStyle = accentCol;
+    // Glowing blue eyes inside slits
+    cx.save();
     cx.shadowColor = accentCol;
-    cx.shadowBlur = 6;
+    cx.shadowBlur = 8;
+    cx.fillStyle = accentCol;
+    // Left eye glow
     cx.beginPath();
-    cx.ellipse(-3 * facing, headY - 1.5, 1.5, 1, 0.1, 0, Math.PI * 2);
+    cx.ellipse(-3.2 * facing, headY - 1.5, 1.8, 1.1, 0.1, 0, Math.PI * 2);
+    cx.fill();
+    // Right eye glow
+    cx.beginPath();
+    cx.ellipse(2.8 * facing, headY - 1.5, 1.8, 1.1, -0.1, 0, Math.PI * 2);
+    cx.fill();
+    // Bright pupil center
+    cx.shadowBlur = 4;
+    cx.fillStyle = '#aaddff';
+    cx.beginPath();
+    cx.arc(-3.2 * facing, headY - 1.5, 0.6, 0, Math.PI * 2);
     cx.fill();
     cx.beginPath();
-    cx.ellipse(2.5 * facing, headY - 1.5, 1.5, 1, -0.1, 0, Math.PI * 2);
+    cx.arc(2.8 * facing, headY - 1.5, 0.6, 0, Math.PI * 2);
     cx.fill();
     cx.shadowBlur = 0;
+    cx.restore();
 
-    // Mask edge trim — accent color
-    cx.strokeStyle = accentCol; cx.globalAlpha = 0.4; cx.lineWidth = 0.6;
+    // Mask rim/edge highlight
+    cx.save();
+    cx.strokeStyle = accentCol;
+    cx.globalAlpha = 0.3;
+    cx.lineWidth = 0.8;
     cx.beginPath();
-    cx.ellipse(0, headY - 1, headR * 0.92, headR * 0.55, 0, Math.PI, Math.PI * 2);
+    cx.ellipse(0, headY, headR * 0.93, headR * 1.01, 0, Math.PI * 1.1, Math.PI * 1.95);
     cx.stroke();
-    cx.globalAlpha = 1;
+    cx.restore();
 
-    // Mask forehead design (tribal/geometric)
-    cx.strokeStyle = accentCol; cx.globalAlpha = 0.2; cx.lineWidth = 0.5;
+    // Chin visible below mask — determined grimace
+    cx.save();
+    cx.fillStyle = skinMid;
     cx.beginPath();
-    cx.moveTo(0, headY - headR * 0.6);
-    cx.lineTo(-3, headY - headR * 0.3);
-    cx.moveTo(0, headY - headR * 0.6);
-    cx.lineTo(3, headY - headR * 0.3);
-    cx.moveTo(0, headY - headR * 0.7);
-    cx.lineTo(0, headY - headR * 0.4);
-    cx.stroke();
-    cx.globalAlpha = 1;
-
-    // Chin / mouth — visible below mask, determined grimace
-    cx.fillStyle = skinTone;
-    cx.beginPath();
-    cx.ellipse(0, headY + headR * 0.5, headR * 0.55, headR * 0.35, 0, 0, Math.PI);
+    cx.ellipse(0, headY + headR * 0.55, headR * 0.5, headR * 0.35, 0, 0, Math.PI);
     cx.fill();
-    cx.strokeStyle = skinDark; cx.lineWidth = 0.7;
+    // Chin shadow
+    cx.globalAlpha = 0.15;
+    cx.fillStyle = skinDeep;
     cx.beginPath();
-    cx.moveTo(-2.5, headY + 4);
-    cx.lineTo(2.5, headY + 4);
+    cx.ellipse(0, headY + headR * 0.65, headR * 0.4, headR * 0.2, 0, 0, Math.PI);
+    cx.fill();
+    cx.restore();
+    // Mouth line
+    cx.strokeStyle = skinDeep;
+    cx.lineWidth = 0.7;
+    cx.beginPath();
+    cx.moveTo(-2.5, headY + 4.5);
+    cx.quadraticCurveTo(0, headY + 5, 2.5, headY + 4.5);
     cx.stroke();
 
-    // Ears
-    cx.fillStyle = skinTone;
+    // Ears peeking out
+    cx.save();
+    var earG = cx.createRadialGradient(-headR * 0.9, headY, 0, -headR * 0.9, headY, 3);
+    earG.addColorStop(0, skinMid);
+    earG.addColorStop(1, skinLo);
+    cx.fillStyle = earG;
     cx.beginPath();
-    cx.ellipse(-headR * 0.88, headY, 2, 3, 0, 0, Math.PI * 2);
+    cx.ellipse(-headR * 0.9, headY, 2.2, 3.2, 0, 0, Math.PI * 2);
     cx.fill();
+    var earG2 = cx.createRadialGradient(headR * 0.9, headY, 0, headR * 0.9, headY, 3);
+    earG2.addColorStop(0, skinMid);
+    earG2.addColorStop(1, skinLo);
+    cx.fillStyle = earG2;
     cx.beginPath();
-    cx.ellipse(headR * 0.88, headY, 2, 3, 0, 0, Math.PI * 2);
+    cx.ellipse(headR * 0.9, headY, 2.2, 3.2, 0, 0, Math.PI * 2);
     cx.fill();
+    cx.restore();
+
   } else {
-    // ═══ UNMASKED FIGHTER (red) — full face ═══
-    // Short cropped hair
-    cx.fillStyle = '#1a1008';
+    // ═══════════════════════════════════════════════
+    // UNMASKED FIGHTER — detailed face with expressions
+    // ═══════════════════════════════════════════════
+
+    // Short cropped hair with gradient
+    cx.save();
+    var hairG = cx.createRadialGradient(0, headY - 3, 0, 0, headY - 1, headR);
+    hairG.addColorStop(0, '#2a1810');
+    hairG.addColorStop(1, '#0e0a05');
+    cx.fillStyle = hairG;
     cx.beginPath();
-    cx.arc(0, headY - 1.5, headR * 0.82, Math.PI * 1.05, Math.PI * -0.05);
+    cx.arc(0, headY - 1.5, headR * 0.85, Math.PI * 1.05, Math.PI * -0.05);
     cx.fill();
     // Hair fade sides
     cx.fillStyle = '#0e0a05';
     cx.beginPath();
-    cx.ellipse(-headR * 0.6, headY - 2, headR * 0.3, headR * 0.5, 0.1, 0, Math.PI * 2);
+    cx.ellipse(-headR * 0.6, headY - 2, headR * 0.32, headR * 0.52, 0.1, 0, Math.PI * 2);
     cx.fill();
     cx.beginPath();
-    cx.ellipse(headR * 0.6, headY - 2, headR * 0.3, headR * 0.5, -0.1, 0, Math.PI * 2);
+    cx.ellipse(headR * 0.6, headY - 2, headR * 0.32, headR * 0.52, -0.1, 0, Math.PI * 2);
     cx.fill();
-
-    // Ears
-    cx.fillStyle = skinTone;
-    cx.beginPath(); cx.ellipse(-headR * 0.88, headY, 2, 3, 0, 0, Math.PI * 2); cx.fill();
-    cx.beginPath(); cx.ellipse(headR * 0.88, headY, 2, 3, 0, 0, Math.PI * 2); cx.fill();
-    // Cauliflower ear (fighter detail)
-    cx.fillStyle = skinDark; cx.globalAlpha = 0.15;
-    cx.beginPath(); cx.ellipse(-headR * 0.88, headY - 0.5, 1.5, 2, 0, 0, Math.PI * 2); cx.fill();
-    cx.globalAlpha = 1;
-
-    // Brow ridge
-    cx.fillStyle = skinDark; cx.globalAlpha = 0.1;
-    cx.beginPath();
-    cx.ellipse(0, headY - 3, headR * 0.7, 2, 0, 0, Math.PI);
-    cx.fill();
-    cx.globalAlpha = 1;
-
-    // Eyes — larger, more expressive
-    var eyeW = 2.5, eyeH = 1.6;
-    // Whites
-    cx.fillStyle = '#f0f0f0';
-    cx.beginPath(); cx.ellipse(-3, headY - 1.5, eyeW, eyeH, 0, 0, Math.PI * 2); cx.fill();
-    cx.beginPath(); cx.ellipse(3, headY - 1.5, eyeW, eyeH, 0, 0, Math.PI * 2); cx.fill();
-    // Iris
-    cx.fillStyle = '#4a3020';
-    cx.beginPath(); cx.arc(-3 + 0.4 * facing, headY - 1.5, 1.2, 0, Math.PI * 2); cx.fill();
-    cx.beginPath(); cx.arc(3 + 0.4 * facing, headY - 1.5, 1.2, 0, Math.PI * 2); cx.fill();
-    // Pupils
-    cx.fillStyle = '#0a0a0a';
-    cx.beginPath(); cx.arc(-3 + 0.4 * facing, headY - 1.5, 0.6, 0, Math.PI * 2); cx.fill();
-    cx.beginPath(); cx.arc(3 + 0.4 * facing, headY - 1.5, 0.6, 0, Math.PI * 2); cx.fill();
-    // Eye highlight
-    cx.fillStyle = 'rgba(255,255,255,0.4)';
-    cx.beginPath(); cx.arc(-3 + 0.8 * facing, headY - 2, 0.4, 0, Math.PI * 2); cx.fill();
-    cx.beginPath(); cx.arc(3 + 0.8 * facing, headY - 2, 0.4, 0, Math.PI * 2); cx.fill();
-    // Upper eyelids
-    cx.strokeStyle = skinDark; cx.lineWidth = 0.6;
-    cx.beginPath(); cx.ellipse(-3, headY - 1.5, eyeW, eyeH, 0, Math.PI * 1.1, Math.PI * 1.9); cx.stroke();
-    cx.beginPath(); cx.ellipse(3, headY - 1.5, eyeW, eyeH, 0, Math.PI * 1.1, Math.PI * 1.9); cx.stroke();
-
-    // Eyebrows — worried at high tension, angry at low
-    var browAngle = t * 0.3;
-    cx.strokeStyle = '#1a1008'; cx.lineWidth = 1.2; cx.lineCap = 'round';
-    cx.beginPath();
-    cx.moveTo(-5.5, headY - 4 - browAngle);
-    cx.quadraticCurveTo(-3, headY - 3.5 + browAngle * 0.5, -0.5, headY - 3.5);
-    cx.stroke();
-    cx.beginPath();
-    cx.moveTo(0.5, headY - 3.5);
-    cx.quadraticCurveTo(3, headY - 3.5 + browAngle * 0.5, 5.5, headY - 4 - browAngle);
-    cx.stroke();
-
-    // Nose — more defined
-    cx.strokeStyle = skinDark; cx.lineWidth = 0.7;
-    cx.beginPath();
-    cx.moveTo(0, headY - 0.5);
-    cx.quadraticCurveTo(1, headY + 1.5, 0.5, headY + 2);
-    cx.lineTo(-0.5, headY + 2);
-    cx.quadraticCurveTo(-1, headY + 1.5, 0, headY - 0.5);
-    cx.stroke();
-    // Nostrils
-    cx.fillStyle = skinDark; cx.globalAlpha = 0.2;
-    cx.beginPath(); cx.arc(-1, headY + 2, 0.6, 0, Math.PI * 2); cx.fill();
-    cx.beginPath(); cx.arc(1, headY + 2, 0.6, 0, Math.PI * 2); cx.fill();
-    cx.globalAlpha = 1;
-
-    // Mouth — changes with damage
-    if (f.health < 0.3) {
-      // Open mouth, pain/exhaustion
-      cx.fillStyle = '#2a0808';
-      cx.beginPath();
-      cx.ellipse(0, headY + 4, 2.5, 2, 0, 0, Math.PI * 2);
-      cx.fill();
-      // Teeth hint
-      cx.fillStyle = 'rgba(255,255,255,0.4)';
-      cx.fillRect(-1.5, headY + 3, 3, 1);
-      // Mouthguard
-      cx.fillStyle = 'rgba(255,100,100,0.3)';
-      cx.fillRect(-1.5, headY + 3.8, 3, 0.8);
-    } else if (f.health < 0.6) {
-      // Grimace
-      cx.strokeStyle = skinDark; cx.lineWidth = 0.8;
-      cx.beginPath();
-      cx.moveTo(-2, headY + 3.5);
-      cx.quadraticCurveTo(-1, headY + 4.5, 0, headY + 3.8);
-      cx.quadraticCurveTo(1, headY + 4.5, 2, headY + 3.5);
-      cx.stroke();
-    } else {
-      // Neutral/determined
-      cx.strokeStyle = skinDark; cx.lineWidth = 0.7;
-      cx.beginPath();
-      cx.moveTo(-2, headY + 3.5);
-      cx.quadraticCurveTo(0, headY + 4, 2, headY + 3.5);
-      cx.stroke();
-    }
-
-    // Stubble/beard shadow
-    cx.fillStyle = skinDark; cx.globalAlpha = 0.06;
-    cx.beginPath();
-    cx.ellipse(0, headY + 3, headR * 0.5, headR * 0.35, 0, 0, Math.PI);
-    cx.fill();
-    cx.globalAlpha = 1;
-
-    // ── DAMAGE EFFECTS ──
-    // Bruise under eye
-    if (t > 0.35 && G.fightStarted) {
-      cx.globalAlpha = Math.min(0.6, (t - 0.35) * 0.8);
-      cx.fillStyle = 'rgba(80, 15, 40, 0.6)';
-      cx.beginPath();
-      cx.ellipse(3.5, headY - 0.5, 2.5, 1.8, 0.2, 0, Math.PI * 2);
-      cx.fill();
-      // Swelling
-      cx.fillStyle = 'rgba(120, 40, 60, 0.3)';
-      cx.beginPath();
-      cx.ellipse(4, headY, 2, 1.5, 0, 0, Math.PI * 2);
-      cx.fill();
-      cx.globalAlpha = 1;
-    }
-    // Cut above eye
-    if (t > 0.6 && G.fightStarted) {
-      cx.globalAlpha = Math.min(0.8, (t - 0.6) * 1.5);
-      cx.strokeStyle = '#a01010'; cx.lineWidth = 0.7;
-      cx.beginPath(); cx.moveTo(1.5, headY - 3.5); cx.lineTo(4, headY - 3); cx.stroke();
-      // Blood drip
-      cx.fillStyle = '#a01010';
-      var drip = Math.sin(time * 2) * 1.5;
-      cx.beginPath(); cx.ellipse(3, headY - 2 + drip, 0.5, 1 + drip * 0.3, 0, 0, Math.PI * 2); cx.fill();
-      cx.globalAlpha = 1;
-    }
-    // Lip busted
-    if (t > 0.5 && G.fightStarted) {
-      cx.fillStyle = 'rgba(160, 20, 20, ' + ((t - 0.5) * 0.5) + ')';
-      cx.beginPath(); cx.ellipse(0.5, headY + 4, 1, 0.6, 0, 0, Math.PI * 2); cx.fill();
-    }
-
-    // Sweat
-    if (t > 0.2) {
-      cx.fillStyle = 'rgba(200, 230, 255, ' + Math.min(0.4, (t - 0.2) * 0.5) + ')';
-      var sw1 = headY - headR + 1 + Math.sin(time * 2.5) * 2;
-      cx.beginPath(); cx.ellipse(-4, sw1, 0.7, 1.3, 0.2, 0, Math.PI * 2); cx.fill();
-      if (t > 0.5) {
-        var sw2 = headY - 2 + Math.sin(time * 3 + 1) * 1.5;
-        cx.beginPath(); cx.ellipse(5, sw2, 0.6, 1, -0.1, 0, Math.PI * 2); cx.fill();
-      }
-    }
-  }
-
-  // === HIT FLASH (white overlay on body) ===
-  if (f.hitFlash > 0) {
-    cx.globalAlpha = f.hitFlash;
+    // Hair highlight
+    cx.globalAlpha = 0.08;
     cx.fillStyle = '#fff';
     cx.beginPath();
-    cx.ellipse(0, -2 + bob, 10, 18, 0, 0, Math.PI * 2);
+    cx.ellipse(-2, headY - headR * 0.7, 3, 1.5, -0.2, 0, Math.PI * 2);
+    cx.fill();
+    cx.restore();
+
+    // Ears with inner detail
+    cx.save();
+    var eG1 = cx.createRadialGradient(-headR * 0.9, headY, 0, -headR * 0.9, headY, 3);
+    eG1.addColorStop(0, skinHi);
+    eG1.addColorStop(1, skinLo);
+    cx.fillStyle = eG1;
+    cx.beginPath(); cx.ellipse(-headR * 0.9, headY, 2.2, 3.2, 0, 0, Math.PI * 2); cx.fill();
+    var eG2 = cx.createRadialGradient(headR * 0.9, headY, 0, headR * 0.9, headY, 3);
+    eG2.addColorStop(0, skinHi);
+    eG2.addColorStop(1, skinLo);
+    cx.fillStyle = eG2;
+    cx.beginPath(); cx.ellipse(headR * 0.9, headY, 2.2, 3.2, 0, 0, Math.PI * 2); cx.fill();
+    // Cauliflower ear (fighter detail)
+    cx.globalAlpha = 0.15;
+    cx.fillStyle = skinDeep;
+    cx.beginPath(); cx.ellipse(-headR * 0.9, headY - 0.5, 1.5, 2, 0, 0, Math.PI * 2); cx.fill();
+    cx.restore();
+
+    // Brow ridge — heavy, prominent
+    cx.save();
+    cx.fillStyle = skinLo;
+    cx.globalAlpha = 0.15;
+    cx.beginPath();
+    cx.ellipse(0, headY - 3, headR * 0.75, 2.2, 0, 0, Math.PI);
+    cx.fill();
+    cx.restore();
+
+    // Eyes — large, expressive with full detail
+    var eyeW = 2.8, eyeH = 1.8;
+    // Expression: squint more as health drops
+    var squint = f.health < 0.3 ? 0.4 : (f.health < 0.6 ? 0.2 : 0);
+
+    // Eye whites with subtle gradient
+    cx.save();
+    cx.fillStyle = '#f0ede8';
+    cx.beginPath(); cx.ellipse(-3.2, headY - 1.5, eyeW, eyeH * (1 - squint), 0, 0, Math.PI * 2); cx.fill();
+    cx.beginPath(); cx.ellipse(3.2, headY - 1.5, eyeW, eyeH * (1 - squint), 0, 0, Math.PI * 2); cx.fill();
+    cx.restore();
+
+    // Iris with gradient
+    var irisR = 1.4;
+    cx.save();
+    var iris1 = cx.createRadialGradient(-3.2 + 0.4 * facing, headY - 1.5, 0, -3.2 + 0.4 * facing, headY - 1.5, irisR);
+    iris1.addColorStop(0, '#6a5030');
+    iris1.addColorStop(0.6, '#4a3020');
+    iris1.addColorStop(1, '#2a1810');
+    cx.fillStyle = iris1;
+    cx.beginPath(); cx.arc(-3.2 + 0.4 * facing, headY - 1.5, irisR, 0, Math.PI * 2); cx.fill();
+    var iris2 = cx.createRadialGradient(3.2 + 0.4 * facing, headY - 1.5, 0, 3.2 + 0.4 * facing, headY - 1.5, irisR);
+    iris2.addColorStop(0, '#6a5030');
+    iris2.addColorStop(0.6, '#4a3020');
+    iris2.addColorStop(1, '#2a1810');
+    cx.fillStyle = iris2;
+    cx.beginPath(); cx.arc(3.2 + 0.4 * facing, headY - 1.5, irisR, 0, Math.PI * 2); cx.fill();
+    cx.restore();
+
+    // Pupils
+    cx.fillStyle = '#0a0a0a';
+    cx.beginPath(); cx.arc(-3.2 + 0.4 * facing, headY - 1.5, 0.65, 0, Math.PI * 2); cx.fill();
+    cx.beginPath(); cx.arc(3.2 + 0.4 * facing, headY - 1.5, 0.65, 0, Math.PI * 2); cx.fill();
+
+    // Eye highlight (catchlight)
+    cx.fillStyle = 'rgba(255,255,255,0.5)';
+    cx.beginPath(); cx.arc(-3.2 + 0.9 * facing, headY - 2.1, 0.45, 0, Math.PI * 2); cx.fill();
+    cx.beginPath(); cx.arc(3.2 + 0.9 * facing, headY - 2.1, 0.45, 0, Math.PI * 2); cx.fill();
+
+    // Upper eyelids — heavier when tired
+    cx.save();
+    cx.strokeStyle = skinDeep;
+    cx.lineWidth = 0.7 + squint * 0.5;
+    cx.beginPath(); cx.ellipse(-3.2, headY - 1.5, eyeW, eyeH * (1 - squint), 0, Math.PI * 1.05, Math.PI * 1.95); cx.stroke();
+    cx.beginPath(); cx.ellipse(3.2, headY - 1.5, eyeW, eyeH * (1 - squint), 0, Math.PI * 1.05, Math.PI * 1.95); cx.stroke();
+    cx.restore();
+
+    // Eyebrows — expression changes with health/tension
+    var browAngle = t * 0.35;
+    var browFurrow = f.health < 0.4 ? 0.5 : 0;
+    cx.save();
+    cx.strokeStyle = '#1a1008';
+    cx.lineWidth = 1.4;
+    cx.lineCap = 'round';
+    // Left brow
+    cx.beginPath();
+    cx.moveTo(-5.8, headY - 4.2 - browAngle + browFurrow);
+    cx.quadraticCurveTo(-3.2, headY - 3.8 + browAngle * 0.5, -0.6, headY - 3.8 + browFurrow * 0.3);
+    cx.stroke();
+    // Right brow
+    cx.beginPath();
+    cx.moveTo(0.6, headY - 3.8 + browFurrow * 0.3);
+    cx.quadraticCurveTo(3.2, headY - 3.8 + browAngle * 0.5, 5.8, headY - 4.2 - browAngle + browFurrow);
+    cx.stroke();
+    cx.restore();
+
+    // Nose — more defined with 3D shading
+    cx.save();
+    // Nose bridge highlight
+    cx.globalAlpha = 0.1;
+    cx.fillStyle = skinHi;
+    cx.beginPath();
+    cx.ellipse(-0.3, headY - 0.5, 0.8, 2, 0, 0, Math.PI * 2);
     cx.fill();
     cx.globalAlpha = 1;
+    // Nose shape
+    cx.strokeStyle = skinDeep;
+    cx.lineWidth = 0.7;
+    cx.beginPath();
+    cx.moveTo(0, headY - 1);
+    cx.quadraticCurveTo(1.2, headY + 1.5, 0.6, headY + 2.2);
+    cx.lineTo(-0.6, headY + 2.2);
+    cx.quadraticCurveTo(-1.2, headY + 1.5, 0, headY - 1);
+    cx.stroke();
+    // Nose shadow on right side
+    cx.globalAlpha = 0.12;
+    cx.fillStyle = skinDeep;
+    cx.beginPath();
+    cx.ellipse(1, headY + 1, 0.8, 1.5, 0.2, 0, Math.PI * 2);
+    cx.fill();
+    cx.globalAlpha = 1;
+    // Nostrils
+    cx.fillStyle = skinDeep;
+    cx.globalAlpha = 0.25;
+    cx.beginPath(); cx.arc(-1.1, headY + 2.2, 0.7, 0, Math.PI * 2); cx.fill();
+    cx.beginPath(); cx.arc(1.1, headY + 2.2, 0.7, 0, Math.PI * 2); cx.fill();
+    cx.restore();
+
+    // Mouth — changes expression based on health
+    if (f.health < 0.3) {
+      // Open mouth, pain/exhaustion
+      cx.save();
+      cx.fillStyle = '#2a0808';
+      cx.beginPath();
+      cx.ellipse(0, headY + 4.2, 2.8, 2.2, 0, 0, Math.PI * 2);
+      cx.fill();
+      // Teeth
+      cx.fillStyle = 'rgba(255,255,240,0.5)';
+      cx.fillRect(-1.8, headY + 3.2, 3.6, 1.2);
+      // Lower teeth
+      cx.fillStyle = 'rgba(255,255,240,0.3)';
+      cx.fillRect(-1.5, headY + 4.8, 3, 0.8);
+      // Mouthguard
+      cx.fillStyle = 'rgba(255,100,100,0.25)';
+      cx.beginPath();
+      cx.ellipse(0, headY + 4.2, 2, 1, 0, 0, Math.PI);
+      cx.fill();
+      cx.restore();
+    } else if (f.health < 0.6) {
+      // Grimace/strain
+      cx.save();
+      cx.strokeStyle = skinDeep;
+      cx.lineWidth = 0.9;
+      cx.beginPath();
+      cx.moveTo(-2.2, headY + 3.8);
+      cx.quadraticCurveTo(-1, headY + 4.8, 0, headY + 4);
+      cx.quadraticCurveTo(1, headY + 4.8, 2.2, headY + 3.8);
+      cx.stroke();
+      // Teeth showing through grimace
+      cx.fillStyle = 'rgba(255,255,240,0.15)';
+      cx.fillRect(-1.5, headY + 3.8, 3, 0.8);
+      cx.restore();
+    } else {
+      // Neutral/determined
+      cx.save();
+      cx.strokeStyle = skinDeep;
+      cx.lineWidth = 0.8;
+      cx.beginPath();
+      cx.moveTo(-2, headY + 3.8);
+      cx.quadraticCurveTo(0, headY + 4.3, 2, headY + 3.8);
+      cx.stroke();
+      cx.restore();
+    }
+
+    // Stubble / 5 o'clock shadow
+    cx.save();
+    cx.fillStyle = skinDeep;
+    cx.globalAlpha = 0.07;
+    cx.beginPath();
+    cx.ellipse(0, headY + 3.5, headR * 0.55, headR * 0.4, 0, 0, Math.PI);
+    cx.fill();
+    cx.restore();
+
+    // ── PROGRESSIVE DAMAGE EFFECTS ──
+
+    // Bruise under right eye (appears at moderate tension)
+    if (t > 0.35 && G.fightStarted) {
+      cx.save();
+      cx.globalAlpha = Math.min(0.65, (t - 0.35) * 0.9);
+      // Bruise base
+      var bruiseG = cx.createRadialGradient(3.8, headY - 0.3, 0, 3.8, headY, 3);
+      bruiseG.addColorStop(0, 'rgba(90, 15, 45, 0.7)');
+      bruiseG.addColorStop(0.5, 'rgba(60, 10, 35, 0.4)');
+      bruiseG.addColorStop(1, 'rgba(40, 5, 20, 0)');
+      cx.fillStyle = bruiseG;
+      cx.beginPath();
+      cx.ellipse(3.8, headY - 0.3, 3, 2, 0.2, 0, Math.PI * 2);
+      cx.fill();
+      // Swelling bump
+      if (t > 0.5) {
+        cx.fillStyle = 'rgba(140, 50, 70, 0.3)';
+        cx.beginPath();
+        cx.ellipse(4.2, headY + 0.2, 2.2, 1.5, 0, 0, Math.PI * 2);
+        cx.fill();
+      }
+      cx.restore();
+    }
+
+    // Cut above left eye (appears at high tension)
+    if (t > 0.6 && G.fightStarted) {
+      cx.save();
+      cx.globalAlpha = Math.min(0.85, (t - 0.6) * 1.6);
+      // Cut line
+      cx.strokeStyle = '#b01515';
+      cx.lineWidth = 0.8;
+      cx.beginPath();
+      cx.moveTo(1.2, headY - 3.8);
+      cx.quadraticCurveTo(2.5, headY - 3.5, 4.2, headY - 3);
+      cx.stroke();
+      // Blood drip from cut
+      cx.fillStyle = '#a01010';
+      var drip = Math.sin(time * 2) * 2;
+      cx.beginPath();
+      cx.moveTo(3, headY - 3);
+      cx.quadraticCurveTo(3.2, headY - 2 + drip * 0.5, 3, headY - 1 + drip);
+      cx.quadraticCurveTo(2.5, headY - 2 + drip * 0.3, 3, headY - 3);
+      cx.fill();
+      // Second blood drip at high tension
+      if (t > 0.8) {
+        var drip2 = Math.sin(time * 1.5 + 1) * 2.5;
+        cx.fillStyle = '#901010';
+        cx.beginPath();
+        cx.ellipse(2.5, headY - 1.5 + drip2, 0.5, 1.2 + drip2 * 0.2, 0.1, 0, Math.PI * 2);
+        cx.fill();
+      }
+      cx.restore();
+    }
+
+    // Busted lip
+    if (t > 0.5 && G.fightStarted) {
+      cx.save();
+      cx.fillStyle = 'rgba(180, 25, 25, ' + Math.min(0.6, (t - 0.5) * 0.6) + ')';
+      cx.beginPath();
+      cx.ellipse(0.5, headY + 4.3, 1.2, 0.7, 0, 0, Math.PI * 2);
+      cx.fill();
+      cx.restore();
+    }
+
+    // Sweat droplets (appear during exertion)
+    if (t > 0.2) {
+      cx.save();
+      var sweatAlpha = Math.min(0.45, (t - 0.2) * 0.6);
+      cx.fillStyle = 'rgba(200, 235, 255, ' + sweatAlpha + ')';
+      // Forehead sweat
+      var sw1Y = headY - headR + 1.5 + Math.sin(time * 2.5) * 2;
+      cx.beginPath();
+      cx.ellipse(-4, sw1Y, 0.8, 1.5, 0.2, 0, Math.PI * 2);
+      cx.fill();
+      // Temple sweat
+      if (t > 0.4) {
+        var sw2Y = headY - 2 + Math.sin(time * 3 + 1) * 1.5;
+        cx.beginPath();
+        cx.ellipse(5.2, sw2Y, 0.6, 1.2, -0.1, 0, Math.PI * 2);
+        cx.fill();
+      }
+      // Neck sweat at high tension
+      if (t > 0.6) {
+        cx.beginPath();
+        cx.ellipse(-2, torsoTop + 1 + Math.sin(time * 2.2) * 1, 0.5, 0.9, 0.15, 0, Math.PI * 2);
+        cx.fill();
+      }
+      cx.restore();
+    }
   }
 
-  // === BLOOD SPLATTER during hits (high tension) ===
+  // ═══════════════════════════════════════════════
+  // HIT FLASH — white overlay on entire body
+  // ═══════════════════════════════════════════════
+  if (f.hitFlash > 0) {
+    cx.save();
+    cx.globalAlpha = f.hitFlash * 0.7;
+    // Large body flash
+    cx.fillStyle = '#fff';
+    cx.beginPath();
+    cx.ellipse(0, -2 + bob, 14, 22, 0, 0, Math.PI * 2);
+    cx.fill();
+    // Brighter core flash on head
+    cx.globalAlpha = f.hitFlash * 0.4;
+    cx.beginPath();
+    cx.arc(0, headY, headR + 2, 0, Math.PI * 2);
+    cx.fill();
+    cx.restore();
+  }
+
+  // ═══════════════════════════════════════════════
+  // BLOOD SPLATTER during high tension hits (unmasked only)
+  // ═══════════════════════════════════════════════
   if (f.hitFlash > 0.1 && t > 0.5 && !isMasked) {
-    cx.globalAlpha = f.hitFlash * 0.5;
-    for (var bi = 0; bi < 3; bi++) {
-      var bx = (Math.sin(time * 100 + bi * 33) * 10) * facing;
-      var by2 = headY + Math.cos(time * 100 + bi * 17) * 8;
-      cx.fillStyle = 'rgba(180, 20, 20, 0.6)';
+    cx.save();
+    cx.globalAlpha = f.hitFlash * 0.6;
+    for (var bi = 0; bi < 5; bi++) {
+      var bx = (Math.sin(time * 100 + bi * 33) * 12) * facing;
+      var by2 = headY + Math.cos(time * 100 + bi * 17) * 10;
+      var bSize = 0.8 + Math.sin(time * 50 + bi * 11) * 0.5;
+      // Blood droplet with gradient
+      var bloodG = cx.createRadialGradient(bx, by2, 0, bx, by2, bSize + 0.5);
+      bloodG.addColorStop(0, 'rgba(200, 20, 20, 0.8)');
+      bloodG.addColorStop(1, 'rgba(140, 10, 10, 0)');
+      cx.fillStyle = bloodG;
       cx.beginPath();
-      cx.arc(bx, by2, 1 + Math.random(), 0, Math.PI * 2);
+      cx.arc(bx, by2, bSize + 0.5, 0, Math.PI * 2);
       cx.fill();
     }
-    cx.globalAlpha = 1;
+    // Blood mist effect
+    if (t > 0.7) {
+      cx.globalAlpha = f.hitFlash * 0.15;
+      var mistG = cx.createRadialGradient(4 * facing, headY, 0, 4 * facing, headY, 10);
+      mistG.addColorStop(0, 'rgba(180, 20, 20, 0.5)');
+      mistG.addColorStop(1, 'rgba(100, 10, 10, 0)');
+      cx.fillStyle = mistG;
+      cx.beginPath();
+      cx.arc(4 * facing, headY, 10, 0, Math.PI * 2);
+      cx.fill();
+    }
+    cx.restore();
   }
 
   cx.restore();
