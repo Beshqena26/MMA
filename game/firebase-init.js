@@ -1,11 +1,11 @@
 // =====================================================================
-// SKYDROP II — FIREBASE INTEGRATION
+// MMA — FIREBASE INTEGRATION
 // =====================================================================
 // SETUP INSTRUCTIONS:
 // 1. Go to https://console.firebase.google.com/
-// 2. Click "Create a project" → name it "skydrop" → Continue
+// 2. Click "Create a project" → name it "mma" → Continue
 // 3. Disable Google Analytics (not needed) → Create Project
-// 4. Click the web icon </> to add a web app → name it "skydrop-web"
+// 4. Click the web icon </> to add a web app → name it "mma-web"
 // 5. Copy your firebaseConfig object and paste it below (replace the placeholder)
 // 6. In the Firebase console sidebar:
 //    a. Build → Realtime Database → Create Database → Start in TEST mode → Enable
@@ -159,12 +159,12 @@ var FB = (function() {
   function saveConfig(data) {
     if (!_db) {
       // Fallback: localStorage
-      localStorage.setItem('skydrop_admin_config', JSON.stringify(data));
+      localStorage.setItem('mma_admin_config', JSON.stringify(data));
       return Promise.resolve();
     }
     return _db.ref('config').set(data).then(function() {
       // Also save to localStorage as fallback
-      localStorage.setItem('skydrop_admin_config', JSON.stringify(data));
+      localStorage.setItem('mma_admin_config', JSON.stringify(data));
     });
   }
 
@@ -172,7 +172,7 @@ var FB = (function() {
   function loadConfig() {
     if (!_db) {
       try {
-        var s = localStorage.getItem('skydrop_admin_config');
+        var s = localStorage.getItem('mma_admin_config');
         return Promise.resolve(s ? JSON.parse(s) : null);
       } catch(e) { return Promise.resolve(null); }
     }
@@ -257,7 +257,7 @@ var FB = (function() {
   function loadRounds() {
     if (!_db) {
       try {
-        var h = localStorage.getItem('skydrop_history');
+        var h = localStorage.getItem('mma_history');
         return Promise.resolve(h ? JSON.parse(h) : []);
       } catch(e) { return Promise.resolve([]); }
     }
@@ -364,8 +364,8 @@ var FB = (function() {
     if (!_db || !_uid) { console.log('Firebase not ready'); return; }
     _db.ref('admins/' + _uid).set(true).then(function() {
       _isAdmin = true;
-      console.log('[SkyDrop] You are now admin! UID:', _uid);
-      console.log('[SkyDrop] After setting security rules, only existing admins can add new ones.');
+      console.log('[MMA] You are now admin! UID:', _uid);
+      console.log('[MMA] After setting security rules, only existing admins can add new ones.');
     });
   }
 

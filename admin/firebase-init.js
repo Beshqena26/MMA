@@ -1,5 +1,5 @@
 // =====================================================================
-// SKYDROP II — FIREBASE INTEGRATION (ADMIN PANEL)
+// MMA — FIREBASE INTEGRATION (ADMIN PANEL)
 // =====================================================================
 // This is the admin-only version. It connects to the SAME Firebase
 // database as the game, but only exposes config, rounds, and admin
@@ -95,18 +95,18 @@ var FB = (function() {
   // ─── CONFIG ───
   function saveConfig(data) {
     if (!_db) {
-      localStorage.setItem('skydrop_admin_config', JSON.stringify(data));
+      localStorage.setItem('mma_admin_config', JSON.stringify(data));
       return Promise.resolve();
     }
     return _db.ref('config').set(data).then(function() {
-      localStorage.setItem('skydrop_admin_config', JSON.stringify(data));
+      localStorage.setItem('mma_admin_config', JSON.stringify(data));
     });
   }
 
   function loadConfig() {
     if (!_db) {
       try {
-        var s = localStorage.getItem('skydrop_admin_config');
+        var s = localStorage.getItem('mma_admin_config');
         return Promise.resolve(s ? JSON.parse(s) : null);
       } catch(e) { return Promise.resolve(null); }
     }
@@ -117,7 +117,7 @@ var FB = (function() {
   function loadRounds() {
     if (!_db) {
       try {
-        var h = localStorage.getItem('skydrop_history');
+        var h = localStorage.getItem('mma_history');
         return Promise.resolve(h ? JSON.parse(h) : []);
       } catch(e) { return Promise.resolve([]); }
     }

@@ -1,7 +1,7 @@
 {
-  "name": "skydrop",
+  "name": "mma",
   "version": "2.1.13",
-  "description": "SkyDrop II — LIVE",
+  "description": "MMA — LIVE",
   "main": "index.html",
   "scripts": {
     "start": "npx serve .",
@@ -11,7 +11,7 @@
     "type": "git",
     "url": ""
   },
-  "keywords": ["skydrop", "game"],
+  "keywords": ["mma", "game"],
   "author": "",
   "license": "MIT"
 }

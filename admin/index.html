@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SkyDrop II — Admin Panel</title>
+<title>MMA — Admin Panel</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -374,7 +374,7 @@ tr.rh-row.expanded .rh-expand-icon{transform:rotate(90deg);color:var(--primary)}
 <!-- ─── Login Overlay ─── -->
 <div class="login-overlay" id="loginOverlay">
   <div class="login-card">
-    <div class="login-logo">SkyDrop II</div>
+    <div class="login-logo">MMA</div>
     <div class="login-sub">Admin Panel — Enter password to continue</div>
     <form id="loginForm" onsubmit="handleLogin(event)">
       <div class="login-input-wrap">
@@ -389,7 +389,7 @@ tr.rh-row.expanded .rh-expand-icon{transform:rotate(90deg);color:var(--primary)}
 
 <!-- ─── Navbar ─── -->
 <nav class="navbar">
-  <div class="navbar-brand">SkyDrop II <span>Admin Panel</span></div>
+  <div class="navbar-brand">MMA <span>Admin Panel</span></div>
   <div style="display:flex;align-items:center;gap:10px">
     <button class="nav-logout" id="logoutBtn" onclick="handleLogout()" style="display:none">Logout</button>
   </div>
@@ -737,7 +737,7 @@ function setConfig(c){ALL_FIELDS.forEach(function(f){var e=document.getElementBy
 function applyPreset(n){if(!PRESETS[n])return;setConfig(PRESETS[n]);document.querySelectorAll('.preset-card').forEach(function(b){b.classList.remove('active')});var el=document.getElementById('pre'+n.charAt(0).toUpperCase()+n.slice(1));if(el)el.classList.add('active');saveConfig();toast('Mode: '+n+' applied')}
 function saveConfig(){
   var cfg=getConfig();
-  localStorage.setItem('skydrop_admin_config',JSON.stringify(cfg));
+  localStorage.setItem('mma_admin_config',JSON.stringify(cfg));
   _savedSnapshot=_takeSnapshot();
   _checkDirty();
   if(typeof FB!=='undefined'&&FB.isOnline()){
@@ -745,7 +745,7 @@ function saveConfig(){
   }else{toast('Settings saved')}
 }
 function resetToPreset(){var a=document.querySelector('.preset-card.active');applyPreset(a?a.id.replace('pre','').toLowerCase():'easy')}
-function resetBalance(){localStorage.removeItem('skydrop_balance');toast('Balances reset')}
+function resetBalance(){localStorage.removeItem('mma_balance');toast('Balances reset')}
 
 // ── Dirty Tracking ──
 var _savedSnapshot='';
@@ -780,7 +780,7 @@ function clearAll(){
     warn:'This action is permanent and cannot be undone. All players will lose their data.',
     btn:'Reset Everything',
     onConfirm:function(){
-      var k=[];for(var i=0;i<localStorage.length;i++){var x=localStorage.key(i);if(x&&x.startsWith('skydrop_'))k.push(x)};k.forEach(function(x){localStorage.removeItem(x)});
+      var k=[];for(var i=0;i<localStorage.length;i++){var x=localStorage.key(i);if(x&&x.startsWith('mma_'))k.push(x)};k.forEach(function(x){localStorage.removeItem(x)});
       if(typeof FB!=='undefined'&&FB.isOnline()){FB.factoryReset().then(function(){toast('Factory reset done (local + cloud)');resetToPreset();loadDashboard();loadRoundHistory()}).catch(function(){toast('Factory reset done (local only)');resetToPreset();loadDashboard();loadRoundHistory()})}
       else{toast('Factory reset done');resetToPreset();loadDashboard();loadRoundHistory()}
     }
@@ -851,8 +851,8 @@ function clearRoundData(){
         });
       }
       if(_clearTimeRange==='all'){
-        localStorage.removeItem('skydrop_history');
-        localStorage.removeItem('skydrop_betHistory');
+        localStorage.removeItem('mma_history');
+        localStorage.removeItem('mma_betHistory');
       }
       if(!FB.isOnline()){toast('Local data cleared');loadDashboard();loadRoundHistory()}
     }
@@ -866,7 +866,7 @@ function switchTab(n){
   document.querySelectorAll('.tab-btn').forEach(function(b){if(b.getAttribute('data-tab')===n)b.classList.add('active')});
   if(n==='dashboard')loadDashboard();if(n==='rounds')loadRoundHistory();
 }
-function _ls(k){try{var v=localStorage.getItem('skydrop_'+k);return v?JSON.parse(v):null}catch(e){return null}}
+function _ls(k){try{var v=localStorage.getItem('mma_'+k);return v?JSON.parse(v):null}catch(e){return null}}
 function _esc(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 
 // Shared: smooth SVG cubic bezier path from points
@@ -1449,14 +1449,14 @@ function exportCSV(){
   var blob=new Blob([rows.join('\n')],{type:'text/csv'});
   var url=URL.createObjectURL(blob);
   var a=document.createElement('a');
-  a.href=url;a.download='skydrop_rounds_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.href=url;a.download='mma_rounds_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();document.body.removeChild(a);
   URL.revokeObjectURL(url);
   toast('CSV exported');
 }
 
 window.addEventListener('storage',function(e){
-  if(!e.key||!e.key.startsWith('skydrop_'))return;
+  if(!e.key||!e.key.startsWith('mma_'))return;
   var a=document.querySelector('.tab-panel.active');if(!a)return;
   if(a.id==='tab-dashboard')loadDashboard();
   else if(a.id==='tab-rounds')loadRoundHistory();
@@ -1474,7 +1474,7 @@ function _initConfig(c){
 }
 // First load from localStorage (instant)
 (function(){
-  var s=localStorage.getItem('skydrop_admin_config');
+  var s=localStorage.getItem('mma_admin_config');
   if(s){try{_initConfig(JSON.parse(s))}catch(e){}}
   _initDirtyTracking();
 })();
@@ -1549,7 +1549,7 @@ function _onAdminGranted(){
   setTimeout(function(){st.style.display='none'},2500);
   // Load config + dashboard
   FB.loadConfig().then(function(cfg){
-    if(cfg){_initConfig(cfg);localStorage.setItem('skydrop_admin_config',JSON.stringify(cfg))}
+    if(cfg){_initConfig(cfg);localStorage.setItem('mma_admin_config',JSON.stringify(cfg))}
   });
   loadDashboard();
   FB.onNewRound(function(){

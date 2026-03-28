@@ -1,6 +1,6 @@
 
 // =====================================================================
-// SKYDROP II — REFACTORED CLEAN BUILD
+// MMA — REFACTORED CLEAN BUILD
 // Round loop: BETTING(6s) → EXPLODE(2.2s) → FREEFALL → CRASH(3s) → repeat
 // =====================================================================
 
@@ -21,7 +21,7 @@ var CFG=(function(){
     suckTime:0.4,insideTime:0.3,ejectTime:0.35,ejectDist:250,bhSpeedBoost:0.03
   };
   try{
-    var s=localStorage.getItem('skydrop_admin_config');
+    var s=localStorage.getItem('mma_admin_config');
     if(s){var parsed=JSON.parse(s);for(var k in parsed){if(parsed.hasOwnProperty(k))defaults[k]=parsed[k]}}
   }catch(e){}
   // Apply timers
@@ -62,7 +62,7 @@ function _applyCfgUpdate(parsed){
 }
 // localStorage fallback (same-origin cross-tab)
 window.addEventListener('storage',function(e){
-  if(e.key!=='skydrop_admin_config')return;
+  if(e.key!=='mma_admin_config')return;
   try{_applyCfgUpdate(JSON.parse(e.newValue||'{}'))}catch(err){}
 });
 // Firebase real-time config listener
@@ -581,8 +581,8 @@ var sfx={
 
 // ======================== GAME STATE ========================
 // ======================== LOCAL STORAGE HELPERS ========================
-function _loadSaved(key,fallback){try{var v=localStorage.getItem('skydrop_'+key);return v!==null?JSON.parse(v):fallback}catch(e){return fallback}}
-function _save(key,val){try{localStorage.setItem('skydrop_'+key,JSON.stringify(val))}catch(e){}}
+function _loadSaved(key,fallback){try{var v=localStorage.getItem('mma_'+key);return v!==null?JSON.parse(v):fallback}catch(e){return fallback}}
+function _save(key,val){try{localStorage.setItem('mma_'+key,JSON.stringify(val))}catch(e){}}
 
 var G={
   balance:_loadSaved('balance',CFG.startBal||1000),
@@ -632,7 +632,7 @@ function saveAvatar(){
   document.getElementById('menuAvatarBtn').textContent=_selectedAvatar;
   document.getElementById('menuUserName').textContent=_selectedName;
   document.getElementById('avatarModal').classList.remove('open');
-  try{sessionStorage.setItem('skydrop_avatar_set','1')}catch(e){}
+  try{sessionStorage.setItem('mma_avatar_set','1')}catch(e){}
 }
 
 function openAvatarModal(){
@@ -2146,7 +2146,7 @@ var CHAT_MSGS=[
   'parachute always opens early smh','3x and out','im up $200 today',
   'dont be greedy','rip my balance','nice one!','how do you guys cashout so fast',
   'autobet is the way','im scared to bet high','just vibes','1x gang 😂',
-  'sky drop best game','who needs sleep when you have skydrop','send it 🚀',
+  'mma best game','who needs sleep when you have mma','send it 🚀',
   'bruh','lmaooo','chill round','that was close','im out gg',
   'any tips?','bet small win big','patience is key','wow that crash was brutal',
   'my heart cant take this','imagine hitting 100x','one more round then i sleep',
@@ -2434,7 +2434,7 @@ SYNC.init();
 populateTopTab();
 if(_prevRoundData.length>0)populatePrevTab();
 // Show avatar picker on first visit
-if(!sessionStorage.getItem('skydrop_avatar_set')){
+if(!sessionStorage.getItem('mma_avatar_set')){
   setTimeout(function(){openAvatarModal()},600);
 }
 requestAnimationFrame(update);
