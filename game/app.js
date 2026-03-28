@@ -339,7 +339,7 @@ var G={
   rocket:{x:-60,y:-80,vx:35,vy:8,angle:0,curvePath:[],targetAlt:300},
   pilot:{x:0,y:0,vx:0,vy:0,chuteOpen:false,ejected:false,spin:0,ejectTime:0,seatFlame:0,_phase:'',_seatY:0,_bodyAngle:0,_drogueOpen:false,_canopyBlown:false},
   camera:{y:0,cx:-100,shake:0,zoom:1,zoomTarget:1,zoomX:0,zoomY:0},
-  stars:[],particles:[],tokens:[],blackHoles:[],
+  stars:[],particles:[],
   time:0,dt:0,lastFrame:0,lastMultFloor:0,
   autoBet:[false,false],autoCash:[false,false],
   _lastAltBand:-1
@@ -655,126 +655,11 @@ function showRoundInfo(info){
 function updAlt(){try{$('altN').textContent=Math.round(G.alt).toLocaleString();$('altF').style.height=(Math.min(1,G.alt/G.MAX_ALT)*100)+'%'}catch(e){}}
 function updStats(){}
 function spawnParticles(x,y,type,n){if(G.particles.length>300)return;for(var i=0;i<(n||20);i++){var a=Math.random()*Math.PI*2,s=Math.random()*7+2;G.particles.push({x:x,y:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-(type==='gold'?3:0),life:1,r:Math.random()*3+2,hue:type==='fire'?Math.random()*40+10:Math.random()*30+40,sat:100,lit:50+Math.random()*30})}}
-function spawnToken(){if(G.tokens.length>(CFG.tokenMax||25))return;var ty=G.pilot.y-(80+Math.random()*400),tx=G.pilot.x+(Math.random()-.5)*600;var bonusVals=CFG._tokenVals,weights=CFG._tokenWeights,totalW=0;for(var w=0;w<weights.length;w++)totalW+=weights[w];var r=Math.random()*totalW,dm=bonusVals[0];for(var i=0;i<weights.length;i++){r-=weights[i];if(r<=0){dm=bonusVals[i];break}}var c='#44ddaa',sz=12;if(dm>=10){c='#ffd700';sz=20}else if(dm>=5){c='#ff44aa';sz=18}else if(dm>=3){c='#ff6644';sz=16}else if(dm>=2){c='#ffaa00';sz=14}else if(dm>=1.5){c='#44ccff';sz=13}G.tokens.push({x:tx,y:ty,mult:dm,color:c,size:sz,pulse:Math.random()*6.28,collected:false,fadeOut:0})}
-function showTokenPop(sx,sy,txt,cls){try{var d=document.createElement('div');d.className='tkpop'+(cls?' '+cls:'');d.textContent=txt;d.style.left=sx+'px';d.style.top=sy+'px';document.querySelector('.mid').appendChild(d);setTimeout(function(){d.remove()},cls?1800:900)}catch(e){}}
-// ======================== BLACK HOLES ========================
-function spawnBlackHole(){
-  if(G.blackHoles.length>=(CFG.bhMax||8))return;
-  var by=G.pilot.y-(80+Math.random()*400);
-  var bx=G.pilot.x+(Math.random()-.5)*600;
-  var bhVals=CFG._bhVals,bhW=CFG._bhWeights,tw=0;
-  for(var w=0;w<bhW.length;w++)tw+=bhW[w];
-  var rr=Math.random()*tw,mult=bhVals[0];
-  for(var i=0;i<bhW.length;i++){rr-=bhW[i];if(rr<=0){mult=bhVals[i];break}}
-  var sz=40+mult*1.5;
-  G.blackHoles.push({x:bx,y:by,r:sz,mult:mult,phase:Math.random()*6.28,active:true,hitAnim:0});
-}
-function checkBlackHoleCollision(){
-  for(var i=0;i<G.blackHoles.length;i++){
-    var bh=G.blackHoles[i];if(!bh.active)continue;
-    var dist=Math.hypot(G.pilot.x-bh.x,G.pilot.y-bh.y);
-    // Strong gravity pull — sucks pilot in
-    if(dist<bh.r*6&&dist>bh.r*1.3){
-      var strength=1-dist/(bh.r*6);
-      var pull=G.dt*(CFG.bhGravity||250)*strength*strength;
-      G.pilot.x+=(bh.x-G.pilot.x)/dist*pull;
-      G.pilot.y+=(bh.y-G.pilot.y)/dist*pull;
-      G.pilot.vx+=(bh.x-G.pilot.x)/dist*G.dt*40*strength;
-    }
-    // Collision — start suck-in animation
-    if(dist<bh.r*1.5&&!G.pilot._bhSuck){
-      G.pilot._bhSuck={bh:bh,phase:'suck',timer:0,startX:G.pilot.x,startY:G.pilot.y,exitAngle:Math.random()*Math.PI*2};
-      bh.active=false;bh.hitAnim=1;
-      G.camera.shake=4;
-      sfx.play('wind');
-      return;
-    }
-  }
-}
-// Black hole suck animation update — call each frame
-function updateBhSuck(){
-  var s=G.pilot._bhSuck;if(!s)return;
-  s.timer+=G.dt;
-  var bh=s.bh;
-  if(s.phase==='suck'){
-    var t=Math.min(s.timer/(CFG.suckTime||.4),1);
-    var ease=t*t;
-    G.pilot.x=s.startX+(bh.x-s.startX)*ease;
-    G.pilot.y=s.startY+(bh.y-s.startY)*ease;
-    G.pilot._bhScale=1-ease*.85;
-    G.pilot.spin+=G.dt*12;
-    G.camera.shake=4+t*6;
-    if(t>=1){s.phase='inside';s.timer=0;G.pilot._bhScale=0.1;}
-  } else if(s.phase==='inside'){
-    G.pilot.x=bh.x;G.pilot.y=bh.y;
-    G.pilot._bhScale=0;
-    G.camera.shake=8;
-    if(s.timer>=(CFG.insideTime||.3)){
-      // Apply multiplier boost from this hole's value
-      var bhMult=bh.mult||20;
-      var _oldMult=G.mult;
-      if(G.mult<bhMult){G.mult=bhMult;G.speed*=1.5+bhMult*(CFG.bhSpeedBoost||.03)}
-      else{G.mult+=bhMult;G.speed*=1.3}
-      var _bhAdded=G.mult-_oldMult;
-      G.crashPt+=_bhAdded;
-      showAlert('🕳️ '+_oldMult.toFixed(2)+'× + '+_bhAdded.toFixed(2)+'× = '+G.mult.toFixed(2)+'×');
-      setCine(G.mult.toFixed(2)+'×','BLACK HOLE!');
-      try{$('cine').className='cine show gold'}catch(e){}
-      var bs=w2s(bh.x,bh.y);
-      spawnParticles(bs.x,bs.y,'fire',40);
-      showTokenPop(bs.x-40,bs.y-50,_oldMult.toFixed(2)+'× + '+_bhAdded.toFixed(2)+'× = '+G.mult.toFixed(2)+'×','bh-boost');
-      // Eject pilot out the other side
-      var ea=s.exitAngle;
-      var _ed=CFG.ejectDist||250;
-      s.ejectX=bh.x+Math.cos(ea)*_ed;
-      s.ejectY=bh.y+Math.sin(ea)*_ed;
-      s.phase='eject';s.timer=0;
-      sfx.play('jump');
-    }
-  } else if(s.phase==='eject'){
-    var t=Math.min(s.timer/(CFG.ejectTime||.35),1);
-    var ease=1-Math.pow(1-t,3);
-    G.pilot.x=bh.x+(s.ejectX-bh.x)*ease;
-    G.pilot.y=bh.y+(s.ejectY-bh.y)*ease;
-    G.pilot._bhScale=0.15+ease*.85;
-    G.pilot.spin+=G.dt*8*(1-t);
-    G.camera.shake=6*(1-t);
-    if(t>=1){
-      G.pilot._bhSuck=null;
-      G.pilot._bhScale=1;
-      G.pilot.vx=(s.ejectX-bh.x)*.5;
-      G.pilot.vy=Math.abs(s.ejectY-bh.y)*.3;
-      // Immediately check crash after eject — don't wait for next frame
-      if(G.mult>=G.crashPt&&G.phase!=='CRASH'){
-        G.phase='CRASH';G.phaseTimer=0;
-        try{startCrashPhase()}catch(e){}
-      }
-    }
-  }
-  // Safety timeout — force-cancel stuck suck animation after 3s
-  if(s&&s===G.pilot._bhSuck){
-    var totalTime=0;
-    if(s.phase==='suck')totalTime=s.timer;
-    else if(s.phase==='inside')totalTime=0.4+s.timer;
-    else if(s.phase==='eject')totalTime=0.7+s.timer;
-    if(totalTime>3){
-      // Apply multiplier if not yet applied
-      if(s.phase==='suck'||s.phase==='inside'){
-        var bhM=bh.mult||20;
-        var _safeOld=G.mult;
-        if(G.mult<bhM)G.mult=bhM;else G.mult+=bhM;
-        G.crashPt+=(G.mult-_safeOld);
-      }
-      G.pilot._bhSuck=null;
-      G.pilot._bhScale=1;
-      G.pilot.x=bh.x+100;G.pilot.y=bh.y+100;
-      if(G.mult>=G.crashPt&&G.phase!=='CRASH'){
-        G.phase='CRASH';G.phaseTimer=0;
-        try{startCrashPhase()}catch(e){}
-      }
-    }
-  }
-}
+function spawnToken(){}
+function showTokenPop(){}
+function spawnBlackHole(){}
+function checkBlackHoleCollision(){}
+function updateBhSuck(){}
 
 // ======================== BET CONTROLS ========================
 var STEPS=[0.1,0.2,0.5,1,2,5,10,25,50,100];
@@ -896,7 +781,7 @@ function startBettingPhase(){
   G.rocket={x:-60,y:-80,vx:35,vy:8,angle:0,curvePath:[],targetAlt:flyAlt};
   G.pilot={x:0,y:0,vx:0,vy:0,chuteOpen:false,ejected:false,spin:0,ejectTime:0,seatFlame:0,_phase:'',_seatY:0,_bodyAngle:0,_drogueOpen:false,_canopyBlown:false};
   G.camera={y:-80,cx:-60,shake:0,zoom:1,zoomTarget:1,zoomX:cv.width/2,zoomY:cv.height*.4};
-  G.particles=[];G.tokens=[];G.blackHoles=[];G.pilot._bhSuck=null;G.pilot._bhScale=1;
+  G.particles=[];
   G.bets[0].placed=false;G.bets[0].out=false;G.bets[0].cashMult=0;
   G.bets[1].placed=false;G.bets[1].out=false;G.bets[1].cashMult=0;
   G.crashPt=genCrash();
@@ -933,7 +818,6 @@ function startCrashPhase(){
   if(G.phase!=='CRASH'){G.phase='CRASH';G.phaseTimer=0}
   // Force pilot to exist
   // Force-clear any active black hole suck animation
-  G.pilot._bhSuck=null;G.pilot._bhScale=1;
   if(!G.pilot.ejected){G.pilot.ejected=true;G.pilot.x=G.rocket.x||0;G.pilot.y=G.rocket.y||0;G.pilot.vx=0;G.pilot.vy=0;G.pilot.spin=0;G.pilot._phase='freefall'}
   G.pilot.chuteOpen=true;G.pilot.vy=Math.min(G.pilot.vy||0,20);
   try{sfx.stopFreefall();sfx.play('chute')}catch(e){}
@@ -965,11 +849,7 @@ function _updateMultAndUI(){
   // Auto cashout
   try{for(var j=0;j<2;j++){if(G.autoCash[j]&&G.bets[j].placed&&!G.bets[j].out){var ac=parseFloat($('au'+(j+1)).value);if(ac>0&&G.mult>=ac)betAction(j+1)}}}catch(e){}
 }
-function _updateBlackHoles(){
-  if(G.mult>=(CFG.bhMinMult||2)&&Math.random()<G.dt*(CFG.bhSpawnRate||.8))spawnBlackHole();
-  try{checkBlackHoleCollision();updateBhSuck()}catch(bhErr){G.pilot._bhSuck=null;G.pilot._bhScale=1}
-  G.blackHoles=G.blackHoles.filter(function(bh){if(!bh.active){bh.hitAnim-=G.dt*2;return bh.hitAnim>0}var sy=w2s(bh.x,bh.y).y;return sy>-200&&sy<cv.height+200});
-}
+function _updateBlackHoles(){}
 
 // ======================== PILOT PHYSICS ========================
 function updatePilotPhysics(){
@@ -1002,7 +882,6 @@ function update(ts){
 
     // WATCHDOG: if stuck in FREEFALL/EXPLODE for 60+ seconds, force crash
     if((G.phase==='FREEFALL'&&G.phaseTimer>60)||(G.phase==='EXPLODE'&&G.phaseTimer>10)){
-      G.pilot._bhSuck=null;G.pilot._bhScale=1;
       G.phase='CRASH';G.phaseTimer=0;
       try{startCrashPhase()}catch(e){}
     }
@@ -1072,37 +951,16 @@ function update(ts){
       try{
       G.rocket.x+=G.rocket.vx*G.dt;G.rocket.y+=G.rocket.vy*G.dt;
       updatePilotPhysics();
-      // Pilot steers toward nearest token or black hole
-      var nearTk=null,nearDist=Infinity;
-      G.tokens.forEach(function(tk){if(tk.collected)return;var d=Math.hypot(G.pilot.x-tk.x,G.pilot.y-tk.y);if(d<nearDist){nearDist=d;nearTk=tk}});
-      var nearBh=null,nearBhDist=Infinity;
-      G.blackHoles.forEach(function(bh){if(!bh.active)return;var d=Math.hypot(G.pilot.x-bh.x,G.pilot.y-bh.y);if(d<nearBhDist){nearBhDist=d;nearBh=bh}});
-      if(nearBh&&nearBhDist<(CFG.steerBhDist||350)&&(!nearTk||nearBhDist<nearDist*(CFG.steerBhPriority||0.8))){
-        var steerX=(nearBh.x-G.pilot.x)*G.dt*(CFG.steerBhX||3);
-        var steerY=(nearBh.y-G.pilot.y)*G.dt*1.2;
-        G.pilot.x+=steerX;G.pilot.y+=steerY*.4;
-        G.pilot.vx+=(nearBh.x>G.pilot.x?1:-1)*G.dt*20;
-      } else if(nearTk&&nearDist<(CFG.steerTokenDist||500)){
-        var steerX2=(nearTk.x-G.pilot.x)*G.dt*(CFG.steerTokenX||2.5);
-        var steerY2=(nearTk.y-G.pilot.y)*G.dt*.8;
-        G.pilot.x+=steerX2;G.pilot.y+=steerY2*.3;
-        G.pilot.vx+=(nearTk.x>G.pilot.x?1:-1)*G.dt*15;
-      }
       G.alt=Math.max(0,G.pilot.y*10);updAlt();
       G.camera.y+=(G.pilot.y-G.camera.y)*.15;G.camera.cx+=(G.pilot.x-G.camera.cx)*.15;
       var ffZoom=0.95+Math.min(.05,G.phaseTimer*.02);
       G.camera.zoomTarget=ffZoom;
-      if(Math.random()<G.dt*(CFG.tokenSpawnRate||4))spawnToken();
-      var _tkBoost=(CFG.tokenBoost||40)/100;
-      G.tokens.forEach(function(tk){if(tk.collected)return;var dx=Math.abs(G.pilot.x-tk.x),dy=G.pilot.y-tk.y;if(dy<50&&dy>-50&&dx<80){tk.collected=true;tk.fadeOut=1;sfx.play('token');var sp=w2s(tk.x,tk.y);var _prevMult=G.mult;var _tkMul=(1+(tk.mult-1)*_tkBoost);G.mult*=_tkMul;G.crashPt*=_tkMul;var _addedX=G.mult-_prevMult;spawnParticles(sp.x,sp.y,'gold',8);showTokenPop(sp.x-30,sp.y-40,_prevMult.toFixed(2)+'× + '+_addedX.toFixed(2)+'× = '+G.mult.toFixed(2)+'×','boost')}});
-      G.tokens=G.tokens.filter(function(tk){if(tk.collected){tk.fadeOut-=G.dt*3;return tk.fadeOut>0}var sy=w2s(tk.x,tk.y).y;return sy>-100&&sy<cv.height+200});
-      _updateBlackHoles();
-      if(Math.random()<G.dt*.15){showAlert(['BODY SHOT!','UPPERCUT!','SPINNING KICK!'][Math.floor(Math.random()*3)]);sfx.play('wind');G.camera.shake=2}
-      var mf=Math.floor(G.mult);if(mf>G.lastMultFloor&&mf>=2){sfx.play('tick');G.lastMultFloor=mf}
+      if(Math.random()<G.dt*.15){showAlert(['BODY SHOT!','UPPERCUT!','SPINNING KICK!'][Math.floor(Math.random()*3)]);G.camera.shake=2}
+      var mf=Math.floor(G.mult);if(mf>G.lastMultFloor&&mf>=2){G.lastMultFloor=mf}
       if(Math.random()<.025)fakeFeed(G.mult*(.5+Math.random()*.6),true);
-      }catch(ffErr){G.pilot._bhSuck=null;G.pilot._bhScale=1}
-      // CRASH CHECK — runs even if above code throws
-      if(!G.pilot._bhSuck&&G.mult>=G.crashPt){
+      }catch(ffErr){}
+      // CRASH CHECK
+      if(G.mult>=G.crashPt){
         G.phase='CRASH';G.phaseTimer=0;
         try{startCrashPhase()}catch(e){}
       }
@@ -1112,7 +970,6 @@ function update(ts){
     else if(G.phase==='CRASH'){
       G.phaseTimer+=G.dt;
       // Safety: finish any lingering bhSuck animation
-      if(G.pilot._bhSuck){updateBhSuck();G.pilot._bhSuck=null;G.pilot._bhScale=1;}
       if(G.pilot.ejected){G.pilot.y-=(15+G.phaseTimer)*G.dt;G.pilot.x+=Math.sin(G.time*1.5)*.4}
       G.alt=Math.max(0,(G.pilot.ejected?G.pilot.y:G.rocket.y)*10);updAlt();
       G.camera.y+=(G.pilot.y-G.camera.y)*.12;G.camera.cx+=(G.pilot.x-G.camera.cx)*.12;
