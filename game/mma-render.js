@@ -4,11 +4,43 @@
 // Expects globals: cv, cx, G, w2s, spawnParticles
 // =====================================================================
 
+// ======================== EASING HELPERS ========================
+function _easeOutBack(x) { return 1 + 2.7 * Math.pow(x - 1, 3) + 1.7 * Math.pow(x - 1, 2); }
+function _easeOutElastic(x) { if (x === 0 || x === 1) return x; return Math.pow(2, -10 * x) * Math.sin((x * 10 - 0.75) * (2 * Math.PI / 3)) + 1; }
+function _easeInOutCubic(x) { return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; }
+function _easeOutCubic(x) { return 1 - Math.pow(1 - x, 3); }
+function _easeInBack(x) { return 2.7 * x * x * x - 1.7 * x * x; }
+function _lerp(a, b, t) { return a + (b - a) * t; }
+
 // ======================== FIGHTER STATE ========================
-// Add to G object (call once at init)
 function initFighterState() {
-  G.f1 = {x:0, y:0, health:1, stance:0, stanceTimer:0, punchTimer:0, hitFlash:0, kickTimer:0, combo:0, blockTimer:0, dodgeX:0, walkCycle:0};
-  G.f2 = {x:0, y:0, health:1, stance:0, stanceTimer:0, punchTimer:0, hitFlash:0, kickTimer:0, combo:0, blockTimer:0, dodgeX:0, walkCycle:0};
+  function _mkFighter() {
+    return {
+      x: 0, y: 0, targetX: 0, targetY: 0,
+      health: 1,
+      stance: 0, stanceTimer: 0,
+      // Punch: windUp → extend → hold → retract
+      punchTimer: 0, punchPhase: 'idle', punchWindup: 0, punchArm: 1,
+      // Kick
+      kickTimer: 0, kickPhase: 'idle', kickWindup: 0,
+      // Block
+      blockTimer: 0, blockAmount: 0,
+      // Combo
+      combo: 0,
+      // Hit reaction
+      hitFlash: 0, staggerX: 0, staggerY: 0, recoilTimer: 0,
+      // Visual state (smoothly lerped)
+      dodgeX: 0, leanAngle: 0, hipShift: 0,
+      // Walk & idle
+      walkCycle: 0, breathCycle: 0,
+      // Blink
+      blinkTimer: 2 + Math.random() * 3, blinkAmount: 0,
+      // Weight shift
+      weightShift: 0, weightTarget: 0
+    };
+  }
+  G.f1 = _mkFighter();
+  G.f2 = _mkFighter();
   G.crowd = [];
   G.tension = 0;
   G.koTimer = 0;
@@ -16,6 +48,7 @@ function initFighterState() {
   G.bellRing = 0;
   G.arenaShake = 0;
   G.crowdRoar = 0;
+  G.crowdRoarSmooth = 0;
   G.fightStarted = false;
 }
 
@@ -87,162 +120,258 @@ function updateFighters() {
   var dt = G.dt || 0.016;
   var t = G.tension;
   var f1 = G.f1, f2 = G.f2;
+  if (!f1 || !f2) return;
   var W = cv.width, H = cv.height;
-
-  // Arena center and radius
   var acx = W * 0.5, acy = H * 0.55;
   var arenaR = Math.min(W, H) * 0.28;
+  var time = G.time;
 
-  // Walk cycles
+  // ─── Smooth cycles ───
   f1.walkCycle += dt * (1.5 + t * 3);
   f2.walkCycle += dt * (1.5 + t * 2.5);
+  f1.breathCycle += dt * 2.8;
+  f2.breathCycle += dt * 3.1;
+
+  // ─── Eye blink (both fighters) ───
+  function _updateBlink(f) {
+    f.blinkTimer -= dt;
+    if (f.blinkTimer <= 0) {
+      f.blinkAmount = 1;
+      f.blinkTimer = 2.5 + Math.random() * 4;
+    }
+    if (f.blinkAmount > 0) {
+      f.blinkAmount = Math.max(0, f.blinkAmount - dt * 8); // blink lasts ~0.12s
+    }
+  }
+  _updateBlink(f1);
+  _updateBlink(f2);
+
+  // ─── Weight shift (smooth lerp to target) ───
+  function _updateWeight(f) {
+    f.weightShift = _lerp(f.weightShift, f.weightTarget, dt * 4);
+  }
+  _updateWeight(f1);
+  _updateWeight(f2);
+
+  // ─── Smooth position interpolation ───
+  function _smoothPos(f, tx, ty) {
+    f.targetX = tx; f.targetY = ty;
+    f.x = _lerp(f.x, tx, dt * 8);
+    f.y = _lerp(f.y, ty, dt * 8);
+  }
+
+  // ─── Punch system: windUp(0.08s) → extend(0.1s) → hold(0.05s) → retract(0.1s) ───
+  function _updatePunch(f) {
+    if (f.punchPhase === 'idle') return;
+    f.punchTimer -= dt;
+    if (f.punchPhase === 'windup') {
+      f.punchWindup = Math.min(1, f.punchWindup + dt * 12); // coil back
+      if (f.punchTimer <= 0) { f.punchPhase = 'extend'; f.punchTimer = 0.1; }
+    } else if (f.punchPhase === 'extend') {
+      f.punchWindup = 0;
+      if (f.punchTimer <= 0) { f.punchPhase = 'hold'; f.punchTimer = 0.05; }
+    } else if (f.punchPhase === 'hold') {
+      if (f.punchTimer <= 0) { f.punchPhase = 'retract'; f.punchTimer = 0.12; }
+    } else if (f.punchPhase === 'retract') {
+      if (f.punchTimer <= 0) { f.punchPhase = 'idle'; f.punchTimer = 0; }
+    }
+  }
+  _updatePunch(f1);
+  _updatePunch(f2);
+
+  // ─── Kick system: windup → extend → retract ───
+  function _updateKick(f) {
+    if (f.kickPhase === 'idle') return;
+    f.kickTimer -= dt;
+    if (f.kickPhase === 'windup') {
+      f.kickWindup = Math.min(1, f.kickWindup + dt * 10);
+      if (f.kickTimer <= 0) { f.kickPhase = 'extend'; f.kickTimer = 0.15; }
+    } else if (f.kickPhase === 'extend') {
+      f.kickWindup = 0;
+      if (f.kickTimer <= 0) { f.kickPhase = 'retract'; f.kickTimer = 0.15; }
+    } else if (f.kickPhase === 'retract') {
+      if (f.kickTimer <= 0) { f.kickPhase = 'idle'; f.kickTimer = 0; }
+    }
+  }
+  _updateKick(f1);
+  _updateKick(f2);
+
+  // ─── Hit reaction: stagger + recoil ───
+  function _updateHitReaction(f) {
+    if (f.recoilTimer > 0) {
+      f.recoilTimer -= dt;
+      var recoilProg = f.recoilTimer / 0.3;
+      f.staggerX *= (1 - dt * 6); // smooth decay
+      f.staggerY *= (1 - dt * 8);
+    } else {
+      f.staggerX *= (1 - dt * 10);
+      f.staggerY *= (1 - dt * 10);
+    }
+    f.hitFlash = Math.max(0, f.hitFlash - dt * 2.5); // slower flash decay
+    f.blockAmount = _lerp(f.blockAmount, f.blockTimer > 0 ? 1 : 0, dt * 8);
+    f.blockTimer = Math.max(0, f.blockTimer - dt);
+    f.leanAngle = _lerp(f.leanAngle, 0, dt * 5);
+  }
+  _updateHitReaction(f1);
+  _updateHitReaction(f2);
+
+  // ─── Trigger a punch with full animation phases ───
+  function _triggerPunch(attacker, defender, defX, defY, damage, shakeAmt, particleCount) {
+    attacker.punchPhase = 'windup';
+    attacker.punchTimer = 0.08;
+    attacker.punchWindup = 0;
+    attacker.combo = Math.min(5, attacker.combo + 1);
+    attacker.punchArm = attacker.combo % 2 === 0 ? 1 : -1;
+    attacker.weightTarget = attacker.punchArm * 0.5;
+    attacker.leanAngle = attacker.punchArm * 0.08;
+    // Schedule hit impact (after windup + half of extend)
+    setTimeout(function() {
+      defender.hitFlash = 0.35;
+      defender.recoilTimer = 0.3;
+      defender.staggerX = (attacker === f1 ? 1 : -1) * (6 + t * 8);
+      defender.staggerY = -2 - Math.random() * 3;
+      defender.leanAngle = (attacker === f1 ? 1 : -1) * (0.05 + t * 0.1);
+      defender.health = Math.max(0, defender.health - damage);
+      G.arenaShake = Math.max(G.arenaShake, shakeAmt);
+      G.crowdRoar = Math.min(1, G.crowdRoar + 0.15);
+      spawnParticles(defX, defY - 30, 'fire', particleCount);
+    }, 130);
+  }
+
+  // ─── Trigger a kick ───
+  function _triggerKick(attacker, defender, defX, defY) {
+    attacker.kickPhase = 'windup';
+    attacker.kickTimer = 0.1;
+    attacker.kickWindup = 0;
+    attacker.weightTarget = -0.6;
+    attacker.leanAngle = (attacker === f1 ? -1 : 1) * 0.12;
+    setTimeout(function() {
+      defender.hitFlash = 0.4;
+      defender.recoilTimer = 0.35;
+      defender.staggerX = (attacker === f1 ? 1 : -1) * (10 + t * 10);
+      defender.staggerY = -4;
+      defender.leanAngle = (attacker === f1 ? 1 : -1) * 0.15;
+      defender.health = Math.max(0, defender.health - (0.012 + t * 0.025));
+      G.arenaShake = Math.max(G.arenaShake, 3 + t * 5);
+      G.crowdRoar = Math.min(1, G.crowdRoar + 0.25);
+      spawnParticles(defX, defY - 20, 'fire', Math.floor(4 + t * 10));
+    }, 180);
+  }
+
+  // ═══ PHASE LOGIC ═══
 
   if (G.phase === 'BETTING') {
-    // Circle each other
     var circleSpeed = 0.4;
     f1.stance += dt * circleSpeed;
     f2.stance = f1.stance + Math.PI;
     var circR = arenaR * 0.35;
-    f1.x = acx + Math.cos(f1.stance) * circR;
-    f1.y = acy + Math.sin(f1.stance) * circR * 0.4;
-    f2.x = acx + Math.cos(f2.stance) * circR;
-    f2.y = acy + Math.sin(f2.stance) * circR * 0.4;
+    _smoothPos(f1, acx + Math.cos(f1.stance) * circR, acy + Math.sin(f1.stance) * circR * 0.4);
+    _smoothPos(f2, acx + Math.cos(f2.stance) * circR, acy + Math.sin(f2.stance) * circR * 0.4);
     f1.health = 1; f2.health = 1;
-    f1.punchTimer = 0; f2.punchTimer = 0;
-    f1.kickTimer = 0; f2.kickTimer = 0;
+    f1.punchPhase = 'idle'; f2.punchPhase = 'idle';
+    f1.kickPhase = 'idle'; f2.kickPhase = 'idle';
     f1.hitFlash = 0; f2.hitFlash = 0;
+    f1.staggerX = 0; f2.staggerX = 0;
     G.koTimer = 0;
   }
   else if (G.phase === 'EXPLODE') {
-    // Walkout — approach each other
-    var prog = Math.min(1, G.phaseTimer / (1.8));
-    var sep = arenaR * 0.6 * (1 - prog * 0.6);
-    f1.x = acx - sep;
-    f2.x = acx + sep;
-    f1.y = acy;
-    f2.y = acy;
+    // Walkout — smooth approach with ease-out
+    var prog = Math.min(1, G.phaseTimer / 1.8);
+    var easedProg = _easeOutCubic(prog);
+    var sep = arenaR * 0.6 * (1 - easedProg * 0.6);
+    _smoothPos(f1, acx - sep, acy);
+    _smoothPos(f2, acx + sep, acy);
     G.bellRing = Math.max(0, (G.bellRing || 0) - dt);
-    if (G.phaseTimer > 1.2 && G.bellRing <= 0) {
-      G.bellRing = 0.5;
-    }
+    if (G.phaseTimer > 1.2 && G.bellRing <= 0) G.bellRing = 0.5;
   }
   else if (G.phase === 'FREEFALL') {
-    // FIGHT phase
     G.fightStarted = true;
     var sep2 = arenaR * (0.22 - t * 0.08);
-    var sway = Math.sin(G.time * 2 + t * 4) * sep2 * 0.15;
+    var sway = Math.sin(time * 2 + t * 4) * sep2 * 0.15;
+    // Natural bob & weave
+    var f1tx = acx - sep2 + sway + Math.sin(time * 3.5) * 4 * t;
+    var f2tx = acx + sep2 - sway * 0.5 + Math.sin(time * 2.8 + 1) * 3 * t;
+    var f1ty = acy + Math.sin(time * 2) * 3;
+    var f2ty = acy + Math.sin(time * 2.3 + 0.5) * 3;
+    _smoothPos(f1, f1tx, f1ty);
+    _smoothPos(f2, f2tx, f2ty);
 
-    // Fighters bob and weave
-    f1.x = acx - sep2 + sway + Math.sin(G.time * 3.5) * 4 * t;
-    f2.x = acx + sep2 - sway * 0.5 + Math.sin(G.time * 2.8 + 1) * 3 * t;
-    f1.y = acy + Math.sin(G.time * 2) * 3;
-    f2.y = acy + Math.sin(G.time * 2.3 + 0.5) * 3;
+    // Apply stagger offset
+    f2.x += f2.staggerX;
+    f2.y += f2.staggerY;
+    f1.x += f1.staggerX;
+    f1.y += f1.staggerY;
 
-    // F2 dodge back when hit
-    if (f2.hitFlash > 0) {
-      f2.dodgeX = 8 * f2.hitFlash;
-    } else {
-      f2.dodgeX *= 0.9;
-    }
-    f2.x += f2.dodgeX;
-
-    // Stance timers — dt-based punch/kick scheduling
+    // ─── Attack scheduling ───
     f1.stanceTimer -= dt;
     f2.stanceTimer -= dt;
+    var punchInterval = Math.max(0.2, 0.9 - t * 0.6);
+    var kickInterval = Math.max(0.5, 2.2 - t * 1.5);
 
-    // Punch frequency increases with tension
-    var punchInterval = Math.max(0.15, 0.8 - t * 0.6);
-    var kickInterval = Math.max(0.4, 2.0 - t * 1.5);
-
-    // F1 (masked/blue) attacks — frequency based on tension
-    if (f1.stanceTimer <= 0) {
+    // F1 attacks (only when not already attacking)
+    if (f1.stanceTimer <= 0 && f1.punchPhase === 'idle' && f1.kickPhase === 'idle') {
       var roll = Math.random();
-      if (t > 0.3 && roll < 0.25) {
-        // Kick
-        f1.kickTimer = 0.4;
+      if (t > 0.3 && roll < 0.2) {
+        _triggerKick(f1, f2, f2.x, f2.y);
         f1.stanceTimer = kickInterval * (0.8 + Math.random() * 0.4);
-        // Hit f2
-        f2.hitFlash = 0.3;
-        f2.health = Math.max(0, f2.health - (0.01 + t * 0.02));
-        G.arenaShake = Math.max(G.arenaShake, 2 + t * 4);
-        G.crowdRoar = Math.min(1, G.crowdRoar + 0.2);
-        // Spawn hit particles at f2 position
-        spawnParticles(f2.x, f2.y - 30, 'fire', Math.floor(3 + t * 8));
-      } else if (roll < 0.7) {
-        // Punch
-        f1.punchTimer = 0.2;
-        f1.stanceTimer = punchInterval * (0.7 + Math.random() * 0.6);
-        f1.combo = Math.min(5, f1.combo + 1);
-        // Hit f2
-        f2.hitFlash = 0.2;
-        f2.health = Math.max(0, f2.health - (0.005 + t * 0.015));
-        G.arenaShake = Math.max(G.arenaShake, 1 + t * 2);
-        G.crowdRoar = Math.min(1, G.crowdRoar + 0.1);
-        spawnParticles(f2.x - 10, f2.y - 35, 'fire', Math.floor(2 + t * 5));
+      } else if (roll < 0.65) {
+        var dmg = 0.005 + t * 0.015;
+        _triggerPunch(f1, f2, f2.x, f2.y, dmg, 1 + t * 2.5, Math.floor(3 + t * 6));
+        f1.stanceTimer = punchInterval * (0.6 + Math.random() * 0.6);
       } else {
-        // Idle/reset combo
-        f1.stanceTimer = punchInterval * (1 + Math.random());
+        f1.stanceTimer = punchInterval * (0.8 + Math.random());
         f1.combo = 0;
+        f1.weightTarget = 0;
       }
     }
 
-    // F2 (unmasked/red) counter-attacks — less frequent, decreases with tension
-    if (f2.stanceTimer <= 0) {
-      var counterChance = Math.max(0.1, 0.5 - t * 0.35);
+    // F2 counter-attacks (less frequent)
+    if (f2.stanceTimer <= 0 && f2.punchPhase === 'idle' && f2.kickPhase === 'idle' && f2.recoilTimer <= 0) {
+      var counterChance = Math.max(0.08, 0.45 - t * 0.35);
       if (Math.random() < counterChance) {
-        f2.punchTimer = 0.2;
+        _triggerPunch(f2, f1, f1.x, f1.y, 0.003, 1, 2);
         f2.stanceTimer = punchInterval * (1.2 + Math.random() * 0.8);
-        f1.hitFlash = 0.15;
-        G.arenaShake = Math.max(G.arenaShake, 1);
-        spawnParticles(f1.x + 10, f1.y - 35, 'fire', 2);
       } else {
-        f2.stanceTimer = punchInterval * (1.5 + Math.random());
-        f2.blockTimer = 0.3;
+        f2.stanceTimer = punchInterval * (1.2 + Math.random());
+        f2.blockTimer = 0.5 + Math.random() * 0.3;
       }
     }
 
-    // Decay timers
-    f1.punchTimer = Math.max(0, f1.punchTimer - dt);
-    f2.punchTimer = Math.max(0, f2.punchTimer - dt);
-    f1.kickTimer = Math.max(0, f1.kickTimer - dt);
-    f2.kickTimer = Math.max(0, f2.kickTimer - dt);
-    f1.hitFlash = Math.max(0, f1.hitFlash - dt * 3);
-    f2.hitFlash = Math.max(0, f2.hitFlash - dt * 3);
-    f1.blockTimer = Math.max(0, f1.blockTimer - dt);
-    f2.blockTimer = Math.max(0, f2.blockTimer - dt);
-
-    // Health degrades more at extreme tension
+    // Health pressure at extreme tension
     if (t > 0.75) {
-      f2.health = Math.max(0, f2.health - dt * 0.03 * (t - 0.5));
+      f2.health = Math.max(0, f2.health - dt * 0.025 * (t - 0.5));
     }
   }
   else if (G.phase === 'CRASH') {
-    // KO sequence
+    // ─── KO sequence with eased fall ───
     G.koTimer += dt;
     if (G.koTimer < 0.1) {
       G.koFlash = 1;
-      G.arenaShake = 12;
+      G.arenaShake = 15;
       G.crowdRoar = 1;
+      f1.punchPhase = 'extend'; f1.punchTimer = 0.5; // frozen punch pose
     }
-    G.koFlash = Math.max(0, G.koFlash - dt * 2);
+    G.koFlash = Math.max(0, G.koFlash - dt * 1.5);
 
-    // F1 delivers final blow
-    f1.punchTimer = Math.max(0, 0.5 - G.koTimer);
+    // F2 falls with easing (fast start, slow at ground)
+    var fallRaw = Math.min(1, G.koTimer / 0.8);
+    var fallEased = _easeOutCubic(fallRaw);
+    f2.y = _lerp(acy, acy + 40, fallEased);
+    f2.leanAngle = _lerp(0, 0.45, fallEased);
+    f2.staggerX = _lerp(0, 12, fallEased);
+    f2.health = Math.max(0, 1 - fallEased * 3);
 
-    // F2 falls
-    var fallProg = Math.min(1, G.koTimer / 0.6);
-    f2.y = acy + fallProg * 35;
-    f2.health = 0;
-    // F2 leans/rotates as falling (handled in draw)
+    // F1 victory pose — slight lean forward
+    f1.leanAngle = _lerp(f1.leanAngle, -0.05, dt * 3);
   }
 
-  // Global arena shake decay
-  G.arenaShake = Math.max(0, G.arenaShake - dt * 15);
-  G.crowdRoar = Math.max(0, G.crowdRoar - dt * 0.5);
+  // ─── Global decays ───
+  G.arenaShake = Math.max(0, G.arenaShake * (1 - dt * 8));
+  G.crowdRoar = Math.max(0, G.crowdRoar - dt * 0.4);
+  G.crowdRoarSmooth = _lerp(G.crowdRoarSmooth || 0, G.crowdRoar, dt * 5);
 
-  // Camera shake from arena
-  if (G.arenaShake > 0.5) {
-    G.camera.shake = Math.max(G.camera.shake, G.arenaShake * 0.5);
+  if (G.arenaShake > 0.3) {
+    G.camera.shake = Math.max(G.camera.shake, G.arenaShake * 0.6);
   }
 }
 
@@ -504,9 +633,14 @@ function _drawCrowd(W, H, acx, acy, arenaR, t, rowIdx) {
     var bodyH = 10 * sc * c.height;
     var bounce = Math.sin(time * c.speed * (0.8 + excitement) + c.phase) * (2 + excitement * 6) * (sc * 0.3);
 
-    // Arms up when excited
-    var armsUp = excitement > 0.25 && Math.sin(time * 1.8 + c.phase * 2) > (0.5 - excitement * 0.6);
-    var bothArmsUp = excitement > 0.6 && Math.sin(time * 2.5 + c.phase) > 0.2;
+    // Arms — smooth lerp instead of instant snap
+    var wantArmsUp = excitement > 0.25 && Math.sin(time * 1.8 + c.phase * 2) > (0.5 - excitement * 0.6);
+    var wantBothUp = excitement > 0.6 && Math.sin(time * 2.5 + c.phase) > 0.2;
+    if (!c._armRaise) c._armRaise = 0;
+    var armTarget = wantBothUp ? 1 : wantArmsUp ? 0.6 : 0;
+    c._armRaise += (armTarget - c._armRaise) * Math.min(1, dt * 4);
+    var armsUp = c._armRaise > 0.15;
+    var bothArmsUp = c._armRaise > 0.7;
 
     cx.globalAlpha = rowAlpha;
 
@@ -1024,10 +1158,16 @@ function _drawSingleFighter(f, isMasked, scale, t, time, corner) {
   cx.translate(px, py);
   cx.scale(sc, sc);
 
-  // KO falling for unmasked fighter
+  // Apply body lean from hits/attacks/weight shift
+  var bodyLeanVal = f.leanAngle || 0;
+  if (Math.abs(bodyLeanVal) > 0.003) {
+    cx.rotate(bodyLeanVal);
+  }
+
+  // KO falling for unmasked fighter (eased)
   var fallAngle = 0;
   if (!isMasked && G.phase === 'CRASH') {
-    var fallProg = Math.min(1, (G.koTimer || 0) / 0.6);
+    var fallProg = _easeOutCubic(Math.min(1, (G.koTimer || 0) / 0.8));
     fallAngle = fallProg * Math.PI * 0.4 * facing;
     cx.rotate(fallAngle);
   }
@@ -1053,17 +1193,33 @@ function _drawSingleFighter(f, isMasked, scale, t, time, corner) {
     accentCol = '#ff4444';
   }
 
-  // Punch/kick state
-  var punchExt = 0, punchArm = 1, kickExtend = 0;
-  if (f.punchTimer > 0) {
-    var pp = f.punchTimer / 0.2;
-    punchExt = Math.sin(pp * Math.PI) * 22;
-    punchArm = (f.combo || 0) % 2 === 0 ? 1 : -1;
+  // Punch/kick state — new phased animation system
+  var punchExt = 0, punchArm = f.punchArm || 1, punchWindback = 0, kickExtend = 0, kickWindback = 0;
+  if (f.punchPhase === 'windup') {
+    punchWindback = _easeOutCubic(f.punchWindup) * 8; // coil backward
+    punchExt = -punchWindback; // negative = pull back
+  } else if (f.punchPhase === 'extend') {
+    var ep = 1 - (f.punchTimer / 0.1);
+    punchExt = _easeOutBack(Math.min(1, ep)) * 24; // overshoot forward
+  } else if (f.punchPhase === 'hold') {
+    punchExt = 22; // fully extended
+  } else if (f.punchPhase === 'retract') {
+    var rp = 1 - (f.punchTimer / 0.12);
+    punchExt = (1 - _easeInOutCubic(rp)) * 22; // smooth retract
   }
-  if (f.kickTimer > 0) {
-    kickExtend = Math.sin(f.kickTimer / 0.4 * Math.PI) * 24;
+  if (f.kickPhase === 'windup') {
+    kickWindback = _easeOutCubic(f.kickWindup) * 6;
+    kickExtend = -kickWindback;
+  } else if (f.kickPhase === 'extend') {
+    var kep = 1 - (f.kickTimer / 0.15);
+    kickExtend = _easeOutBack(Math.min(1, kep)) * 26;
+  } else if (f.kickPhase === 'retract') {
+    var krp = 1 - (f.kickTimer / 0.15);
+    kickExtend = (1 - _easeInOutCubic(krp)) * 26;
   }
   var legAngle = Math.sin(f.walkCycle) * 2.5;
+  // Body lean from attacks and hits
+  var bodyLean = (f.leanAngle || 0) + (f.weightShift || 0) * 0.05;
 
   // === GROUND SHADOW ===
   cx.save();
@@ -1446,13 +1602,11 @@ function _drawSingleFighter(f, isMasked, scale, t, time, corner) {
     backArmX = -5 * facing + punchExt * facing;
     backArmY = -12 + bob;
     backBicepBulge = 0.6; // Bulging bicep during punch
-  } else if (f.blockTimer > 0) {
-    backArmX = -2 * facing;
-    backArmY = -20 + bob;
-    backBicepBulge = 0.4;
   } else {
-    backArmX = -guardX * 0.6;
-    backArmY = guardY + Math.sin(time * 5) * 1;
+    var ba = f.blockAmount || 0;
+    backArmX = _lerp(-guardX * 0.6, -2 * facing, ba);
+    backArmY = _lerp(guardY + Math.sin(time * 5) * 1, -20 + bob, ba);
+    backBicepBulge = _lerp(0.2, 0.4, ba);
   }
   // Upper arm
   var backElbowX = (-shoulderW * facing + backArmX) / 2 + (backArmY - shoulderY) * 0.1;
@@ -1497,13 +1651,11 @@ function _drawSingleFighter(f, isMasked, scale, t, time, corner) {
     frontArmX = 5 * facing + punchExt * facing;
     frontArmY = -12 + bob;
     frontBicepBulge = 0.7; // Extra bulge during punch
-  } else if (f.blockTimer > 0) {
-    frontArmX = 3 * facing;
-    frontArmY = -20 + bob;
-    frontBicepBulge = 0.4;
   } else {
-    frontArmX = guardX;
-    frontArmY = guardY + Math.sin(time * 5 + 1) * 1;
+    var fa = f.blockAmount || 0;
+    frontArmX = _lerp(guardX, 3 * facing, fa);
+    frontArmY = _lerp(guardY + Math.sin(time * 5 + 1) * 1, -20 + bob, fa);
+    frontBicepBulge = _lerp(0.2, 0.4, fa);
   }
   // Upper arm
   var frontElbowX = (shoulderW * facing + frontArmX) / 2 + (frontArmY - shoulderY) * 0.1;
@@ -1558,6 +1710,42 @@ function _drawSingleFighter(f, isMasked, scale, t, time, corner) {
   cx.restore();
 
   // ═══════════════════════════════════════════════
+  // MOTION BLUR on fast strikes
+  if (punchExt > 5 && f.punchPhase === 'extend') {
+    var blurArm = punchArm === 1 ? frontArmX : backArmX;
+    var blurArmY = punchArm === 1 ? frontArmY : backArmY;
+    cx.save();
+    for (var mb = 3; mb >= 1; mb--) {
+      cx.globalAlpha = 0.08 * mb;
+      cx.fillStyle = glovesCol;
+      cx.beginPath();
+      cx.arc(blurArm - mb * 4 * facing, blurArmY + mb * 0.5, 4.5, 0, Math.PI * 2);
+      cx.fill();
+    }
+    // Speed lines along punch path
+    cx.strokeStyle = 'rgba(255,255,255,0.15)';
+    cx.lineWidth = 0.8;
+    for (var sl = 0; sl < 4; sl++) {
+      var slY = blurArmY - 3 + sl * 2;
+      cx.beginPath();
+      cx.moveTo(blurArm - 15 * facing, slY);
+      cx.lineTo(blurArm - 3 * facing, slY);
+      cx.stroke();
+    }
+    cx.restore();
+  }
+  if (kickExtend > 8 && f.kickPhase === 'extend') {
+    cx.save();
+    for (var kb = 3; kb >= 1; kb--) {
+      cx.globalAlpha = 0.06 * kb;
+      cx.fillStyle = skinMid;
+      cx.beginPath();
+      cx.arc(frontFootX - kb * 5 * facing, frontFootY + kb, 4, 0, Math.PI * 2);
+      cx.fill();
+    }
+    cx.restore();
+  }
+
   // PUNCH IMPACT FLASH — large white flash + radial lines
   // ═══════════════════════════════════════════════
   if (punchExt > 10) {
@@ -1815,19 +2003,23 @@ function _drawSingleFighter(f, isMasked, scale, t, time, corner) {
     cx.closePath();
     cx.fill();
 
-    // Glowing blue eyes inside slits
+    // Glowing blue eyes inside slits (with blink)
+    var mBlink = f.blinkAmount || 0;
+    var mEyeScale = 1 - mBlink * 0.9; // nearly shut when blinking
     cx.save();
     cx.shadowColor = accentCol;
-    cx.shadowBlur = 8;
+    cx.shadowBlur = 8 * mEyeScale;
     cx.fillStyle = accentCol;
+    cx.globalAlpha = 0.3 + 0.7 * mEyeScale;
     // Left eye glow
     cx.beginPath();
-    cx.ellipse(-3.2 * facing, headY - 1.5, 1.8, 1.1, 0.1, 0, Math.PI * 2);
+    cx.ellipse(-3.2 * facing, headY - 1.5, 1.8, 1.1 * mEyeScale, 0.1, 0, Math.PI * 2);
     cx.fill();
     // Right eye glow
     cx.beginPath();
-    cx.ellipse(2.8 * facing, headY - 1.5, 1.8, 1.1, -0.1, 0, Math.PI * 2);
+    cx.ellipse(2.8 * facing, headY - 1.5, 1.8, 1.1 * mEyeScale, -0.1, 0, Math.PI * 2);
     cx.fill();
+    cx.globalAlpha = 1;
     // Bright pupil center
     cx.shadowBlur = 4;
     cx.fillStyle = '#aaddff';
@@ -1948,8 +2140,10 @@ function _drawSingleFighter(f, isMasked, scale, t, time, corner) {
 
     // Eyes — large, expressive with full detail
     var eyeW = 2.8, eyeH = 1.8;
-    // Expression: squint more as health drops
+    // Expression: squint more as health drops + blink
     var squint = f.health < 0.3 ? 0.4 : (f.health < 0.6 ? 0.2 : 0);
+    var blink = f.blinkAmount || 0;
+    squint = Math.max(squint, blink); // blink overrides squint
 
     // Eye whites with subtle gradient
     cx.save();
