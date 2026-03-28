@@ -177,46 +177,32 @@ function genFighter(w,h,masked){
 function render(){
   try{
   if(!cv||!cx)return;var W=cv.width,H=cv.height;if(!W||!H)return;
-  if(!SCENE.ready||SCENE._lastW!==W||SCENE._lastH!==H){SCENE.images.bg=genBG(W,H);SCENE.images.floor=genFloor(W,H);SCENE.images.cage=genCage(W,H);SCENE.images.crowdBack=genCrowd(W,H,2);SCENE.images.crowdMid=genCrowd(W,H,1);SCENE.images.crowdFront=genCrowd(W,H,0);SCENE.images.f1=genFighter(240,360,true);SCENE.images.f2=genFighter(240,360,false);SCENE.ready=true;SCENE._lastW=W;SCENE._lastH=H}
+  SCENE.ready=true;
   if(!G.f1||!G.f2){try{initFighterState()}catch(e){}}
   if(!G.crowd||G.crowd.length===0){try{initCrowd()}catch(e){}}
   cx.clearRect(0,0,W,H);cx.save();
   var cam=G.camera||{};if((cam.shake||0)>0.1)cx.translate((Math.random()-0.5)*cam.shake,(Math.random()-0.5)*cam.shake);
   var z=cam.zoom||1;if(z!==1){var zx=cam.zoomX||W*0.5,zy=cam.zoomY||H*0.45;cx.translate(zx,zy);cx.scale(z,z);cx.translate(-zx,-zy)}
   G.tension=getTension(G.mult||1);var t=G.tension,acx=W*0.5,acy=H*0.55;
-  var cBob=Math.sin((G.time||0)*1.5)*(2+(G.crowdRoarSmooth||0)*8);
 
-  cx.drawImage(SCENE.images.bg,0,0); // Background
-  cx.drawImage(SCENE.images.crowdBack,0,H*0.1+cBob*0.2); // Back crowd
-  cx.drawImage(SCENE.images.crowdMid,0,H*0.2+cBob*0.4); // Mid crowd
-  cx.drawImage(SCENE.images.floor,0,0); // Floor
-
-  // Spotlight pool
-  var slA=0.04+t*0.06;var slG=cx.createRadialGradient(acx,acy,20,acx,acy,W*0.3);slG.addColorStop(0,'rgba(255,255,240,'+slA+')');slG.addColorStop(0.5,'rgba(255,255,240,'+slA*0.3+')');slG.addColorStop(1,'transparent');cx.fillStyle=slG;cx.fillRect(0,0,W,H);
-
-  // Blood
-  if(t>0.5&&G.fightStarted){cx.globalAlpha=(t-0.5)*0.2;for(var bi=0;bi<Math.floor(t*6);bi++){cx.fillStyle='rgba(140,20,20,0.7)';cx.beginPath();cx.ellipse(acx+Math.sin(bi*7.13)*W*0.1,acy+Math.cos(bi*4.27)*H*0.03,3+bi*2,1.5+bi,Math.sin(bi)*0.5,0,Math.PI*2);cx.fill()}cx.globalAlpha=1}
-
-  // Fight video (replaces fighter sprites)
+  // Fight video — fullscreen cover
   var fightVid=document.getElementById('fightVideo');
   if(fightVid){
-    // Auto-play on first interaction
     if(fightVid.paused&&fightVid.readyState>=2){try{fightVid.play()}catch(e){}}
-    // Draw video frame centered in arena
     if(fightVid.readyState>=2){
       var vidW=fightVid.videoWidth||1280,vidH=fightVid.videoHeight||720;
-      var vidAspect=vidW/vidH;
-      // Scale video to fill arena area while maintaining aspect ratio
-      var arenaW=W*0.65,arenaH=H*0.65;
+      var vidAspect=vidW/vidH,scrAspect=W/H;
+      // Cover: fill entire screen, crop overflow
       var drawW,drawH;
-      if(arenaW/arenaH>vidAspect){drawH=arenaH;drawW=drawH*vidAspect}else{drawW=arenaW;drawH=drawW/vidAspect}
-      var drawX=acx-drawW/2,drawY=acy-drawH*0.45;
-      cx.drawImage(fightVid,drawX,drawY,drawW,drawH);
+      if(scrAspect>vidAspect){drawW=W;drawH=W/vidAspect}else{drawH=H;drawW=H*vidAspect}
+      cx.drawImage(fightVid,(W-drawW)/2,(H-drawH)/2,drawW,drawH);
+    }else{
+      // Black until video loads
+      cx.fillStyle='#000';cx.fillRect(0,0,W,H);
     }
+  }else{
+    cx.fillStyle='#000';cx.fillRect(0,0,W,H);
   }
-
-  cx.drawImage(SCENE.images.cage,0,0); // Cage
-  cx.drawImage(SCENE.images.crowdFront,0,H*0.8+cBob*0.6); // Front crowd
 
   // Health bars
   if(f1&&f2&&G.phase!=='BETTING'&&G.phase!=='WAITING'&&G.phase!=='INIT'){var bW=Math.min(200,W*0.2),bH=10,bY=H*0.07;cx.fillStyle='rgba(0,0,0,0.55)';cx.fillRect(acx-bW-28,bY-1,bW+2,bH+2);var hp1=Math.max(0,Math.min(1,f1.health));var hg1=cx.createLinearGradient(acx-bW-27,0,acx-27,0);hg1.addColorStop(0,'#2266cc');hg1.addColorStop(1,'#44aaff');cx.fillStyle=hg1;cx.fillRect(acx-bW-27,bY,bW*hp1,bH);cx.fillStyle='#4488ff';cx.font='bold 11px sans-serif';cx.textAlign='right';cx.fillText('MASKED',acx-28,bY-3);cx.fillStyle='rgba(0,0,0,0.55)';cx.fillRect(acx+26,bY-1,bW+2,bH+2);var hp2=Math.max(0,Math.min(1,f2.health));var hg2=cx.createLinearGradient(acx+27,0,acx+27+bW*hp2,0);hg2.addColorStop(0,'#cc2222');hg2.addColorStop(1,'#ff4444');cx.fillStyle=hg2;cx.fillRect(acx+27,bY,bW*hp2,bH);cx.fillStyle='#ff4444';cx.textAlign='left';cx.fillText('FIGHTER',acx+28,bY-3)}
