@@ -345,49 +345,12 @@ var G={
   _lastAltBand:-1
 };
 
-// ======================== AVATAR PICKER ========================
-var AVATAR_PILOTS=['🧑‍✈️','👨‍✈️','👩‍✈️','🧑‍🚀','🪂','🏂','🪖','🏄'];
-var AVATAR_ICONS=['💀','🔥','💎','⚡','🚀','👑','🎯','👾'];
-var AVATAR_ANIMALS=['🦅','🐺','🦁','🐉','🦈','🦊','🐻','🦇'];
-var AVATAR_COLORS=['#ff8800','#e53935','#8e24aa','#1e88e5','#00acc1','#43a047','#ffb300','#f4511e','#6d4c41','#546e7a','#d81b60','#5e35b1'];
-
-var _selectedAvatar='🧑‍✈️';
-var _selectedColor='#ff8800';
+// ======================== AVATAR (fixed) ========================
+var _selectedAvatar='🥊';
 var _selectedName='Player';
-
-function buildAvatarGrid(containerId,emojis){
-  var grid=document.getElementById(containerId);if(!grid)return;grid.innerHTML='';
-  emojis.forEach(function(em){
-    var btn=document.createElement('div');
-    btn.textContent=em;
-    btn.style.cssText='width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:24px;background:rgba(255,255,255,.04);border:2px solid transparent;border-radius:10px;cursor:pointer;transition:.2s';
-    if(em===_selectedAvatar)btn.style.borderColor='var(--acc)';
-    btn.onclick=function(){
-      _selectedAvatar=em;
-      document.getElementById('avatarPreview').textContent=em;
-      document.querySelectorAll('#avatarGrid1 div,#avatarGrid2 div,#avatarGrid3 div').forEach(function(d){d.style.borderColor='transparent'});
-      btn.style.borderColor='var(--acc)';
-    };
-    grid.appendChild(btn);
-  });
-}
-
-function saveAvatar(){
-  _selectedName=document.getElementById('avatarNameInput').value.trim()||'Player';
-  document.getElementById('menuAvatarBtn').textContent=_selectedAvatar;
-  document.getElementById('menuUserName').textContent=_selectedName;
-  document.getElementById('avatarModal').classList.remove('open');
-  try{sessionStorage.setItem('mma_avatar_set','1')}catch(e){}
-}
-
-function openAvatarModal(){
-  buildAvatarGrid('avatarGrid1',AVATAR_PILOTS);
-  buildAvatarGrid('avatarGrid2',AVATAR_ICONS);
-  buildAvatarGrid('avatarGrid3',AVATAR_ANIMALS);
-  document.getElementById('avatarPreview').textContent=_selectedAvatar;
-  document.getElementById('avatarNameInput').value=_selectedName;
-  document.getElementById('avatarModal').classList.add('open');
-}
+function buildAvatarGrid(){}
+function saveAvatar(){}
+function openAvatarModal(){}
 
 // ======================== CANVAS ========================
 var cv=document.getElementById('c');if(!cv){cv=document.createElement('canvas');document.body.appendChild(cv)}var cx=cv.getContext('2d');
@@ -2041,10 +2004,6 @@ startBettingPhase();
 SYNC.init();
 populateTopTab();
 if(_prevRoundData.length>0)populatePrevTab();
-// Show avatar picker on first visit
-if(!sessionStorage.getItem('mma_avatar_set')){
-  setTimeout(function(){openAvatarModal()},600);
-}
 requestAnimationFrame(update);
 
 // Recover game when tab comes back from background

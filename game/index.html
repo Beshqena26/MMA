@@ -187,7 +187,7 @@
 <div class="menu-overlay" id="menuOverlay"></div>
 <div class="menu-panel" id="menuPanel">
   <div class="menu-head">
-    <div class="menu-avatar" id="menuAvatarBtn" style="cursor:pointer" onclick="closeMenu();openAvatarModal()">🥊</div>
+    <div class="menu-avatar" id="menuAvatarBtn" style="cursor:default">🥊</div>
     <div class="menu-user">
       <div class="menu-user-name" id="menuUserName">Player</div>
       <div class="menu-user-id">MMA</div>
@@ -434,30 +434,7 @@
   </div>
 </div>
 
-<div class="mo" id="avatarModal">
-  <div class="mx has-footer" style="max-width:440px">
-    <button class="mc" onclick="document.getElementById('avatarModal').classList.remove('open')">✕</button>
-    <div class="mt2">🎭 CHOOSE AVATAR</div>
-    <div class="modal-scroll">
-      <div style="font-size:11px;color:var(--dim);margin-bottom:12px;line-height:1.5">Pick your avatar and set a nickname before you start playing.</div>
-      <div style="text-align:center;margin:12px 0">
-        <div id="avatarPreview" style="width:60px;height:60px;border-radius:50%;background:rgba(76,175,80,.12);display:inline-flex;align-items:center;justify-content:center;font-size:30px;box-shadow:0 4px 20px rgba(76,175,80,.15);border:3px solid rgba(76,175,80,.4)">🥊</div>
-        <div style="font-size:9px;color:var(--dim);margin-top:6px;letter-spacing:1px">CURRENT AVATAR</div>
-      </div>
-      <div style="font-size:10px;color:var(--dim);letter-spacing:1px;margin-bottom:6px;font-weight:600">PILOTS</div>
-      <div id="avatarGrid1" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px"></div>
-      <div style="font-size:10px;color:var(--dim);letter-spacing:1px;margin-bottom:6px;font-weight:600">ICONS</div>
-      <div id="avatarGrid2" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px"></div>
-      <div style="font-size:10px;color:var(--dim);letter-spacing:1px;margin-bottom:6px;font-weight:600">ANIMALS</div>
-      <div id="avatarGrid3" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px"></div>
-    </div>
-    <div class="modal-footer">
-      <div style="font-size:10px;color:var(--dim);letter-spacing:1px;margin-bottom:6px;font-weight:600">NICKNAME</div>
-      <input type="text" id="avatarNameInput" maxlength="12" placeholder="Player" value="Player" style="width:100%;padding:10px 12px;background:var(--panel2);border:1px solid var(--border);border-radius:8px;font-family:'Chakra Petch',sans-serif;font-size:15px;font-weight:600;color:var(--txt);outline:none;margin-bottom:12px;text-align:center;box-sizing:border-box">
-      <button id="avatarSaveBtn" onclick="saveAvatar()" style="width:100%;padding:14px;border:none;border-radius:10px;background:linear-gradient(135deg,#43a047,#66bb6a);color:#fff;font-family:'Oxanium',sans-serif;font-size:15px;font-weight:800;letter-spacing:1px;cursor:pointer;box-shadow:0 3px 12px rgba(76,175,80,.25);transition:.2s">SAVE</button>
-    </div>
-  </div>
-</div>
+<!-- avatar modal removed -->
 
 <!-- Firebase SDK (v9 compat) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
