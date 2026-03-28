@@ -696,119 +696,252 @@ function _drawCrowd(W, H, acx, acy, arenaR, t, rowIdx) {
 // =================== DRAW ARENA ===================
 function _drawArena(W, H, acx, acy, arenaR, t) {
   var time = G.time || 0;
+  var perspY = 0.45; // perspective squash for Y
+  var cageR = arenaR * 1.1; // cage slightly larger than mat
+  var fenceH = arenaR * 0.55; // tall chain-link fence
 
-  // Mat / floor — dark gray octagon
   cx.save();
-  var matG = cx.createRadialGradient(acx, acy, 0, acx, acy, arenaR * 1.1);
-  matG.addColorStop(0, 'rgba(40, 35, 45, 0.9)');
-  matG.addColorStop(0.7, 'rgba(25, 22, 30, 0.85)');
-  matG.addColorStop(1, 'rgba(15, 12, 20, 0.7)');
+
+  // ── CONCRETE MAT FLOOR ──
+  // Light gray concrete-like floor
+  var matG = cx.createRadialGradient(acx, acy + arenaR * 0.1, arenaR * 0.15, acx, acy, arenaR * 1.15);
+  matG.addColorStop(0, 'rgba(160, 155, 150, 0.95)');
+  matG.addColorStop(0.3, 'rgba(140, 135, 130, 0.9)');
+  matG.addColorStop(0.6, 'rgba(120, 115, 110, 0.85)');
+  matG.addColorStop(0.85, 'rgba(100, 95, 90, 0.8)');
+  matG.addColorStop(1, 'rgba(70, 65, 60, 0.6)');
   cx.fillStyle = matG;
-  _drawOctagon(cx, acx, acy, arenaR * 1.05);
+  _drawOctagon(cx, acx, acy, cageR);
   cx.fill();
 
-  // Mat center circle
-  cx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+  // Floor texture — subtle noise spots
+  cx.globalAlpha = 0.04;
+  for (var fi = 0; fi < 40; fi++) {
+    var fx = acx + Math.sin(fi * 7.3) * arenaR * 0.8;
+    var fy = acy + Math.cos(fi * 4.1) * arenaR * 0.3;
+    cx.fillStyle = fi % 2 === 0 ? '#fff' : '#000';
+    cx.beginPath();
+    cx.arc(fx, fy, 1 + (fi % 3), 0, Math.PI * 2);
+    cx.fill();
+  }
+  cx.globalAlpha = 1;
+
+  // Spotlight reflection on mat
+  var matLight = cx.createRadialGradient(acx, acy - arenaR * 0.15, 0, acx, acy, arenaR * 0.8);
+  matLight.addColorStop(0, 'rgba(255, 255, 250, 0.08)');
+  matLight.addColorStop(0.5, 'rgba(255, 255, 250, 0.02)');
+  matLight.addColorStop(1, 'transparent');
+  cx.fillStyle = matLight;
+  _drawOctagon(cx, acx, acy, cageR);
+  cx.fill();
+
+  // ── RED OCTAGON BORDER LINE ──
+  cx.strokeStyle = 'rgba(200, 30, 30, 0.9)';
+  cx.lineWidth = 3;
+  _drawOctagon(cx, acx, acy, arenaR * 0.95);
+  cx.stroke();
+  // Inner red line (thinner)
+  cx.strokeStyle = 'rgba(200, 30, 30, 0.4)';
   cx.lineWidth = 1.5;
-  cx.beginPath();
-  cx.ellipse(acx, acy, arenaR * 0.25, arenaR * 0.25 * 0.45, 0, 0, Math.PI * 2);
+  _drawOctagon(cx, acx, acy, arenaR * 0.9);
   cx.stroke();
 
-  // Center logo hint
-  cx.globalAlpha = 0.04;
-  cx.font = 'bold ' + Math.floor(arenaR * 0.2) + 'px Oxanium';
+  // ── CENTER CIRCLE ──
+  cx.strokeStyle = 'rgba(200, 30, 30, 0.3)';
+  cx.lineWidth = 1.5;
+  cx.beginPath();
+  cx.ellipse(acx, acy, arenaR * 0.18, arenaR * 0.18 * perspY, 0, 0, Math.PI * 2);
+  cx.stroke();
+
+  // Center logo
+  cx.globalAlpha = 0.06;
+  cx.font = 'bold ' + Math.floor(arenaR * 0.15) + 'px sans-serif';
   cx.textAlign = 'center';
   cx.textBaseline = 'middle';
   cx.fillStyle = '#fff';
   cx.fillText('MMA', acx, acy + 2);
   cx.globalAlpha = 1;
 
-  // Blue corner marking (left)
-  cx.fillStyle = 'rgba(30, 100, 255, 0.08)';
-  cx.beginPath();
-  cx.ellipse(acx - arenaR * 0.7, acy, arenaR * 0.15, arenaR * 0.06, 0, 0, Math.PI * 2);
-  cx.fill();
-
-  // Red corner marking (right)
-  cx.fillStyle = 'rgba(255, 40, 40, 0.08)';
-  cx.beginPath();
-  cx.ellipse(acx + arenaR * 0.7, acy, arenaR * 0.15, arenaR * 0.06, 0, 0, Math.PI * 2);
-  cx.fill();
-
-  // Blood stains during high tension
+  // ── BLOOD STAINS ──
   if (t > 0.5 && G.fightStarted) {
-    cx.globalAlpha = (t - 0.5) * 0.15;
-    var bloodSpots = Math.floor(t * 5);
+    cx.globalAlpha = (t - 0.5) * 0.2;
+    var bloodSpots = Math.floor(t * 6);
     for (var bi = 0; bi < bloodSpots; bi++) {
-      // Deterministic positions from seed
-      var bx = acx + Math.sin(bi * 7.13 + 0.5) * arenaR * 0.3;
-      var by = acy + Math.cos(bi * 4.27 + 1.2) * arenaR * 0.1;
-      cx.fillStyle = 'rgba(120, 15, 15, 0.6)';
+      var bx = acx + Math.sin(bi * 7.13 + 0.5) * arenaR * 0.35;
+      var by = acy + Math.cos(bi * 4.27 + 1.2) * arenaR * 0.12;
+      cx.fillStyle = 'rgba(140, 20, 20, 0.7)';
       cx.beginPath();
-      cx.ellipse(bx, by, 4 + bi * 2, 2 + bi, Math.sin(bi) * 0.5, 0, Math.PI * 2);
+      cx.ellipse(bx, by, 3 + bi * 2.5, 1.5 + bi * 0.8, Math.sin(bi) * 0.5, 0, Math.PI * 2);
       cx.fill();
     }
     cx.globalAlpha = 1;
   }
 
-  // Cage fence posts (8 posts at octagon vertices)
-  var tensionCol = getTensionColor(t);
-  for (var i = 0; i < 8; i++) {
-    var v = OCT_VERTS[i];
-    var px = acx + v.x * arenaR * 1.05;
-    var py = acy + v.y * arenaR * 1.05 * 0.45;
-    var postH = 35 + (i % 2) * 5;
+  // ── CHAIN-LINK FENCE PANELS ──
+  // Draw fence between each pair of posts (8 panels)
+  for (var pi = 0; pi < 8; pi++) {
+    var v1 = OCT_VERTS[pi];
+    var v2 = OCT_VERTS[(pi + 1) % 8];
+    var x1 = acx + v1.x * cageR;
+    var y1 = acy + v1.y * cageR * perspY;
+    var x2 = acx + v2.x * cageR;
+    var y2 = acy + v2.y * cageR * perspY;
 
-    // Post shadow
-    cx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-    cx.fillRect(px - 2, py - 2, 5, postH + 4);
+    // Only draw panels that face the viewer (front half of octagon)
+    var midY = (y1 + y2) / 2;
+    // All panels are visible but back ones are dimmer
+    var isFront = midY > acy - arenaR * 0.1;
+    var panelAlpha = isFront ? 0.5 : 0.25;
 
-    // Post body — metallic
-    var postG = cx.createLinearGradient(px - 2, 0, px + 3, 0);
-    postG.addColorStop(0, '#888');
-    postG.addColorStop(0.3, '#bbb');
-    postG.addColorStop(0.7, '#aaa');
-    postG.addColorStop(1, '#777');
-    cx.fillStyle = postG;
-    cx.fillRect(px - 1.5, py - postH, 3, postH);
+    // Fence panel fill — dark with transparency (chain link look)
+    cx.save();
+    cx.globalAlpha = panelAlpha;
 
-    // Post cap
-    cx.fillStyle = '#ddd';
+    // Panel quad (bottom edge on mat, top edge is fenceH above)
+    var topY1 = y1 - fenceH * (isFront ? 1 : 0.7);
+    var topY2 = y2 - fenceH * (isFront ? 1 : 0.7);
+
+    // Dark mesh fill
+    cx.fillStyle = 'rgba(20, 20, 25, 0.7)';
     cx.beginPath();
-    cx.arc(px, py - postH, 3, 0, Math.PI * 2);
+    cx.moveTo(x1, y1);
+    cx.lineTo(x2, y2);
+    cx.lineTo(x2, topY2);
+    cx.lineTo(x1, topY1);
+    cx.closePath();
     cx.fill();
-  }
 
-  // Cage ropes/wires (3 horizontal levels)
-  for (var lvl = 0; lvl < 3; lvl++) {
-    var ropeY = -10 - lvl * 10;
-    var ropeAlpha = 0.2 + t * 0.15;
-    // Rope color shifts with tension
-    var rr = Math.floor(150 + t * 100);
-    var rg = Math.floor(150 - t * 100);
-    var rb = Math.floor(150 + (1 - t) * 50);
+    // Chain-link diamond pattern
+    cx.strokeStyle = 'rgba(120, 130, 140, ' + (panelAlpha * 0.6) + ')';
+    cx.lineWidth = 0.5;
+    var panelW = Math.hypot(x2 - x1, y2 - y1);
+    var diamondSize = 8;
+    var steps = Math.floor(panelW / diamondSize);
+    var hSteps = Math.floor(fenceH / diamondSize);
 
-    cx.strokeStyle = 'rgba(' + rr + ',' + rg + ',' + rb + ',' + ropeAlpha + ')';
-    cx.lineWidth = 1.2 + lvl * 0.3;
-    cx.beginPath();
-    for (var ri = 0; ri <= 8; ri++) {
-      var rv = OCT_VERTS[ri % 8];
-      var rpx = acx + rv.x * arenaR * 1.05;
-      var rpy = acy + rv.y * arenaR * 1.05 * 0.45 + ropeY;
-      // Add slight sag
-      var sag = (ri > 0 && ri < 8) ? Math.sin(ri / 8 * Math.PI) * 2 : 0;
-      if (ri === 0) cx.moveTo(rpx, rpy + sag);
-      else cx.lineTo(rpx, rpy + sag);
-    }
-    cx.stroke();
-
-    // Rope glow at high tension
-    if (t > 0.5) {
-      cx.strokeStyle = 'rgba(255, 100, 50, ' + ((t - 0.5) * 0.1) + ')';
-      cx.lineWidth = 3;
+    for (var di = 0; di <= steps; di++) {
+      var frac = di / steps;
+      var bx = x1 + (x2 - x1) * frac;
+      var by = y1 + (y2 - y1) * frac;
+      var tx = bx;
+      var ty = (isFront ? y1 : y1) - fenceH * (isFront ? 1 : 0.7) + (topY1 - (y1 - fenceH * (isFront ? 1 : 0.7))) * frac;
+      // Vertical wire
+      cx.beginPath();
+      cx.moveTo(bx, by);
+      cx.lineTo(tx + (x2 - x1) / steps * 0, ty + (topY2 - topY1) / steps * 0);
       cx.stroke();
     }
+    // Horizontal wires
+    for (var hi = 0; hi <= hSteps; hi++) {
+      var hFrac = hi / hSteps;
+      cx.beginPath();
+      var hy1 = y1 - (y1 - topY1) * hFrac;
+      var hy2 = y2 - (y2 - topY2) * hFrac;
+      cx.moveTo(x1, hy1);
+      cx.lineTo(x2, hy2);
+      cx.stroke();
+    }
+
+    // Diamond cross-wires for chain link effect
+    cx.strokeStyle = 'rgba(100, 110, 120, ' + (panelAlpha * 0.3) + ')';
+    cx.lineWidth = 0.4;
+    for (var dj = 0; dj < steps; dj++) {
+      for (var dk = 0; dk < hSteps; dk++) {
+        var f1x = x1 + (x2 - x1) * dj / steps;
+        var f1y = y1 + (topY1 - y1) * dk / hSteps;
+        var f2x = x1 + (x2 - x1) * (dj + 1) / steps;
+        var f2y = y1 + (topY1 - y1) * (dk + 1) / hSteps;
+        // Diagonal lines forming diamonds
+        if ((dj + dk) % 2 === 0) {
+          cx.beginPath();
+          cx.moveTo(f1x, f1y + (y2 - y1) * dj / steps);
+          cx.lineTo(f2x, f2y + (y2 - y1) * (dj + 1) / steps);
+          cx.stroke();
+        }
+      }
+    }
+
+    // Panel edge highlight (sparkle from arena lights)
+    var sparkle = Math.sin(time * 2 + pi * 1.3) * 0.5 + 0.5;
+    cx.strokeStyle = 'rgba(180, 200, 220, ' + (sparkle * panelAlpha * 0.15) + ')';
+    cx.lineWidth = 1;
+    cx.beginPath();
+    cx.moveTo(x1, topY1);
+    cx.lineTo(x2, topY2);
+    cx.stroke();
+
+    cx.restore();
   }
+
+  // ── THICK METAL POSTS ──
+  for (var i = 0; i < 8; i++) {
+    var v = OCT_VERTS[i];
+    var px = acx + v.x * cageR;
+    var py = acy + v.y * cageR * perspY;
+    var isFrontPost = py > acy - arenaR * 0.1;
+    var postH2 = fenceH * (isFrontPost ? 1 : 0.7);
+    var postW = isFrontPost ? 6 : 4;
+
+    // Post shadow
+    cx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+    cx.fillRect(px - postW / 2 + 2, py - postH2, postW, postH2 + 3);
+
+    // Post body — thick metallic
+    var postG = cx.createLinearGradient(px - postW / 2, 0, px + postW / 2, 0);
+    postG.addColorStop(0, '#555');
+    postG.addColorStop(0.2, '#999');
+    postG.addColorStop(0.4, '#bbb');
+    postG.addColorStop(0.6, '#aaa');
+    postG.addColorStop(0.8, '#888');
+    postG.addColorStop(1, '#555');
+    cx.fillStyle = postG;
+    cx.fillRect(px - postW / 2, py - postH2, postW, postH2);
+
+    // Post base plate
+    cx.fillStyle = '#777';
+    cx.fillRect(px - postW * 0.7, py - 2, postW * 1.4, 4);
+
+    // Post top cap
+    cx.fillStyle = '#ccc';
+    cx.beginPath();
+    cx.ellipse(px, py - postH2, postW * 0.7, 2.5, 0, 0, Math.PI * 2);
+    cx.fill();
+
+    // Post specular highlight
+    var specAlpha = 0.1 + Math.sin(time * 1.5 + i * 0.8) * 0.05;
+    cx.fillStyle = 'rgba(255, 255, 255, ' + specAlpha + ')';
+    cx.fillRect(px - postW / 2 + 1, py - postH2, 1.5, postH2);
+
+    // Blue/red padding at top of post (like real UFC)
+    if (i < 4) {
+      cx.fillStyle = 'rgba(30, 80, 200, 0.4)';
+    } else {
+      cx.fillStyle = 'rgba(200, 30, 30, 0.4)';
+    }
+    cx.fillRect(px - postW / 2 - 1, py - postH2, postW + 2, 8);
+  }
+
+  // ── TOP RAIL ──
+  // Horizontal bar across top of fence
+  cx.strokeStyle = 'rgba(150, 160, 170, 0.5)';
+  cx.lineWidth = 2.5;
+  cx.beginPath();
+  for (var ri = 0; ri <= 8; ri++) {
+    var rv = OCT_VERTS[ri % 8];
+    var rpx = acx + rv.x * cageR;
+    var rpy = acy + rv.y * cageR * perspY;
+    var isFrontR = rpy > acy - arenaR * 0.1;
+    var topRY = rpy - fenceH * (isFrontR ? 1 : 0.7);
+    if (ri === 0) cx.moveTo(rpx, topRY);
+    else cx.lineTo(rpx, topRY);
+  }
+  cx.stroke();
+
+  // Bottom rail
+  cx.strokeStyle = 'rgba(130, 140, 150, 0.4)';
+  cx.lineWidth = 2;
+  _drawOctagon(cx, acx, acy, cageR);
+  cx.stroke();
 
   cx.restore();
 }
