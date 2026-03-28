@@ -731,20 +731,14 @@ function startBettingPhase(){
   // Guard: prevent duplicate betting phase for same round
   if(_lastBettingRound===G.roundNum)return;
   _lastBettingRound=G.roundNum;
-  G.mult=1;G.speed=0;G.alt=0;G.lastMultFloor=0;
+  G.mult=1;G.speed=0;G.lastMultFloor=0;
 
-  // Pick altitude
-  var bands=[800,1500,2500,4000,6000,8000,12000];
-  var bi=Math.floor(Math.random()*bands.length);
-  var t=0;while(bi===G._lastAltBand&&t<10){bi=Math.floor(Math.random()*bands.length);t++}
-  G._lastAltBand=bi;
-
-  // Reset objects — rocket starts high, flies horizontally across
-  var flyAlt=bands[bi]*(0.85+Math.random()*0.3);
-  G.rocket={x:-60,y:-80,vx:35,vy:8,angle:0,curvePath:[],targetAlt:flyAlt};
-  G.pilot={x:0,y:0,vx:0,vy:0,chuteOpen:false,ejected:false,spin:0,ejectTime:0,seatFlame:0,_phase:'',_seatY:0,_bodyAngle:0,_drogueOpen:false,_canopyBlown:false};
-  G.camera={y:-80,cx:-60,shake:0,zoom:1,zoomTarget:1,zoomX:cv.width/2,zoomY:cv.height*.4};
+  // Reset camera to arena center
+  G.camera={y:0,cx:0,shake:0,zoom:1,zoomTarget:1,zoomX:cv.width/2,zoomY:cv.height*0.45};
   G.particles=[];
+  // Reset fighters via initFighterState if available
+  if(typeof initFighterState==='function')initFighterState();
+  if(typeof initCrowd==='function'&&(!G.crowd||G.crowd.length===0))initCrowd();
   G.bets[0].placed=false;G.bets[0].out=false;G.bets[0].cashMult=0;
   G.bets[1].placed=false;G.bets[1].out=false;G.bets[1].cashMult=0;
   G.crashPt=genCrash();
@@ -843,11 +837,12 @@ function update(ts){
     if(!isFinite(G.dt))G.dt=.016;
     if(!isFinite(G.mult))G.mult=1;
 
-    // WATCHDOG: if stuck in FREEFALL/EXPLODE for 60+ seconds, force crash
-    if((G.phase==='FREEFALL'&&G.phaseTimer>60)||(G.phase==='EXPLODE'&&G.phaseTimer>10)){
-      G.phase='CRASH';G.phaseTimer=0;
-      try{startCrashPhase()}catch(e){}
-    }
+    // ═══ MMA UPDATE LOOP (no rocket/pilot) ═══
+
+    // Camera stays fixed on arena center
+    G.camera.cx=0;G.camera.y=0;
+    G.camera.zoomX=cv.width*0.5;
+    G.camera.zoomY=cv.height*0.45;
 
     // === BETTING ===
     if(G.phase==='BETTING'){
@@ -855,73 +850,42 @@ function update(ts){
       var pct=G.phaseTimer/BET_TIME;
       try{$('timerBar').style.width=(pct*100)+'%';$('timerBar').classList.toggle('urgent',pct<.4)}catch(e){}
       setSt('PLACE YOUR BETS — '+Math.ceil(Math.max(0,G.phaseTimer))+'s','s1');
-      var p=(BET_TIME-G.phaseTimer)/BET_TIME,thrust,turnAngle;
-      if(p<0.15){thrust=50+p*180;turnAngle=Math.PI*.47-p*0.7}
-      else if(p<0.5){var tp=(p-0.15)/0.35;thrust=80+tp*120;turnAngle=Math.PI*.4-tp*0.35}
-      else{var tp2=(p-0.5)/0.5;thrust=140+tp2*80;turnAngle=Math.PI*.3-tp2*0.08}
-      G.rocket.vx+=Math.cos(turnAngle)*thrust*G.dt;G.rocket.vy+=Math.sin(turnAngle)*thrust*G.dt;
-      G.rocket.vx*=(1-G.dt*0.25);G.rocket.vy*=(1-G.dt*0.25);
-      G.rocket.x+=G.rocket.vx*G.dt;G.rocket.y+=G.rocket.vy*G.dt;
-      G.rocket.angle+=(Math.atan2(G.rocket.vy,G.rocket.vx)-G.rocket.angle)*G.dt*5;
-      if(G.rocket.curvePath.length===0||Math.hypot(G.rocket.x-G.rocket.curvePath[G.rocket.curvePath.length-1].x,G.rocket.y-G.rocket.curvePath[G.rocket.curvePath.length-1].y)>1.5){G.rocket.curvePath.push({x:G.rocket.x,y:G.rocket.y});if(G.rocket.curvePath.length>120)G.rocket.curvePath.shift()}
-      G.alt=Math.max(0,G.rocket.y*10);updAlt();
-      G.camera.cx+=(G.rocket.x+G.rocket.vx*.3-G.camera.cx)*.06;G.camera.y+=(G.rocket.y+G.rocket.vy*.3-G.camera.y)*.06;
-      // Zoom in on rocket during launch — gentle
-      var launchZoom=1.15-p*.1;
-      G.camera.zoomTarget=launchZoom;
+      G.camera.zoomTarget=1;
       if(G.phaseTimer<=0)startExplodePhase();
     }
 
-    // === EXPLODE ===
+    // === EXPLODE (WALKOUT) ===
     else if(G.phase==='EXPLODE'){
       G.phaseTimer+=G.dt;
-      G.rocket.x+=G.rocket.vx*G.dt;G.rocket.y+=G.rocket.vy*G.dt;
-      G.rocket.angle=Math.atan2(G.rocket.vy,G.rocket.vx);
-      if(G.rocket.curvePath.length===0||Math.hypot(G.rocket.x-G.rocket.curvePath[G.rocket.curvePath.length-1].x,G.rocket.y-G.rocket.curvePath[G.rocket.curvePath.length-1].y)>2){G.rocket.curvePath.push({x:G.rocket.x,y:G.rocket.y});if(G.rocket.curvePath.length>100)G.rocket.curvePath.shift()}
-      if(!G.pilot.ejected&&G.phaseTimer>=0.6){
-        G.pilot.ejected=true;G.pilot.x=G.rocket.x;G.pilot.y=G.rocket.y;
-        G.pilot.vy=-2;G.pilot.vx=-3+(Math.random()-.5)*3;
-        G.pilot.spin=0;G.pilot.ejectTime=0;G.pilot.seatFlame=0;
-        G.pilot._phase='freefall';G.pilot._seatY=0;G.pilot._bodyAngle=0;G.pilot._drogueOpen=false;G.pilot._canopyBlown=false;G.pilot.chuteOpen=false;
+      G.camera.zoomTarget=1.05;
+      var cd=3-Math.floor(G.phaseTimer/0.7);
+      if(cd>=1)setCine(cd+'...','FIGHTERS READY');
+      if(G.phaseTimer>=0.6&&G.mult<1.01){
         G.mult=1.0;G.speed=CFG.multSpeed||0.002;G.lastMultFloor=0;
-        sfx.play('jump');G.camera.shake=1.5;G.camera.zoomTarget=0.95;updAllBtns();
+        updAllBtns();
       }
-      if(!G.pilot.ejected){
-        G.camera.cx+=(G.rocket.x-G.camera.cx)*.08;G.camera.y+=(G.rocket.y-G.camera.y)*.08;
-        G.camera.zoomTarget=1.15;
-        var cd=3-Math.floor(G.phaseTimer/.2);if(cd>=1)setCine(cd+'...','FIGHTERS READY');
-        G.alt=Math.max(0,G.rocket.y*10);updAlt();
-      }else{
-        G.pilot.vy-=G.dt*25;G.pilot.y+=G.pilot.vy*G.dt;G.pilot.x+=G.pilot.vx*G.dt;G.pilot.x+=Math.sin(G.time*4)*G.dt*3;
-        G.pilot.spin+=G.dt*1.2;G.pilot._bodyAngle+=(0-G.pilot._bodyAngle)*G.dt*3;
+      // Start multiplier after walkout
+      if(G.phaseTimer>=0.6){
         _updateMultAndUI();
-        G.alt=Math.max(0,G.pilot.y*10);updAlt();
-        G.camera.cx+=(G.pilot.x-G.camera.cx)*.1;
-        G.camera.y+=(G.pilot.y-G.camera.y)*.1;
-        _updateBlackHoles();
-        if(G.pilot._bhSuck){}else if(G.mult>=G.crashPt){
+        if(G.mult>=G.crashPt){
           G.phase='CRASH';G.phaseTimer=0;
           try{startCrashPhase()}catch(e){}
         }
       }
-      if(G.phaseTimer>=EXPLODE_TIME&&G.pilot.ejected&&G.phase==='EXPLODE')startFreefallPhase();
+      if(G.phaseTimer>=EXPLODE_TIME&&G.phase==='EXPLODE')startFreefallPhase();
     }
 
-    // === FREEFALL ===
+    // === FREEFALL (FIGHT) ===
     else if(G.phase==='FREEFALL'){
       G.phaseTimer+=G.dt;
       _updateMultAndUI();
-      try{
-      G.rocket.x+=G.rocket.vx*G.dt;G.rocket.y+=G.rocket.vy*G.dt;
-      updatePilotPhysics();
-      G.alt=Math.max(0,G.pilot.y*10);updAlt();
-      G.camera.y+=(G.pilot.y-G.camera.y)*.15;G.camera.cx+=(G.pilot.x-G.camera.cx)*.15;
-      var ffZoom=0.95+Math.min(.05,G.phaseTimer*.02);
-      G.camera.zoomTarget=ffZoom;
-      if(Math.random()<G.dt*.15){showAlert(['BODY SHOT!','UPPERCUT!','SPINNING KICK!'][Math.floor(Math.random()*3)]);G.camera.shake=2}
+      G.camera.zoomTarget=1;
+      // Random fight alerts
+      if(Math.random()<G.dt*0.12){
+        showAlert(['BODY SHOT!','UPPERCUT!','SPINNING KICK!','LIVER SHOT!','HEAD KICK!','JAB-CROSS!'][Math.floor(Math.random()*6)]);
+      }
       var mf=Math.floor(G.mult);if(mf>G.lastMultFloor&&mf>=2){G.lastMultFloor=mf}
-      if(Math.random()<.025)fakeFeed(G.mult*(.5+Math.random()*.6),true);
-      }catch(ffErr){}
+      if(Math.random()<0.02)fakeFeed(G.mult*(0.5+Math.random()*0.6),true);
       // CRASH CHECK
       if(G.mult>=G.crashPt){
         G.phase='CRASH';G.phaseTimer=0;
@@ -929,20 +893,16 @@ function update(ts){
       }
     }
 
-    // === CRASH ===
+    // === CRASH (KO) ===
     else if(G.phase==='CRASH'){
       G.phaseTimer+=G.dt;
-      // Safety: finish any lingering bhSuck animation
-      if(G.pilot.ejected){G.pilot.y-=(15+G.phaseTimer)*G.dt;G.pilot.x+=Math.sin(G.time*1.5)*.4}
-      G.alt=Math.max(0,(G.pilot.ejected?G.pilot.y:G.rocket.y)*10);updAlt();
-      G.camera.y+=(G.pilot.y-G.camera.y)*.12;G.camera.cx+=(G.pilot.x-G.camera.cx)*.12;
+      G.camera.zoomTarget=1.1;
       var rem=Math.max(0,Math.ceil(CRASH_WAIT-G.phaseTimer));
       if(G.phaseTimer>1.5)setSt('NEXT ROUND IN '+rem+'s','s5');
       if(G.phaseTimer>=CRASH_WAIT){
         if(SYNC.enabled){
-          // Let SYNC handle next round via Firebase
           SYNC.onCrashWaitEnd();
-          G.phase='WAITING';G.phaseTimer=0; // wait for Firebase to start next round
+          G.phase='WAITING';G.phaseTimer=0;
         }else{
           G.phase='BETTING';G.phaseTimer=BET_TIME;
           try{startBettingPhase()}catch(e){}
@@ -950,24 +910,22 @@ function update(ts){
       }
     }
 
-    // === WAITING (synced — waiting for Firebase to start next round) ===
+    // === WAITING (synced) ===
     else if(G.phase==='WAITING'){
       G.phaseTimer+=G.dt;
       setSt('SYNCING NEXT ROUND...','s5');
-      // Safety: if stuck waiting >5s, try claiming again
       if(G.phaseTimer>5){G.phaseTimer=0;SYNC.onCrashWaitEnd()}
     }
 
-    // Zoom
+    // Camera zoom
     G.camera.zoom+=(G.camera.zoomTarget-G.camera.zoom)*G.dt*2.5;
-    G.camera.zoomX+=(cv.width*.5-G.camera.zoomX)*.2;
-    G.camera.zoomY+=((innerWidth<900?cv.height*.3:cv.height*.45)-G.camera.zoomY)*.2;
-    G.camera.shake*=.94;
-    // MMA: update tension + fighters each frame
+    G.camera.shake*=0.94;
+
+    // MMA: update tension + fighters
     if(typeof getTension==='function')G.tension=getTension(G.mult);
     if(typeof updateFighters==='function')updateFighters();
   }catch(e){console.error('Update:',e)}
-  try{render()}catch(re){}
+  try{render()}catch(re){console.error('RENDER ERROR:',re.message,re.stack)}
   requestAnimationFrame(update);
 }
 
