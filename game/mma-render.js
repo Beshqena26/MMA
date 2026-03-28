@@ -648,7 +648,7 @@ function _drawCrowd(W, H, acx, acy, arenaR, t, rowIdx) {
     var wantBothUp = excitement > 0.6 && Math.sin(time * 2.5 + c.phase) > 0.2;
     if (!c._armRaise) c._armRaise = 0;
     var armTarget = wantBothUp ? 1 : wantArmsUp ? 0.6 : 0;
-    c._armRaise += (armTarget - c._armRaise) * Math.min(1, dt * 4);
+    c._armRaise += (armTarget - c._armRaise) * Math.min(1, (G.dt || 0.016) * 4);
     var armsUp = c._armRaise > 0.15;
     var bothArmsUp = c._armRaise > 0.7;
 
