@@ -29,19 +29,38 @@ var OCT_VERTS = [];
 })();
 
 // ======================== CROWD ========================
+// Stadium-style crowd: large colorful silhouettes, foam fingers, banners
+var CROWD_SHIRT_COLORS = [
+  '#c62828','#d32f2f','#e53935','#b71c1c', // reds
+  '#1565c0','#1976d2','#1e88e5','#0d47a1', // blues
+  '#2e7d32','#388e3c', // greens
+  '#f57f17','#ff8f00', // golds
+  '#4a148c','#6a1b9a', // purples
+  '#37474f','#455a64','#546e7a', // grays
+  '#bf360c','#e65100', // oranges
+  '#fff','#e0e0e0' // whites
+];
 function initCrowd() {
   G.crowd = [];
-  var count = Math.min(120, Math.floor(cv.width / 8));
+  var count = Math.min(180, Math.floor(cv.width / 5));
   for (var i = 0; i < count; i++) {
+    var row = i < count * 0.3 ? 2 : i < count * 0.6 ? 1 : 0;
     G.crowd.push({
-      x: Math.random(),
-      row: Math.floor(Math.random() * 3),
+      x: (i % Math.ceil(count / 3)) / Math.ceil(count / 3) + (Math.random() - 0.5) * 0.03,
+      row: row,
       phase: Math.random() * Math.PI * 2,
-      speed: 0.5 + Math.random() * 2,
-      height: 0.6 + Math.random() * 0.5,
-      hue: Math.random() * 360,
-      armUp: false,
-      armPhase: Math.random() * Math.PI * 2
+      speed: 0.5 + Math.random() * 2.5,
+      height: 0.7 + Math.random() * 0.4,
+      shirt: CROWD_SHIRT_COLORS[Math.floor(Math.random() * CROWD_SHIRT_COLORS.length)],
+      skinTone: ['#d4a574','#c68642','#8d5524','#e0ac69','#f1c27d','#6b4423'][Math.floor(Math.random() * 6)],
+      hasFoamFinger: Math.random() < 0.08,
+      hasBanner: Math.random() < 0.04,
+      bannerColor: Math.random() < 0.5 ? '#ef4444' : '#3b82f6',
+      foamColor: Math.random() < 0.5 ? '#22c55e' : '#ef4444',
+      hairType: Math.floor(Math.random() * 3), // 0=short, 1=none, 2=cap
+      capColor: CROWD_SHIRT_COLORS[Math.floor(Math.random() * CROWD_SHIRT_COLORS.length)],
+      armPhase: Math.random() * Math.PI * 2,
+      bodyWidth: 0.8 + Math.random() * 0.5
     });
   }
 }
@@ -268,60 +287,103 @@ function render() {
   var mob = W < 700;
 
   // =================== BACKGROUND ===================
-  // Dark arena gradient
-  var bg = cx.createRadialGradient(acx, acy * 0.7, 0, acx, acy, H * 1.2);
-  bg.addColorStop(0, 'rgb(18, 14, 24)');
-  bg.addColorStop(0.3, 'rgb(12, 10, 18)');
-  bg.addColorStop(0.6, 'rgb(8, 6, 14)');
-  bg.addColorStop(1, 'rgb(4, 3, 8)');
+  // Stadium arena gradient — deep dark blue like indoor arena
+  var bg = cx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, 'rgb(8, 6, 20)');
+  bg.addColorStop(0.2, 'rgb(12, 10, 28)');
+  bg.addColorStop(0.5, 'rgb(15, 12, 30)');
+  bg.addColorStop(0.8, 'rgb(10, 8, 22)');
+  bg.addColorStop(1, 'rgb(6, 4, 14)');
   cx.fillStyle = bg;
   cx.fillRect(0, 0, W, H);
 
-  // Subtle smoke/haze
-  cx.globalAlpha = 0.03 + t * 0.02;
-  var haze = cx.createRadialGradient(acx, acy - H * 0.1, 0, acx, acy, H * 0.6);
-  haze.addColorStop(0, 'rgba(100, 80, 120, 1)');
-  haze.addColorStop(0.5, 'rgba(60, 50, 80, 0.5)');
+  // Stadium upper structure — dark rafters/ceiling
+  cx.fillStyle = 'rgba(5, 3, 12, 0.8)';
+  cx.fillRect(0, 0, W, H * 0.12);
+  // Ceiling gradient fade
+  var ceilG = cx.createLinearGradient(0, 0, 0, H * 0.2);
+  ceilG.addColorStop(0, 'rgba(3, 2, 8, 0.9)');
+  ceilG.addColorStop(1, 'transparent');
+  cx.fillStyle = ceilG;
+  cx.fillRect(0, 0, W, H * 0.2);
+
+  // Arena overhead lights — bright spots on ceiling
+  var lightCount = Math.max(4, Math.floor(W / 150));
+  for (var li = 0; li < lightCount; li++) {
+    var lx = W * (0.1 + li * 0.8 / (lightCount - 1));
+    var ly = H * 0.03;
+    var flicker = 0.8 + Math.sin(G.time * 3 + li * 2.7) * 0.15;
+    // Light body
+    cx.fillStyle = 'rgba(255, 250, 230, ' + (0.7 * flicker) + ')';
+    cx.beginPath(); cx.arc(lx, ly, 4, 0, Math.PI * 2); cx.fill();
+    // Light beam cone down
+    var beamA = 0.015 + t * 0.01;
+    cx.save();
+    cx.globalAlpha = beamA * flicker;
+    cx.beginPath();
+    cx.moveTo(lx - 3, ly + 3);
+    cx.lineTo(lx - W * 0.04, H * 0.5);
+    cx.lineTo(lx + W * 0.04, H * 0.5);
+    cx.lineTo(lx + 3, ly + 3);
+    cx.closePath();
+    var beamG = cx.createLinearGradient(lx, ly, lx, H * 0.5);
+    beamG.addColorStop(0, 'rgba(255,250,220,0.3)');
+    beamG.addColorStop(0.5, 'rgba(255,250,220,0.05)');
+    beamG.addColorStop(1, 'transparent');
+    cx.fillStyle = beamG;
+    cx.fill();
+    cx.restore();
+  }
+
+  // Atmospheric haze/smoke in arena
+  cx.globalAlpha = 0.04 + t * 0.03;
+  var haze = cx.createRadialGradient(acx, acy - H * 0.15, 0, acx, acy, H * 0.7);
+  haze.addColorStop(0, 'rgba(120, 100, 160, 0.6)');
+  haze.addColorStop(0.4, 'rgba(80, 60, 120, 0.3)');
   haze.addColorStop(1, 'transparent');
   cx.fillStyle = haze;
   cx.fillRect(0, 0, W, H);
   cx.globalAlpha = 1;
 
-  // Stars (arena ceiling lights / distant)
-  if (G.stars) {
-    for (var si = 0; si < G.stars.length; si++) {
-      var s = G.stars[si];
-      var tw = Math.sin(performance.now() * s.sp + s.ph) * 0.4 + 0.6;
-      var sx = s.x % W;
-      var sy = (s.y * 0.3) % (H * 0.35);
-      cx.fillStyle = 'rgba(200, 210, 240, ' + (tw * 0.15) + ')';
-      cx.beginPath();
-      cx.arc(sx, sy, s.r * 0.6, 0, Math.PI * 2);
-      cx.fill();
-    }
-  }
-
   // =================== SPOTLIGHTS ===================
-  // Blue spotlight (left — f1 corner)
-  var slBlue = cx.createRadialGradient(acx - arenaR * 0.8, acy - H * 0.5, 0, acx - arenaR * 0.5, acy, arenaR * 1.5);
-  slBlue.addColorStop(0, 'rgba(30, 100, 255, ' + (0.06 + t * 0.04) + ')');
-  slBlue.addColorStop(0.3, 'rgba(20, 60, 200, ' + (0.03 + t * 0.02) + ')');
-  slBlue.addColorStop(1, 'transparent');
-  cx.fillStyle = slBlue;
-  cx.fillRect(0, 0, W, H);
+  // Blue spotlight cone (left — masked fighter corner)
+  cx.save();
+  cx.globalAlpha = 0.08 + t * 0.06;
+  cx.beginPath();
+  cx.moveTo(acx - W * 0.15, H * 0.02);
+  cx.lineTo(acx - arenaR * 1.2, acy + arenaR * 0.3);
+  cx.lineTo(acx - arenaR * 0.1, acy + arenaR * 0.3);
+  cx.lineTo(acx + W * 0.02, H * 0.02);
+  cx.closePath();
+  var slBG = cx.createLinearGradient(acx - W * 0.1, 0, acx - arenaR * 0.5, acy);
+  slBG.addColorStop(0, 'rgba(30, 100, 255, 0.5)');
+  slBG.addColorStop(0.6, 'rgba(20, 60, 200, 0.15)');
+  slBG.addColorStop(1, 'transparent');
+  cx.fillStyle = slBG;
+  cx.fill();
+  cx.restore();
 
-  // Red spotlight (right — f2 corner)
-  var slRed = cx.createRadialGradient(acx + arenaR * 0.8, acy - H * 0.5, 0, acx + arenaR * 0.5, acy, arenaR * 1.5);
-  slRed.addColorStop(0, 'rgba(255, 40, 40, ' + (0.06 + t * 0.06) + ')');
-  slRed.addColorStop(0.3, 'rgba(200, 20, 20, ' + (0.03 + t * 0.03) + ')');
-  slRed.addColorStop(1, 'transparent');
-  cx.fillStyle = slRed;
-  cx.fillRect(0, 0, W, H);
+  // Red spotlight cone (right — unmasked fighter corner)
+  cx.save();
+  cx.globalAlpha = 0.08 + t * 0.08;
+  cx.beginPath();
+  cx.moveTo(acx + W * 0.15, H * 0.02);
+  cx.lineTo(acx + arenaR * 0.1, acy + arenaR * 0.3);
+  cx.lineTo(acx + arenaR * 1.2, acy + arenaR * 0.3);
+  cx.lineTo(acx - W * 0.02 + W * 0.3, H * 0.02);
+  cx.closePath();
+  var slRG = cx.createLinearGradient(acx + W * 0.1, 0, acx + arenaR * 0.5, acy);
+  slRG.addColorStop(0, 'rgba(255, 40, 40, 0.5)');
+  slRG.addColorStop(0.6, 'rgba(200, 20, 20, 0.15)');
+  slRG.addColorStop(1, 'transparent');
+  cx.fillStyle = slRG;
+  cx.fill();
+  cx.restore();
 
-  // Center spotlight (white, intensifies with tension)
-  var slCenter = cx.createRadialGradient(acx, acy - H * 0.4, 10, acx, acy, arenaR * 1.2);
-  slCenter.addColorStop(0, 'rgba(255, 255, 240, ' + (0.04 + t * 0.06) + ')');
-  slCenter.addColorStop(0.4, 'rgba(200, 200, 180, ' + (0.02 + t * 0.03) + ')');
+  // Center spotlight pool on the octagon
+  var slCenter = cx.createRadialGradient(acx, acy, arenaR * 0.1, acx, acy, arenaR * 1.3);
+  slCenter.addColorStop(0, 'rgba(255, 255, 240, ' + (0.06 + t * 0.08) + ')');
+  slCenter.addColorStop(0.3, 'rgba(200, 200, 180, ' + (0.03 + t * 0.04) + ')');
   slCenter.addColorStop(1, 'transparent');
   cx.fillStyle = slCenter;
   cx.fillRect(0, 0, W, H);
@@ -403,26 +465,43 @@ function render() {
 }
 
 // =================== DRAW CROWD ===================
+// Stadium-style crowd with large colorful people, foam fingers, banners
 function _drawCrowd(W, H, acx, acy, arenaR, t, rowIdx) {
   if (!G.crowd || G.crowd.length === 0) return;
-  var rowY, rowScale, rowAlpha;
-  // Row 2 = back (farthest), Row 0 = front (closest to cage)
+
+  // Row layout: back rows = smaller/darker, front = bigger/brighter
+  var rowY, rowScale, rowAlpha, rowSpacing;
   if (rowIdx === 2) {
-    rowY = acy - arenaR * 0.55;
-    rowScale = 0.5;
-    rowAlpha = 0.15;
+    // Back row: top of screen, small, dim (stadium upper deck)
+    rowY = acy - arenaR * 0.85;
+    rowScale = 1.4;
+    rowAlpha = 0.45;
+    rowSpacing = 0;
   } else if (rowIdx === 1) {
-    rowY = acy - arenaR * 0.3;
-    rowScale = 0.65;
-    rowAlpha = 0.2;
+    // Mid row
+    rowY = acy - arenaR * 0.5;
+    rowScale = 2.0;
+    rowAlpha = 0.6;
+    rowSpacing = 0;
   } else {
-    rowY = acy + arenaR * 0.55;
-    rowScale = 0.85;
-    rowAlpha = 0.25;
+    // Front row: bottom, large, bright (closest to cage)
+    rowY = acy + arenaR * 0.7;
+    rowScale = 3.0;
+    rowAlpha = 0.75;
+    rowSpacing = 0;
   }
 
-  var excitement = G.crowdRoar || 0;
+  var excitement = Math.max(G.crowdRoar || 0, G.phase === 'FREEFALL' ? t * 0.6 : G.phase === 'CRASH' ? 0.9 : G.phase === 'BETTING' ? 0.15 : 0.1);
   var time = G.time || 0;
+
+  // Stadium tier background (colored seating behind this row)
+  if (rowIdx === 2) {
+    cx.fillStyle = 'rgba(20, 15, 35, 0.7)';
+    cx.fillRect(0, rowY - 30 * rowScale, W, 40 * rowScale);
+  } else if (rowIdx === 1) {
+    cx.fillStyle = 'rgba(15, 12, 28, 0.5)';
+    cx.fillRect(0, rowY - 20 * rowScale, W, 30 * rowScale);
+  }
 
   for (var i = 0; i < G.crowd.length; i++) {
     var c = G.crowd[i];
@@ -430,47 +509,186 @@ function _drawCrowd(W, H, acx, acy, arenaR, t, rowIdx) {
 
     var px = c.x * W;
     var py = rowY;
-    var h = 12 * rowScale * c.height;
-    var bounce = Math.sin(time * c.speed + c.phase) * (1 + excitement * 4) * rowScale;
+    var sc = rowScale;
+    var bodyW = 6 * sc * c.bodyWidth;
+    var bodyH = 10 * sc * c.height;
+    var bounce = Math.sin(time * c.speed * (0.8 + excitement) + c.phase) * (2 + excitement * 6) * (sc * 0.3);
 
-    // Determine if arms are up based on excitement
-    var armsUp = excitement > 0.4 && Math.sin(time * 2 + c.phase) > 0.3;
+    // Arms up when excited
+    var armsUp = excitement > 0.25 && Math.sin(time * 1.8 + c.phase * 2) > (0.5 - excitement * 0.6);
+    var bothArmsUp = excitement > 0.6 && Math.sin(time * 2.5 + c.phase) > 0.2;
 
-    cx.globalAlpha = rowAlpha + excitement * 0.1;
+    cx.globalAlpha = rowAlpha;
 
-    // Head
-    var headR = 3 * rowScale;
-    var headY = py - h - headR + bounce;
-    cx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    // ── TORSO (shirt) ──
+    var shirtTop = py - bodyH + bounce;
+    // Rounded rectangle for torso
+    var sW = bodyW * 2;
+    var sH = bodyH * 0.65;
+    var sX = px - bodyW;
+    var sY = shirtTop + bodyH * 0.25;
+
+    cx.fillStyle = c.shirt;
     cx.beginPath();
-    cx.arc(px, headY, headR, 0, Math.PI * 2);
+    var rad = sc * 1.5;
+    cx.moveTo(sX + rad, sY);
+    cx.lineTo(sX + sW - rad, sY);
+    cx.quadraticCurveTo(sX + sW, sY, sX + sW, sY + rad);
+    cx.lineTo(sX + sW, sY + sH - rad);
+    cx.quadraticCurveTo(sX + sW, sY + sH, sX + sW - rad, sY + sH);
+    cx.lineTo(sX + rad, sY + sH);
+    cx.quadraticCurveTo(sX, sY + sH, sX, sY + sH - rad);
+    cx.lineTo(sX, sY + rad);
+    cx.quadraticCurveTo(sX, sY, sX + rad, sY);
+    cx.closePath();
     cx.fill();
 
-    // Body
-    cx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
-    cx.lineWidth = 2 * rowScale;
-    cx.beginPath();
-    cx.moveTo(px, headY + headR);
-    cx.lineTo(px, py + bounce);
-    cx.stroke();
+    // Shirt shading
+    cx.fillStyle = 'rgba(0,0,0,0.15)';
+    cx.fillRect(sX + sW * 0.6, sY, sW * 0.4, sH);
 
-    // Arms
-    if (armsUp) {
-      var armW = 6 * rowScale;
-      var armAngle = Math.sin(time * 4 + c.phase) * 0.3;
+    // ── SHOULDERS ──
+    cx.fillStyle = c.shirt;
+    cx.beginPath();
+    cx.ellipse(px, sY + sc, bodyW * 1.1, sc * 2.5, 0, 0, Math.PI * 2);
+    cx.fill();
+
+    // ── HEAD ──
+    var headR = 4.5 * sc;
+    var headY = shirtTop + bodyH * 0.15 + bounce;
+
+    // Neck
+    cx.fillStyle = c.skinTone;
+    cx.fillRect(px - sc * 1.2, headY + headR - sc, sc * 2.4, sc * 3);
+
+    // Head circle
+    cx.beginPath();
+    cx.arc(px, headY, headR, 0, Math.PI * 2);
+    cx.fillStyle = c.skinTone;
+    cx.fill();
+
+    // Hair or cap
+    if (c.hairType === 2) {
+      // Baseball cap
+      cx.fillStyle = c.capColor;
       cx.beginPath();
-      cx.moveTo(px, headY + headR + 3 * rowScale);
-      cx.lineTo(px - armW, headY - 2 * rowScale + Math.sin(time * 5 + c.phase) * 2);
-      cx.stroke();
+      cx.arc(px, headY - headR * 0.15, headR * 1.05, Math.PI, 0);
+      cx.fill();
+      // Cap brim
+      cx.fillStyle = c.capColor;
       cx.beginPath();
-      cx.moveTo(px, headY + headR + 3 * rowScale);
-      cx.lineTo(px + armW, headY - 2 * rowScale + Math.cos(time * 5 + c.phase + 1) * 2);
-      cx.stroke();
+      cx.ellipse(px + headR * 0.3, headY - headR * 0.1, headR * 0.9, headR * 0.25, 0.15, -Math.PI * 0.1, Math.PI * 0.5);
+      cx.fill();
+    } else if (c.hairType === 0) {
+      // Short dark hair
+      cx.fillStyle = 'rgba(30,20,10,0.7)';
+      cx.beginPath();
+      cx.arc(px, headY - headR * 0.2, headR * 1.02, Math.PI * 1.15, Math.PI * 1.85);
+      cx.fill();
     }
 
-    // Colored shirt hint
-    cx.fillStyle = 'hsla(' + c.hue + ', 40%, 25%, ' + (rowAlpha * 0.5) + ')';
-    cx.fillRect(px - 2 * rowScale, headY + headR + 1, 4 * rowScale, h * 0.4);
+    // Simple face features
+    cx.fillStyle = 'rgba(0,0,0,0.3)';
+    // Eyes
+    cx.beginPath();
+    cx.arc(px - headR * 0.25, headY - headR * 0.1, sc * 0.5, 0, Math.PI * 2);
+    cx.arc(px + headR * 0.25, headY - headR * 0.1, sc * 0.5, 0, Math.PI * 2);
+    cx.fill();
+    // Mouth (open if excited)
+    if (excitement > 0.3 && armsUp) {
+      cx.fillStyle = 'rgba(40,10,10,0.5)';
+      cx.beginPath();
+      cx.ellipse(px, headY + headR * 0.35, sc * 1.2, sc * 0.8, 0, 0, Math.PI * 2);
+      cx.fill();
+    }
+
+    // ── ARMS ──
+    cx.strokeStyle = c.skinTone;
+    cx.lineWidth = sc * 2;
+    cx.lineCap = 'round';
+    var shoulderY = sY + sc * 2;
+
+    if (armsUp || bothArmsUp) {
+      // Left arm up
+      var lArmAngle = -Math.PI * 0.65 + Math.sin(time * 3.5 + c.phase) * 0.25;
+      var lArmLen = bodyW * 1.4;
+      cx.beginPath();
+      cx.moveTo(px - bodyW, shoulderY);
+      cx.lineTo(px - bodyW + Math.cos(lArmAngle) * lArmLen, shoulderY + Math.sin(lArmAngle) * lArmLen);
+      cx.stroke();
+
+      // Foam finger on left hand
+      if (c.hasFoamFinger) {
+        var fgX = px - bodyW + Math.cos(lArmAngle) * lArmLen;
+        var fgY = shoulderY + Math.sin(lArmAngle) * lArmLen;
+        cx.fillStyle = c.foamColor;
+        // Finger pointing up
+        cx.beginPath();
+        cx.moveTo(fgX - sc * 1.5, fgY);
+        cx.lineTo(fgX, fgY - sc * 6);
+        cx.lineTo(fgX + sc * 1.5, fgY);
+        cx.closePath();
+        cx.fill();
+        // "#1" text
+        cx.fillStyle = '#fff';
+        cx.font = 'bold ' + Math.floor(sc * 2.5) + 'px sans-serif';
+        cx.textAlign = 'center';
+        cx.fillText('#1', fgX, fgY - sc * 2);
+      }
+
+      // Right arm
+      if (bothArmsUp) {
+        var rArmAngle = -Math.PI * 0.35 + Math.cos(time * 3.5 + c.phase + 1) * 0.25;
+        cx.strokeStyle = c.skinTone;
+        cx.beginPath();
+        cx.moveTo(px + bodyW, shoulderY);
+        cx.lineTo(px + bodyW + Math.cos(rArmAngle) * lArmLen, shoulderY + Math.sin(rArmAngle) * lArmLen);
+        cx.stroke();
+      } else {
+        // Right arm down/resting
+        cx.strokeStyle = c.skinTone;
+        cx.beginPath();
+        cx.moveTo(px + bodyW, shoulderY);
+        cx.lineTo(px + bodyW + sc * 2, shoulderY + bodyH * 0.4);
+        cx.stroke();
+      }
+
+      // Banner above head
+      if (c.hasBanner && armsUp) {
+        var banW = sc * 14;
+        var banH = sc * 5;
+        var banY = headY - headR - sc * 8 + Math.sin(time * 2 + c.phase) * 2;
+        cx.fillStyle = c.bannerColor;
+        cx.globalAlpha = rowAlpha * 0.8;
+        cx.fillRect(px - banW / 2, banY, banW, banH);
+        // Banner text
+        cx.fillStyle = '#fff';
+        cx.font = 'bold ' + Math.floor(sc * 2.5) + 'px sans-serif';
+        cx.textAlign = 'center';
+        cx.fillText('MMA', px, banY + banH * 0.7);
+        cx.globalAlpha = rowAlpha;
+        // Banner poles
+        cx.strokeStyle = '#888';
+        cx.lineWidth = sc * 0.5;
+        cx.beginPath();
+        cx.moveTo(px - banW / 2, banY + banH);
+        cx.lineTo(px - banW / 2, banY + banH + sc * 5);
+        cx.moveTo(px + banW / 2, banY + banH);
+        cx.lineTo(px + banW / 2, banY + banH + sc * 5);
+        cx.stroke();
+      }
+    } else {
+      // Both arms down — casual pose
+      cx.strokeStyle = c.skinTone;
+      cx.beginPath();
+      cx.moveTo(px - bodyW, shoulderY);
+      cx.lineTo(px - bodyW - sc * 1.5, shoulderY + bodyH * 0.35 + Math.sin(time * 0.8 + c.phase) * sc);
+      cx.stroke();
+      cx.beginPath();
+      cx.moveTo(px + bodyW, shoulderY);
+      cx.lineTo(px + bodyW + sc * 1.5, shoulderY + bodyH * 0.35 + Math.cos(time * 0.8 + c.phase + 1) * sc);
+      cx.stroke();
+    }
   }
   cx.globalAlpha = 1;
 }
