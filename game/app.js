@@ -1978,3 +1978,12 @@ document.addEventListener('visibilitychange',function(){
 // Init audio on first user interaction
 // Audio disabled
 function _initAudio(){}
+// Start fight video on first user interaction
+function _startFightVideo(){
+  var v=document.getElementById('fightVideo');
+  if(v&&v.paused){try{v.play()}catch(e){}}
+  document.removeEventListener('click',_startFightVideo);
+  document.removeEventListener('touchstart',_startFightVideo);
+}
+document.addEventListener('click',_startFightVideo);
+document.addEventListener('touchstart',_startFightVideo);

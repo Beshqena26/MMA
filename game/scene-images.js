@@ -197,13 +197,23 @@ function render(){
   // Blood
   if(t>0.5&&G.fightStarted){cx.globalAlpha=(t-0.5)*0.2;for(var bi=0;bi<Math.floor(t*6);bi++){cx.fillStyle='rgba(140,20,20,0.7)';cx.beginPath();cx.ellipse(acx+Math.sin(bi*7.13)*W*0.1,acy+Math.cos(bi*4.27)*H*0.03,3+bi*2,1.5+bi,Math.sin(bi)*0.5,0,Math.PI*2);cx.fill()}cx.globalAlpha=1}
 
-  // Fighters
-  var f1=G.f1,f2=G.f2;
-  if(f1&&f2){var fSc=Math.max(0.5,Math.min(2.2,Math.min(W,H)/380)),fW=240*fSc,fH=360*fSc;
-    cx.save();cx.translate(f2.x,f2.y);if(f2.leanAngle)cx.rotate(f2.leanAngle);cx.scale(-1,1);if(f2.hitFlash>0)cx.globalAlpha=1-f2.hitFlash*0.3;cx.drawImage(SCENE.images.f2,-fW/2,-fH*0.52,fW,fH);if(f2.hitFlash>0){cx.globalAlpha=f2.hitFlash*0.4;cx.fillStyle='#fff';cx.fillRect(-fW/2,-fH*0.52,fW,fH)}cx.globalAlpha=1;cx.restore();
-    cx.save();cx.translate(f1.x,f1.y);if(f1.leanAngle)cx.rotate(f1.leanAngle);if(f1.hitFlash>0)cx.globalAlpha=1-f1.hitFlash*0.3;cx.drawImage(SCENE.images.f1,-fW/2,-fH*0.52,fW,fH);if(f1.hitFlash>0){cx.globalAlpha=f1.hitFlash*0.4;cx.fillStyle='#fff';cx.fillRect(-fW/2,-fH*0.52,fW,fH)}cx.globalAlpha=1;cx.restore();
-    // Impact
-    if(f1.punchPhase==='hold'||f1.punchPhase==='extend'){var ix=f2.x+(f2.staggerX||0)*0.5,iy=f2.y-fH*0.3;cx.save();cx.globalAlpha=0.5;var ig=cx.createRadialGradient(ix,iy,0,ix,iy,28*fSc);ig.addColorStop(0,'rgba(255,255,255,0.9)');ig.addColorStop(0.3,'rgba(255,240,150,0.4)');ig.addColorStop(1,'transparent');cx.fillStyle=ig;cx.beginPath();cx.arc(ix,iy,28*fSc,0,Math.PI*2);cx.fill();cx.strokeStyle='rgba(255,230,100,0.6)';cx.lineWidth=1.5;for(var il=0;il<6;il++){var ia=il/6*Math.PI*2+(G.time||0)*12;cx.beginPath();cx.moveTo(ix+Math.cos(ia)*8*fSc,iy+Math.sin(ia)*8*fSc);cx.lineTo(ix+Math.cos(ia)*20*fSc,iy+Math.sin(ia)*20*fSc);cx.stroke()}cx.restore()}}
+  // Fight video (replaces fighter sprites)
+  var fightVid=document.getElementById('fightVideo');
+  if(fightVid){
+    // Auto-play on first interaction
+    if(fightVid.paused&&fightVid.readyState>=2){try{fightVid.play()}catch(e){}}
+    // Draw video frame centered in arena
+    if(fightVid.readyState>=2){
+      var vidW=fightVid.videoWidth||1280,vidH=fightVid.videoHeight||720;
+      var vidAspect=vidW/vidH;
+      // Scale video to fill arena area while maintaining aspect ratio
+      var arenaW=W*0.65,arenaH=H*0.65;
+      var drawW,drawH;
+      if(arenaW/arenaH>vidAspect){drawH=arenaH;drawW=drawH*vidAspect}else{drawW=arenaW;drawH=drawW/vidAspect}
+      var drawX=acx-drawW/2,drawY=acy-drawH*0.45;
+      cx.drawImage(fightVid,drawX,drawY,drawW,drawH);
+    }
+  }
 
   cx.drawImage(SCENE.images.cage,0,0); // Cage
   cx.drawImage(SCENE.images.crowdFront,0,H*0.8+cBob*0.6); // Front crowd
