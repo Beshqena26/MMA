@@ -1,0 +1,1596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SkyDrop II — Admin Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#000;
+  --content:#18181b;
+  --default-100:#27272a;
+  --default-200:#3f3f46;
+  --default-300:#52525b;
+  --default-400:#71717a;
+  --default-500:#a1a1aa;
+  --foreground:#fafafa;
+  --foreground-500:#a1a1aa;
+  --foreground-400:#71717a;
+  --primary:#006FEE;
+  --primary-50:#001731;
+  --primary-100:#002e62;
+  --primary-200:#004493;
+  --success:#17c964;
+  --success-50:#052814;
+  --warning:#f5a524;
+  --warning-50:#312107;
+  --danger:#f31260;
+  --danger-50:#310413;
+  --focus:#006FEE;
+  --divider:rgba(255,255,255,.15);
+  --radius-sm:8px;
+  --radius-md:12px;
+  --radius-lg:14px;
+  --shadow-sm:0 1px 2px 0 rgba(0,0,0,.3);
+  --shadow-md:0 4px 6px -1px rgba(0,0,0,.4),0 2px 4px -2px rgba(0,0,0,.3);
+  --shadow-lg:0 10px 15px -3px rgba(0,0,0,.4),0 4px 6px -4px rgba(0,0,0,.3);
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--foreground);font-family:'Inter',system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+
+/* ─── Navbar ─── */
+.navbar{position:sticky;top:0;z-index:40;height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:rgba(0,0,0,.8);backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--divider)}
+.navbar-brand{display:flex;align-items:center;gap:12px;font-weight:700;font-size:18px;letter-spacing:-.02em}
+.navbar-brand span{color:var(--foreground-400);font-size:13px;font-weight:500;padding-left:12px;border-left:1px solid var(--default-200)}
+
+
+/* ─── Container ─── */
+.container{max-width:1024px;margin:0 auto;padding:32px 24px 64px}
+@media(max-width:640px){.container{padding:20px 16px 40px}}
+
+/* ─── Tabs (solid variant) ─── */
+.tabs-list{display:flex;gap:0;padding:4px;border-radius:var(--radius-md);background:var(--default-100);margin-bottom:32px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tab-btn{position:relative;padding:8px 20px;border:none;background:transparent;color:var(--foreground-400);font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;border-radius:var(--radius-sm);transition:all .2s;white-space:nowrap;outline:none}
+.tab-btn:hover{color:var(--foreground)}
+.tab-btn.active{color:var(--foreground);background:var(--content);box-shadow:var(--shadow-sm)}
+.tab-panel{display:none;animation:tabIn .2s ease}.tab-panel.active{display:block}
+@keyframes tabIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+/* ─── Card ─── */
+.card{background:var(--content);border-radius:var(--radius-lg);box-shadow:var(--shadow-md);overflow:hidden}
+.card-header{padding:16px 20px;font-size:13px;font-weight:600;color:var(--foreground);display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--divider)}
+.card-body{padding:16px 20px;display:flex;flex-direction:column;gap:12px}
+.card-footer{padding:12px 20px;border-top:1px solid var(--divider)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-full{grid-column:1/-1}
+@media(max-width:640px){.grid-2{grid-template-columns:1fr}}
+
+/* ─── Preset Chips ─── */
+.preset-row{display:flex;gap:10px;margin-bottom:28px;flex-wrap:wrap}
+.preset-card .preset-name{font-weight:700;font-size:14px;color:var(--foreground);margin-bottom:2px}
+.preset-card .preset-desc{font-size:11px;color:var(--foreground-400);font-weight:400}
+.chip{display:inline-block;padding:2px 8px;border-radius:9999px;font-size:10px;font-weight:600;letter-spacing:.5px}
+.chip-success{background:var(--success-50);color:var(--success)}
+.chip-warning{background:var(--warning-50);color:var(--warning)}
+.chip-danger{background:var(--danger-50);color:var(--danger)}
+
+/* ─── Form Rows ─── */
+.field{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:40px}
+.field-label{font-size:13px;color:var(--foreground-500);font-weight:500;flex-shrink:0}
+.field-hint{font-size:11px;color:var(--foreground-400);line-height:1.5;padding:4px 0}
+.input{width:120px;padding:8px 12px;background:var(--default-100);border:2px solid transparent;border-radius:var(--radius-sm);color:var(--foreground);font-family:'Inter',sans-serif;font-size:13px;outline:none;text-align:right;transition:all .2s}
+.input:hover{background:var(--default-200)}
+.input:focus{border-color:var(--focus);background:var(--default-100)}
+.input-wide{width:100%;text-align:left}
+.select{width:auto;min-width:140px;padding:8px 32px 8px 12px;background:var(--default-100);border:2px solid transparent;border-radius:var(--radius-sm);color:var(--foreground);font-family:'Inter',sans-serif;font-size:13px;outline:none;cursor:pointer;transition:all .2s;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center}
+.select:hover{background:var(--default-200)}
+.select:focus{border-color:var(--focus);background:var(--default-100)}
+.divider{height:1px;background:var(--divider);margin:4px 0}
+
+/* ─── Buttons ─── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 24px;border:none;border-radius:var(--radius-md);font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;outline:none;white-space:nowrap}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--primary);color:#fff;box-shadow:var(--shadow-sm)}
+.btn-primary:hover{opacity:.9;box-shadow:var(--shadow-md)}
+.btn-flat{background:var(--default-100);color:var(--foreground-500)}
+.btn-flat:hover{background:var(--default-200);color:var(--foreground)}
+.btn-danger{background:var(--danger-50);color:var(--danger)}
+.btn-danger:hover{opacity:.8}
+.actions-bar{display:flex;gap:8px;margin-top:24px;flex-wrap:wrap}
+
+/* ─── Toast (snackbar) ─── */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);padding:12px 24px;border-radius:var(--radius-md);background:var(--content);color:var(--foreground);font-size:13px;font-weight:500;box-shadow:var(--shadow-lg);border:1px solid var(--divider);opacity:0;transition:all .35s cubic-bezier(.4,0,.2,1);z-index:50;max-width:400px;text-align:center}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+/* ─── Dashboard Stats ─── */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-bottom:24px}
+.stat-card{background:var(--content);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;gap:4px}
+.stat-value{font-size:24px;font-weight:700;letter-spacing:-.03em;color:var(--foreground)}
+.stat-value.green{color:var(--success)}.stat-value.red{color:var(--danger)}.stat-value.gold{color:var(--warning)}.stat-value.cyan{color:var(--primary)}
+.stat-name{font-size:11px;font-weight:500;color:var(--foreground-400);text-transform:uppercase;letter-spacing:.5px}
+
+/* ─── Charts ─── */
+.chart-card{background:var(--content);border-radius:var(--radius-lg);padding:24px;box-shadow:var(--shadow-sm);margin-bottom:16px;border:1px solid rgba(255,255,255,.04)}
+.chart-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.chart-label{font-size:14px;font-weight:700;color:var(--foreground);margin-bottom:0;letter-spacing:-.01em}
+.chart-legend{display:flex;gap:14px;flex-wrap:wrap}
+.chart-legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--foreground-400);font-weight:500}
+.chart-legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+/* Distribution bars */
+.bar-row{display:flex;align-items:center;gap:12px;margin-bottom:6px;padding:4px 0;border-radius:var(--radius-sm);transition:background .15s}
+.bar-row:hover{background:rgba(255,255,255,.03)}
+.bar-name{font-size:11px;color:var(--foreground-500);width:68px;text-align:right;flex-shrink:0;font-weight:600;font-variant-numeric:tabular-nums}
+.bar-track{flex:1;height:28px;background:var(--default-100);border-radius:var(--radius-sm);overflow:hidden;position:relative}
+.bar-fill{height:100%;border-radius:var(--radius-sm);transition:width .6s cubic-bezier(.4,0,.2,1);display:flex;align-items:center;padding-left:10px;position:relative;overflow:hidden}
+.bar-fill::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.12) 0%,transparent 100%);pointer-events:none}
+.bar-fill-label{font-size:10px;font-weight:700;color:#fff;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.3);position:relative;z-index:1}
+.bar-count{font-size:12px;color:var(--foreground-500);min-width:70px;flex-shrink:0;font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+/* Area chart */
+.area-chart-wrap{position:relative;background:rgba(255,255,255,.02);border-radius:var(--radius-sm);padding:12px 0 0}
+.area-chart-inner{position:relative;height:180px}
+.area-chart-svg{width:100%;height:100%;display:block}
+.area-chart-grid line{stroke:rgba(255,255,255,.06);stroke-dasharray:4 4}
+.area-chart-line{fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 4px rgba(0,111,238,.3))}
+.area-chart-fill{opacity:.15}
+.area-chart-dot{transition:r .15s,opacity .15s;cursor:pointer;filter:drop-shadow(0 0 3px rgba(255,255,255,.3))}
+.area-chart-dot:hover{r:6}
+.area-chart-y{position:absolute;left:0;top:0;bottom:28px;width:36px;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none}
+.area-chart-y span{font-size:9px;color:var(--foreground-400);font-weight:600;text-align:right;padding-right:6px;font-variant-numeric:tabular-nums}
+.area-chart-x{display:flex;justify-content:space-between;padding:6px 36px 0;margin-top:-2px}
+.area-chart-x span{font-size:10px;color:var(--foreground-400);font-weight:500}
+.area-tooltip{position:absolute;padding:8px 12px;background:rgba(24,24,27,.95);border:1px solid var(--default-200);border-radius:10px;font-size:12px;font-weight:700;color:var(--foreground);white-space:nowrap;z-index:20;pointer-events:none;box-shadow:var(--shadow-lg);backdrop-filter:blur(8px);transform:translate(-50%,-100%);opacity:0;transition:opacity .15s}
+.area-tooltip.show{opacity:1}
+.area-tooltip .tt-val{font-size:16px;font-weight:800;letter-spacing:-.02em}
+.area-tooltip .tt-sub{font-size:10px;color:var(--foreground-400);font-weight:500;margin-top:2px}
+.area-tooltip::after{content:'';position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);width:10px;height:10px;background:rgba(24,24,27,.95);border-right:1px solid var(--default-200);border-bottom:1px solid var(--default-200);transform:translateX(-50%) rotate(45deg)}
+/* PnL chart */
+.pnl-chart-wrap{position:relative;padding:16px 12px 4px;background:rgba(255,255,255,.02);border-radius:var(--radius-sm)}
+.pnl-zero-line{position:absolute;left:12px;right:12px;top:50%;border-top:1px solid var(--default-200);z-index:1}
+.pnl-zero-label{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--foreground-400);z-index:2;background:var(--content);padding:1px 6px;border-radius:4px;font-weight:600}
+.pnl-svg-wrap{position:relative;height:110px}
+.pnl-svg{width:100%;height:100%;display:block}
+.pnl-line{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.pnl-fill-pos{opacity:.12}.pnl-fill-neg{opacity:.12}
+.pnl-dot{transition:r .15s;cursor:pointer;filter:drop-shadow(0 0 2px rgba(255,255,255,.3))}
+.pnl-dot:hover{r:5}
+.pnl-axis{display:flex;justify-content:space-between;margin-top:8px;padding:0 2px}
+.pnl-axis span{font-size:10px;color:var(--foreground-400);font-weight:500}
+/* Win Rate donut */
+.wr-donut-wrap{display:flex;align-items:center;gap:28px;padding:12px 0}
+.wr-donut{position:relative;width:110px;height:110px;flex-shrink:0}
+.wr-donut svg{width:100%;height:100%;transform:rotate(-90deg);filter:drop-shadow(0 0 6px rgba(23,201,100,.15))}
+.wr-donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.wr-donut-pct{font-size:26px;font-weight:800;color:var(--foreground);line-height:1;letter-spacing:-.03em}
+.wr-donut-sub{font-size:10px;color:var(--foreground-400);margin-top:3px;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+.wr-stats{display:flex;flex-direction:column;gap:14px;flex:1}
+.wr-stat-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:var(--radius-sm);background:rgba(255,255,255,.02);transition:background .15s}
+.wr-stat-row:hover{background:rgba(255,255,255,.05)}
+.wr-stat-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;box-shadow:0 0 6px currentColor}
+.wr-stat-info{flex:1;display:flex;align-items:center;justify-content:space-between}
+.wr-stat-name{font-size:12px;color:var(--foreground-400);font-weight:500}
+.wr-stat-val{font-size:18px;font-weight:800;color:var(--foreground);font-variant-numeric:tabular-nums}
+
+/* ─── Table ─── */
+.table-wrap{background:var(--content);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden}
+.table-scroll{max-height:480px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--default-200) transparent}
+table{width:100%;border-collapse:collapse}
+th{font-size:11px;font-weight:600;color:var(--foreground-400);text-align:left;padding:12px 16px;text-transform:uppercase;letter-spacing:.5px;position:sticky;top:0;background:var(--content);z-index:1}
+td{padding:10px 16px;font-size:13px;color:var(--foreground);border-top:1px solid var(--divider)}
+tr:hover td{background:var(--default-100)}
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:9999px;font-size:12px;font-weight:600}
+.badge-success{background:var(--success-50);color:var(--success)}
+.badge-warning{background:var(--warning-50);color:var(--warning)}
+.badge-danger{background:var(--danger-50);color:var(--danger)}
+.pnl-pos{color:var(--success);font-weight:600}
+.pnl-neg{color:var(--danger);font-weight:600}
+.pnl-zero{color:var(--foreground-400)}
+.empty-msg{text-align:center;padding:48px 20px;color:var(--foreground-400);font-size:14px}
+
+/* ─── Section Header ─── */
+.sec-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:12px;flex-wrap:wrap}
+.sec-title{font-size:18px;font-weight:700;color:var(--foreground);letter-spacing:-.02em}
+.sec-right{display:flex;align-items:center;gap:10px}
+.count-chip{font-size:12px;color:var(--foreground-400);font-weight:500;padding:4px 12px;background:var(--default-100);border-radius:9999px}
+.btn-sm{padding:7px 14px;font-size:12px;border-radius:var(--radius-sm)}
+
+/* ─── Time Filters ─── */
+.time-filters{display:flex;gap:0;padding:3px;border-radius:var(--radius-sm);background:var(--default-100)}
+.tf-btn{padding:5px 10px;border:none;background:transparent;color:var(--foreground-400);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;border-radius:6px;transition:all .15s;white-space:nowrap;outline:none;letter-spacing:.3px}
+.tf-btn:hover{color:var(--foreground)}
+.tf-btn.active{color:var(--foreground);background:var(--primary);box-shadow:var(--shadow-sm)}
+
+/* ─── Confirm Modal ─── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:100;display:none;align-items:center;justify-content:center;animation:fadeIn .15s ease}
+.modal-overlay.show{display:flex}
+.modal-box{background:var(--content);border-radius:var(--radius-lg);padding:32px;max-width:440px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.5);border:1px solid var(--divider);animation:modalIn .2s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes modalIn{from{opacity:0;transform:scale(.95) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal-icon{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:16px;font-size:24px}
+.modal-icon.danger{background:var(--danger-50);color:var(--danger)}
+.modal-icon.warning{background:var(--warning-50);color:var(--warning)}
+.modal-icon.info{background:var(--primary-50);color:var(--primary)}
+.modal-title{font-size:18px;font-weight:700;color:var(--foreground);margin-bottom:8px}
+.modal-desc{font-size:13px;color:var(--foreground-500);line-height:1.6;margin-bottom:12px}
+.modal-body{margin-bottom:16px}
+.modal-warn{font-size:12px;color:var(--danger);background:var(--danger-50);padding:10px 14px;border-radius:var(--radius-sm);margin-bottom:20px;line-height:1.5;display:none}
+.modal-warn.show{display:block}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end}
+.time-range-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.time-range-opt{padding:10px 8px;border:1px solid var(--default-200);border-radius:var(--radius-sm);background:transparent;color:var(--foreground-500);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;text-align:center}
+.time-range-opt:hover{border-color:var(--primary);color:var(--foreground)}
+.time-range-opt.active{background:var(--primary-50);border-color:var(--primary);color:var(--primary)}
+.time-range-opt .tr-label{display:block;font-size:13px;font-weight:700;margin-bottom:2px}
+.time-range-opt .tr-sub{display:block;font-size:10px;color:var(--foreground-400);font-weight:400}
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--default-200);border-radius:3px}
+
+/* ─── Settings: Section Headers ─── */
+.settings-section{margin-bottom:28px}
+.settings-section-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:0 2px;cursor:default}
+.settings-section-header.clickable{cursor:pointer;user-select:none}
+.settings-section-header.clickable:hover .ssh-title{color:var(--primary)}
+.ssh-icon{font-size:18px;line-height:1}
+.ssh-title{font-size:15px;font-weight:700;color:var(--foreground);letter-spacing:-.01em;transition:color .15s}
+.ssh-sub{font-size:11px;color:var(--foreground-400);font-weight:400;margin-left:4px}
+.ssh-chevron{margin-left:auto;font-size:18px;color:var(--foreground-400);transition:transform .25s ease;display:inline-block}
+.ssh-chevron.rotated{transform:rotate(-90deg)}
+
+/* ─── Settings: Collapsible ─── */
+.settings-section-body{overflow:hidden;transition:max-height .35s ease,opacity .25s ease;max-height:800px;opacity:1}
+.settings-section-body.collapsed{max-height:0;opacity:0;pointer-events:none}
+
+/* ─── Settings: Preset Cards ─── */
+.preset-card{position:relative;flex:1;min-width:140px;padding:16px 18px;background:var(--content);border:1.5px solid var(--default-200);border-radius:var(--radius-md);cursor:pointer;text-align:left;font-family:inherit;color:var(--foreground);transition:all .2s}
+.preset-card:hover{border-color:var(--default-300);background:var(--default-100)}
+.preset-card.active{border-color:var(--primary);background:var(--primary-50)}
+.preset-check{position:absolute;top:12px;right:12px;width:20px;height:20px;border-radius:50%;border:2px solid var(--default-300);display:flex;align-items:center;justify-content:center;transition:all .2s;font-size:11px;color:transparent}
+.preset-card.active .preset-check{border-color:var(--primary);background:var(--primary);color:#fff}
+
+/* ─── Settings: Input Unit Wrap ─── */
+.input-unit-wrap{position:relative;display:flex;align-items:center;flex:1}
+.input-unit-wrap .input{padding-right:30px;width:100%}
+.input-unit{position:absolute;right:10px;font-size:11px;font-weight:600;color:var(--foreground-400);pointer-events:none}
+
+/* ─── Settings: Field Tooltips ─── */
+.field-tip{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:var(--default-200);color:var(--foreground-400);font-size:9px;font-weight:700;font-style:italic;cursor:help;position:relative;margin-left:4px;vertical-align:middle}
+.field-tip::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--default-100);color:var(--foreground);font-size:11px;font-weight:400;font-style:normal;padding:6px 10px;border-radius:var(--radius-sm);white-space:normal;max-width:200px;box-shadow:var(--shadow-lg);border:1px solid var(--divider);opacity:0;pointer-events:none;z-index:30;transition:opacity .15s;line-height:1.4}
+.field-tip:hover::after{opacity:1}
+
+/* ─── Settings: Sticky Save Bar ─── */
+.sticky-save-bar{position:fixed;bottom:0;left:0;right:0;z-index:45;background:rgba(24,24,27,.95);backdrop-filter:saturate(180%) blur(16px);border-top:1px solid var(--divider);padding:12px 24px;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1)}
+.sticky-save-bar.show{transform:translateY(0)}
+.sticky-save-inner{max-width:1024px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.ssb-label{font-size:13px;font-weight:600;color:var(--warning);display:flex;align-items:center;gap:8px}
+.ssb-dot{width:8px;height:8px;border-radius:50%;background:var(--warning);animation:ssbPulse 1.5s ease infinite}
+@keyframes ssbPulse{0%,100%{opacity:1}50%{opacity:.4}}
+.ssb-actions{display:flex;gap:8px}
+
+/* ─── Settings: Unsaved Dot on Tab ─── */
+.tab-btn{position:relative}
+.tab-btn.has-dot::after{content:'';position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--warning);box-shadow:0 0 6px var(--warning)}
+
+/* ─── Settings: Danger Zone ─── */
+.danger-zone{margin-top:32px;padding:20px;border:1px solid rgba(243,18,96,.2);border-radius:var(--radius-md);background:rgba(243,18,96,.04)}
+.danger-zone-title{font-size:13px;font-weight:700;color:var(--danger);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.danger-zone-actions{display:flex;gap:10px;flex-wrap:wrap}
+
+/* ─── Round History: Summary Stats ─── */
+.rh-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:20px}
+.rh-stat{background:var(--content);border-radius:var(--radius-md);padding:14px 16px;display:flex;flex-direction:column;gap:2px}
+.rh-stat-val{font-size:20px;font-weight:800;letter-spacing:-.03em;color:var(--foreground);font-variant-numeric:tabular-nums}
+.rh-stat-name{font-size:10px;font-weight:600;color:var(--foreground-400);text-transform:uppercase;letter-spacing:.5px}
+
+/* ─── Round History: Toolbar ─── */
+.rh-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.rh-search{display:flex;align-items:center;gap:0;background:var(--default-100);border-radius:var(--radius-sm);border:2px solid transparent;transition:border-color .2s;overflow:hidden}
+.rh-search:focus-within{border-color:var(--focus)}
+.rh-search-icon{padding:0 8px 0 12px;color:var(--foreground-400);font-size:14px;flex-shrink:0;display:flex;align-items:center}
+.rh-search-icon svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2}
+.rh-search input{border:none;background:transparent;color:var(--foreground);font-family:inherit;font-size:12px;padding:7px 12px 7px 0;outline:none;width:140px}
+.rh-search input::placeholder{color:var(--foreground-400)}
+
+/* ─── Round History: Sort Headers ─── */
+th.sortable{cursor:pointer;user-select:none;transition:color .15s}
+th.sortable:hover{color:var(--foreground)}
+th.sortable::after{content:'';display:inline-block;width:0;height:0;margin-left:6px;vertical-align:middle;opacity:.4;transition:opacity .15s}
+th.sort-asc::after{border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:5px solid currentColor;opacity:.9}
+th.sort-desc::after{border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid currentColor;opacity:.9}
+
+/* ─── Round History: Expandable Rows ─── */
+tr.rh-row{cursor:pointer;transition:background .15s}
+tr.rh-row:hover td{background:var(--default-100)}
+tr.rh-row.expanded td{background:rgba(0,111,238,.06);border-bottom-color:transparent}
+tr.rh-detail{display:none}
+tr.rh-detail.show{display:table-row}
+tr.rh-detail td{padding:0 16px 14px;border-top:none;background:rgba(0,111,238,.03)}
+.rh-bets-wrap{display:flex;flex-direction:column;gap:6px;padding:8px 0}
+.rh-bet-row{display:flex;align-items:center;gap:12px;padding:6px 12px;border-radius:var(--radius-sm);background:var(--default-100);font-size:12px}
+.rh-bet-uid{color:var(--foreground-400);font-family:monospace;font-size:11px;flex-shrink:0;max-width:80px;overflow:hidden;text-overflow:ellipsis}
+.rh-bet-amount{font-weight:600;color:var(--foreground)}
+.rh-bet-cash{font-weight:700;margin-left:auto}
+.rh-no-bets{font-size:12px;color:var(--foreground-400);padding:6px 0;font-style:italic}
+.rh-expand-icon{display:inline-block;transition:transform .2s;font-size:10px;color:var(--foreground-400);width:16px;text-align:center}
+tr.rh-row.expanded .rh-expand-icon{transform:rotate(90deg);color:var(--primary)}
+
+/* ─── Round History: Pagination ─── */
+.rh-pagination{display:flex;align-items:center;justify-content:center;gap:4px;padding:16px 0}
+.rh-pg-btn{width:34px;height:34px;display:flex;align-items:center;justify-content:center;border:none;border-radius:var(--radius-sm);background:transparent;color:var(--foreground-400);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.rh-pg-btn:hover{background:var(--default-100);color:var(--foreground)}
+.rh-pg-btn.active{background:var(--primary);color:#fff;box-shadow:var(--shadow-sm)}
+.rh-pg-btn:disabled{opacity:.3;cursor:default;pointer-events:none}
+.rh-pg-dots{color:var(--foreground-400);font-size:12px;padding:0 2px;letter-spacing:1px}
+.rh-showing{font-size:11px;color:var(--foreground-400);text-align:center;padding:4px 0 0;font-weight:500}
+
+/* ─── Round History: Empty State ─── */
+.rh-empty{text-align:center;padding:60px 20px}
+.rh-empty-icon{font-size:48px;margin-bottom:12px;opacity:.5}
+.rh-empty-title{font-size:16px;font-weight:700;color:var(--foreground);margin-bottom:6px}
+.rh-empty-desc{font-size:13px;color:var(--foreground-400)}
+
+/* ─── Round History: Export Btn ─── */
+.btn-outline{background:transparent;border:1.5px solid var(--default-200);color:var(--foreground-500);padding:7px 14px;font-size:12px;border-radius:var(--radius-sm)}
+.btn-outline:hover{border-color:var(--default-300);color:var(--foreground);background:var(--default-100)}
+
+/* ─── Crash Chart Filters ─── */
+.crash-chart-filters{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:14px;padding:10px 12px;background:var(--default-100);border-radius:var(--radius-sm)}
+.ccf-group{display:flex;align-items:center;gap:6px}
+.ccf-label{font-size:10px;font-weight:600;color:var(--foreground-400);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+.ccf-btns{display:flex;gap:2px}
+.ccf-stats{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px;padding:0 2px}
+.ccf-stat{font-size:11px;color:var(--foreground-400)}
+.ccf-stat b{color:var(--foreground);font-weight:600}
+@media(max-width:640px){.crash-chart-filters{gap:10px;padding:8px}.ccf-group{flex-wrap:wrap}}
+
+/* ─── Login Screen ─── */
+.login-overlay{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;transition:opacity .3s}
+.login-overlay.hidden{opacity:0;pointer-events:none}
+.login-card{width:100%;max-width:380px;padding:40px 32px;background:var(--content);border-radius:var(--radius-lg);border:1px solid var(--divider);box-shadow:var(--shadow-lg);text-align:center}
+.login-logo{font-size:28px;font-weight:700;letter-spacing:-.03em;margin-bottom:4px}
+.login-sub{font-size:13px;color:var(--foreground-400);margin-bottom:32px}
+.login-input-wrap{position:relative;margin-bottom:16px}
+.login-input{width:100%;padding:12px 44px 12px 16px;background:var(--default-100);border:1.5px solid var(--default-200);border-radius:var(--radius-sm);color:var(--foreground);font-family:inherit;font-size:14px;outline:none;transition:border-color .2s}
+.login-input:focus{border-color:var(--primary)}
+.login-input.error{border-color:var(--danger);animation:shake .4s}
+.login-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--foreground-400);cursor:pointer;font-size:16px;padding:4px}
+.login-toggle:hover{color:var(--foreground)}
+.login-btn{width:100%;padding:12px;background:var(--primary);color:#fff;border:none;border-radius:var(--radius-sm);font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .2s}
+.login-btn:hover{opacity:.9}
+.login-btn:disabled{opacity:.5;cursor:not-allowed}
+.login-error{font-size:12px;color:var(--danger);margin-top:12px;min-height:18px}
+.login-spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.nav-logout{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--radius-md);font-size:12px;font-weight:500;color:var(--danger);background:var(--danger-50);border:none;cursor:pointer;font-family:inherit;transition:all .2s}
+.nav-logout:hover{opacity:.8}
+</style>
+</head>
+<body>
+
+<!-- ─── Login Overlay ─── -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-card">
+    <div class="login-logo">SkyDrop II</div>
+    <div class="login-sub">Admin Panel — Enter password to continue</div>
+    <form id="loginForm" onsubmit="handleLogin(event)">
+      <div class="login-input-wrap">
+        <input type="password" class="login-input" id="loginPass" placeholder="Admin password" autocomplete="current-password" autofocus>
+        <button type="button" class="login-toggle" id="loginToggle" onclick="togglePassVis()" title="Show password">&#128065;</button>
+      </div>
+      <button type="submit" class="login-btn" id="loginBtn">Log In</button>
+      <div class="login-error" id="loginError"></div>
+    </form>
+  </div>
+</div>
+
+<!-- ─── Navbar ─── -->
+<nav class="navbar">
+  <div class="navbar-brand">SkyDrop II <span>Admin Panel</span></div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="nav-logout" id="logoutBtn" onclick="handleLogout()" style="display:none">Logout</button>
+  </div>
+</nav>
+
+<div class="container">
+  <!-- ─── Tabs ─── -->
+  <div class="tabs-list">
+    <button class="tab-btn active" data-tab="dashboard" onclick="switchTab('dashboard')">Dashboard</button>
+    <button class="tab-btn" data-tab="rounds" onclick="switchTab('rounds')">Round History</button>
+    <button class="tab-btn" data-tab="settings" onclick="switchTab('settings')">Settings</button>
+  </div>
+
+  <!-- ═══════ SETTINGS ═══════ -->
+  <div class="tab-panel" id="tab-settings">
+
+    <!-- Presets -->
+    <div class="preset-row">
+      <button class="preset-card active" onclick="applyPreset('easy')" id="preEasy">
+        <span class="preset-check">&#10003;</span>
+        <div class="preset-name">Easy <span class="chip chip-success">Presentation</span></div>
+        <div class="preset-desc">High crash points, easy wins</div>
+      </button>
+      <button class="preset-card" onclick="applyPreset('normal')" id="preNormal">
+        <span class="preset-check">&#10003;</span>
+        <div class="preset-name">Normal <span class="chip chip-warning">Balanced</span></div>
+        <div class="preset-desc">Fair gameplay, moderate risk</div>
+      </button>
+      <button class="preset-card" onclick="applyPreset('usual')" id="preUsual">
+        <span class="preset-check">&#10003;</span>
+        <div class="preset-name">Usual <span class="chip chip-danger">Original</span></div>
+        <div class="preset-desc">Classic house-edge distribution</div>
+      </button>
+    </div>
+
+    <!-- ── Game Engine ── -->
+    <div class="settings-section">
+      <div class="settings-section-header">
+        <span class="ssh-icon">&#9881;&#65039;</span>
+        <span class="ssh-title">Game Engine</span>
+        <span class="ssh-sub">Crash points & round timing</span>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">Crash Point Generator</div>
+          <div class="card-body">
+            <div class="field"><span class="field-label">Mode <span class="field-tip" data-tip="Easy: fixed range. Normal: moderate. Usual: house-edge curve.">i</span></span>
+              <select class="select" id="crashMode">
+                <option value="easy">Easy (8-78x)</option>
+                <option value="normal">Normal (1.2-30x)</option>
+                <option value="usual">Usual (house edge)</option>
+              </select>
+            </div>
+            <div class="field"><span class="field-label">Min crash point <span class="field-tip" data-tip="Lowest possible crash multiplier before bonus">i</span></span><div class="input-unit-wrap"><input class="input" id="crashMin" type="number" step="0.1" value="8"><span class="input-unit">x</span></div></div>
+            <div class="field"><span class="field-label">Max base range <span class="field-tip" data-tip="Random range added to minimum crash point">i</span></span><div class="input-unit-wrap"><input class="input" id="crashRange" type="number" step="1" value="20"><span class="input-unit">x</span></div></div>
+            <div class="field"><span class="field-label">Bonus chance <span class="field-tip" data-tip="Probability of adding bonus to crash point">i</span></span><div class="input-unit-wrap"><input class="input" id="crashBonusChance" type="number" step="1" value="40"><span class="input-unit">%</span></div></div>
+            <div class="field"><span class="field-label">Max bonus <span class="field-tip" data-tip="Maximum extra multiplier from bonus roll">i</span></span><div class="input-unit-wrap"><input class="input" id="crashBonusMax" type="number" step="1" value="50"><span class="input-unit">x</span></div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">Round Timers</div>
+          <div class="card-body">
+            <div class="field"><span class="field-label">Bet time <span class="field-tip" data-tip="How long players have to place bets">i</span></span><div class="input-unit-wrap"><input class="input" id="betTime" type="number" step="0.5" value="6"><span class="input-unit">s</span></div></div>
+            <div class="field"><span class="field-label">Explode time <span class="field-tip" data-tip="Duration of explosion animation">i</span></span><div class="input-unit-wrap"><input class="input" id="explodeTime" type="number" step="0.1" value="2.2"><span class="input-unit">s</span></div></div>
+            <div class="field"><span class="field-label">Crash wait <span class="field-tip" data-tip="Pause after crash before next round">i</span></span><div class="input-unit-wrap"><input class="input" id="crashWait" type="number" step="0.5" value="3"><span class="input-unit">s</span></div></div>
+            <div class="divider"></div>
+            <div class="field"><span class="field-label">Mult speed <span class="field-tip" data-tip="Base multiplier increment per frame">i</span></span><div class="input-unit-wrap"><input class="input" id="multSpeed" type="number" step="0.001" value="0.002"><span class="input-unit">/f</span></div></div>
+            <div class="field"><span class="field-label">Mult accel <span class="field-tip" data-tip="How fast the speed accelerates over time">i</span></span><div class="input-unit-wrap"><input class="input" id="multAccel" type="number" step="0.0001" value="0.00036"><span class="input-unit">/f</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Collectibles ── -->
+    <div class="settings-section">
+      <div class="settings-section-header">
+        <span class="ssh-icon">&#128142;</span>
+        <span class="ssh-title">Collectibles</span>
+        <span class="ssh-sub">Tokens & black holes</span>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">Tokens</div>
+          <div class="card-body">
+            <div class="field"><span class="field-label">Max on screen</span><input class="input" id="tokenMax" type="number" step="1" value="25"></div>
+            <div class="field"><span class="field-label">Spawn rate <span class="field-tip" data-tip="Tokens spawned per second">i</span></span><div class="input-unit-wrap"><input class="input" id="tokenSpawnRate" type="number" step="0.5" value="4"><span class="input-unit">/s</span></div></div>
+            <div class="field"><span class="field-label">Collection boost <span class="field-tip" data-tip="% of token value applied as crash point extension">i</span></span><div class="input-unit-wrap"><input class="input" id="tokenBoost" type="number" step="5" value="40"><span class="input-unit">%</span></div></div>
+            <div class="divider"></div>
+            <div class="field"><span class="field-label">Values <span class="field-tip" data-tip="Comma-separated multiplier values for tokens">i</span></span><input class="input input-wide" id="tokenVals" value="1.1,1.2,1.5,2.0,3.0,5.0,7.0,10.0"></div>
+            <div class="field"><span class="field-label">Weights <span class="field-tip" data-tip="Relative spawn weights matching each value">i</span></span><input class="input input-wide" id="tokenWeights" value="20,20,20,15,12,7,4,2"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">Black Holes</div>
+          <div class="card-body">
+            <div class="field"><span class="field-label">Max on screen</span><input class="input" id="bhMax" type="number" step="1" value="8"></div>
+            <div class="field"><span class="field-label">Spawn rate <span class="field-tip" data-tip="Black holes spawned per second">i</span></span><div class="input-unit-wrap"><input class="input" id="bhSpawnRate" type="number" step="0.1" value="0.8"><span class="input-unit">/s</span></div></div>
+            <div class="field"><span class="field-label">Min mult <span class="field-tip" data-tip="Multiplier must reach this before holes appear">i</span></span><div class="input-unit-wrap"><input class="input" id="bhMinMult" type="number" step="0.5" value="2"><span class="input-unit">x</span></div></div>
+            <div class="field"><span class="field-label">Gravity <span class="field-tip" data-tip="Pull strength in pixels per frame">i</span></span><div class="input-unit-wrap"><input class="input" id="bhGravity" type="number" step="10" value="250"><span class="input-unit">px</span></div></div>
+            <div class="divider"></div>
+            <div class="field"><span class="field-label">Values <span class="field-tip" data-tip="Comma-separated multiplier values for holes">i</span></span><input class="input input-wide" id="bhVals" value="5,10,15,20,30,50,100"></div>
+            <div class="field"><span class="field-label">Weights <span class="field-tip" data-tip="Relative spawn weights matching each value">i</span></span><input class="input input-wide" id="bhWeights" value="20,25,20,15,10,7,3"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Economy ── -->
+    <div class="settings-section">
+      <div class="settings-section-header">
+        <span class="ssh-icon">&#128176;</span>
+        <span class="ssh-title">Economy</span>
+        <span class="ssh-sub">Balance & betting limits</span>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">Balance & Bets</div>
+          <div class="card-body">
+            <div class="field"><span class="field-label">Starting balance</span><div class="input-unit-wrap"><input class="input" id="startBal" type="number" step="100" value="1000"><span class="input-unit">$</span></div></div>
+            <div class="field"><span class="field-label">Min bet</span><div class="input-unit-wrap"><input class="input" id="betMin" type="number" step="0.1" value="0.1"><span class="input-unit">$</span></div></div>
+            <div class="field"><span class="field-label">Max bet</span><div class="input-unit-wrap"><input class="input" id="betMax" type="number" step="10" value="100"><span class="input-unit">$</span></div></div>
+            <div class="field"><span class="field-label">Max win cap <span class="field-tip" data-tip="Maximum payout per round per player">i</span></span><div class="input-unit-wrap"><input class="input" id="winCap" type="number" step="1000" value="10000"><span class="input-unit">$</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Advanced (collapsible) ── -->
+    <div class="settings-section" id="advancedSection">
+      <div class="settings-section-header clickable" onclick="toggleAdvanced()">
+        <span class="ssh-icon">&#128295;</span>
+        <span class="ssh-title">Advanced</span>
+        <span class="ssh-sub">Pilot steering & animations</span>
+        <span class="ssh-chevron rotated" id="advChevron">&#9660;</span>
+      </div>
+      <div class="settings-section-body collapsed" id="advancedBody">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">Pilot Auto-Steer</div>
+            <div class="card-body">
+              <div class="field"><span class="field-label">Token steer range <span class="field-tip" data-tip="How far pilot detects tokens">i</span></span><div class="input-unit-wrap"><input class="input" id="steerTokenDist" type="number" step="50" value="500"><span class="input-unit">px</span></div></div>
+              <div class="field"><span class="field-label">Token steer force</span><div class="input-unit-wrap"><input class="input" id="steerTokenX" type="number" step="0.5" value="2.5"><span class="input-unit">x</span></div></div>
+              <div class="field"><span class="field-label">BH steer range</span><div class="input-unit-wrap"><input class="input" id="steerBhDist" type="number" step="50" value="350"><span class="input-unit">px</span></div></div>
+              <div class="field"><span class="field-label">BH steer force</span><div class="input-unit-wrap"><input class="input" id="steerBhX" type="number" step="0.5" value="3"><span class="input-unit">x</span></div></div>
+              <div class="field"><span class="field-label">BH priority <span class="field-tip" data-tip="Higher = pilot avoids holes more aggressively">i</span></span><div class="input-unit-wrap"><input class="input" id="steerBhPriority" type="number" step="0.1" value="0.8"><span class="input-unit">x</span></div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">Black Hole Animation</div>
+            <div class="card-body">
+              <div class="field"><span class="field-label">Suck duration</span><div class="input-unit-wrap"><input class="input" id="suckTime" type="number" step="0.05" value="0.4"><span class="input-unit">s</span></div></div>
+              <div class="field"><span class="field-label">Inside duration</span><div class="input-unit-wrap"><input class="input" id="insideTime" type="number" step="0.05" value="0.3"><span class="input-unit">s</span></div></div>
+              <div class="field"><span class="field-label">Eject duration</span><div class="input-unit-wrap"><input class="input" id="ejectTime" type="number" step="0.05" value="0.35"><span class="input-unit">s</span></div></div>
+              <div class="field"><span class="field-label">Eject distance</span><div class="input-unit-wrap"><input class="input" id="ejectDist" type="number" step="25" value="250"><span class="input-unit">px</span></div></div>
+              <div class="field"><span class="field-label">Speed boost <span class="field-tip" data-tip="speed *= 1.5 + bhMult * this value">i</span></span><div class="input-unit-wrap"><input class="input" id="bhSpeedBoost" type="number" step="0.01" value="0.03"><span class="input-unit">x</span></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Danger Zone ── -->
+    <div class="danger-zone">
+      <div class="danger-zone-title">&#9888;&#65039; Danger Zone</div>
+      <div class="danger-zone-actions">
+        <button class="btn btn-danger btn-sm" onclick="resetBalance()">Reset Balances</button>
+        <button class="btn btn-danger btn-sm" onclick="clearAll()">Factory Reset</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══════ DASHBOARD ═══════ -->
+  <div class="tab-panel active" id="tab-dashboard">
+    <div class="sec-bar">
+      <div class="sec-title">Dashboard</div>
+      <div class="sec-right">
+        <div class="time-filters" id="dashFilters">
+          <button class="tf-btn" data-tf="1h" onclick="setDashFilter('1h')">1H</button>
+          <button class="tf-btn" data-tf="6h" onclick="setDashFilter('6h')">6H</button>
+          <button class="tf-btn" data-tf="12h" onclick="setDashFilter('12h')">12H</button>
+          <button class="tf-btn" data-tf="24h" onclick="setDashFilter('24h')">24H</button>
+          <button class="tf-btn" data-tf="7d" onclick="setDashFilter('7d')">1W</button>
+          <button class="tf-btn" data-tf="30d" onclick="setDashFilter('30d')">1M</button>
+          <button class="tf-btn active" data-tf="all" onclick="setDashFilter('all')">All</button>
+        </div>
+        <button class="btn btn-flat btn-sm" onclick="loadDashboard()">Refresh</button>
+        <button class="btn btn-danger btn-sm" onclick="clearRoundData()">Clear Data</button>
+      </div>
+    </div>
+    <div class="stat-grid" id="dashStats"></div>
+    <div class="chart-card">
+      <div class="chart-header"><div class="chart-label">Crash Point Distribution</div><div class="chart-legend" id="distLegend"></div></div>
+      <div id="crashDistChart"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header"><div class="chart-label">Recent Crash Points</div><div class="chart-legend"><span class="chart-legend-item"><span class="chart-legend-dot" style="background:#f31260"></span>&lt;2x</span><span class="chart-legend-item"><span class="chart-legend-dot" style="background:#f5a524"></span>2-5x</span><span class="chart-legend-item"><span class="chart-legend-dot" style="background:#006FEE"></span>5-10x</span><span class="chart-legend-item"><span class="chart-legend-dot" style="background:#17c964"></span>10x+</span></div></div>
+      <div class="crash-chart-filters">
+        <div class="ccf-group">
+          <span class="ccf-label">Rounds</span>
+          <div class="ccf-btns" id="ccfRounds">
+            <button class="tf-btn" data-ccr="25" onclick="setCcfRounds(25)">25</button>
+            <button class="tf-btn" data-ccr="50" onclick="setCcfRounds(50)">50</button>
+            <button class="tf-btn active" data-ccr="100" onclick="setCcfRounds(100)">100</button>
+            <button class="tf-btn" data-ccr="200" onclick="setCcfRounds(200)">200</button>
+            <button class="tf-btn" data-ccr="500" onclick="setCcfRounds(500)">All</button>
+          </div>
+        </div>
+        <div class="ccf-group">
+          <span class="ccf-label">Range</span>
+          <div class="ccf-btns" id="ccfRange">
+            <button class="tf-btn active" data-ccv="all" onclick="setCcfRange('all')">All</button>
+            <button class="tf-btn" data-ccv="low" onclick="setCcfRange('low')">&lt;2x</button>
+            <button class="tf-btn" data-ccv="mid" onclick="setCcfRange('mid')">2-5x</button>
+            <button class="tf-btn" data-ccv="high" onclick="setCcfRange('high')">5-10x</button>
+            <button class="tf-btn" data-ccv="moon" onclick="setCcfRange('moon')">10x+</button>
+          </div>
+        </div>
+        <div class="ccf-group">
+          <span class="ccf-label">Scale</span>
+          <div class="ccf-btns" id="ccfScale">
+            <button class="tf-btn active" data-ccs="log" onclick="setCcfScale('log')">Log</button>
+            <button class="tf-btn" data-ccs="linear" onclick="setCcfScale('linear')">Linear</button>
+          </div>
+        </div>
+      </div>
+      <div class="ccf-stats" id="ccfStats"></div>
+      <div class="area-chart-wrap">
+        <div class="area-chart-inner" id="crashAreaChart"></div>
+        <div class="area-chart-x" id="crashAreaAxis"></div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="chart-card"><div class="chart-header"><div class="chart-label">All Players Win Rate</div></div><div id="winRateChart"></div></div>
+      <div class="chart-card"><div class="chart-header"><div class="chart-label">House Profit (Cumulative)</div><div id="pnlSummary" style="font-size:12px;font-weight:600"></div></div><div id="pnlChart"></div></div>
+    </div>
+  </div>
+
+  <!-- ═══════ ROUND HISTORY ═══════ -->
+  <div class="tab-panel" id="tab-rounds">
+    <div class="sec-bar">
+      <div class="sec-title">Round History</div>
+      <div class="sec-right">
+        <div class="time-filters" id="rhFilters">
+          <button class="tf-btn" data-rhf="1h" onclick="setRhFilter('1h')">1H</button>
+          <button class="tf-btn" data-rhf="6h" onclick="setRhFilter('6h')">6H</button>
+          <button class="tf-btn" data-rhf="24h" onclick="setRhFilter('24h')">24H</button>
+          <button class="tf-btn" data-rhf="7d" onclick="setRhFilter('7d')">1W</button>
+          <button class="tf-btn active" data-rhf="all" onclick="setRhFilter('all')">All</button>
+        </div>
+        <button class="btn btn-flat btn-sm" onclick="loadRoundHistory()">Refresh</button>
+        <button class="btn btn-danger btn-sm" onclick="clearRoundData()">Clear Data</button>
+      </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="rh-stats" id="rhStats"></div>
+
+    <!-- Toolbar: search + count + export -->
+    <div class="rh-toolbar">
+      <div class="rh-search">
+        <span class="rh-search-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></span>
+        <input type="text" id="rhSearchInput" placeholder="Search round #..." oninput="_rhSearch()">
+      </div>
+      <span class="count-chip" id="roundCountLabel">0 rounds</span>
+      <div style="flex:1"></div>
+      <button class="btn btn-outline btn-sm" onclick="exportCSV()">Export CSV</button>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap" id="roundHistWrap">
+      <div class="table-scroll">
+        <table>
+          <thead><tr>
+            <th style="width:28px"></th>
+            <th class="sortable" data-sort="round" onclick="_rhSort('round')">#</th>
+            <th class="sortable" data-sort="crash" onclick="_rhSort('crash')">Crash</th>
+            <th class="sortable" data-sort="players" onclick="_rhSort('players')">Players</th>
+            <th class="sortable" data-sort="bet" onclick="_rhSort('bet')">Total Bet</th>
+            <th class="sortable" data-sort="pnl" onclick="_rhSort('pnl')">House P/L</th>
+            <th class="sortable" data-sort="time" onclick="_rhSort('time')">Time</th>
+          </tr></thead>
+          <tbody id="roundHistBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="rh-pagination" id="rhPagination"></div>
+    <div class="rh-showing" id="rhShowing"></div>
+
+    <!-- Empty State -->
+    <div class="rh-empty" id="roundEmpty" style="display:none">
+      <div class="rh-empty-icon">&#128202;</div>
+      <div class="rh-empty-title">No rounds yet</div>
+      <div class="rh-empty-desc">Play some rounds in the game and they'll appear here.</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ─── Confirm Dialog ─── -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal-box">
+    <div class="modal-icon" id="modalIcon"></div>
+    <div class="modal-title" id="modalTitle"></div>
+    <div class="modal-desc" id="modalDesc"></div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-warn" id="modalWarn"></div>
+    <div class="modal-actions">
+      <button class="btn btn-flat" id="modalCancel" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-danger" id="modalConfirm"></button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Sticky Save Bar ─── -->
+<div class="sticky-save-bar" id="stickyBar">
+  <div class="sticky-save-inner">
+    <span class="ssb-label"><span class="ssb-dot"></span> Unsaved changes</span>
+    <div class="ssb-actions">
+      <button class="btn btn-flat btn-sm" onclick="resetToPreset()">Reset</button>
+      <button class="btn btn-primary btn-sm" onclick="saveConfig()">Save & Apply</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="fb-status" id="fbStatus" style="position:fixed;bottom:16px;right:16px;padding:8px 14px;border-radius:9999px;font-size:11px;font-weight:600;z-index:50;display:none"></div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="firebase-init.js"></script>
+
+<script>
+var PRESETS={
+  easy:{crashMode:'easy',crashMin:8,crashRange:20,crashBonusChance:40,crashBonusMax:50,betTime:6,explodeTime:2.2,crashWait:3,multSpeed:0.002,multAccel:0.00036,tokenMax:25,tokenSpawnRate:4,tokenBoost:40,tokenVals:'1.1,1.2,1.5,2.0,3.0,5.0,7.0,10.0',tokenWeights:'20,20,20,15,12,7,4,2',bhMax:8,bhSpawnRate:0.8,bhMinMult:2,bhGravity:250,bhVals:'5,10,15,20,30,50,100',bhWeights:'20,25,20,15,10,7,3',startBal:1000,betMin:0.1,betMax:100,winCap:10000,steerTokenDist:500,steerTokenX:2.5,steerBhDist:350,steerBhX:3,steerBhPriority:0.8,suckTime:0.4,insideTime:0.3,ejectTime:0.35,ejectDist:250,bhSpeedBoost:0.03},
+  normal:{crashMode:'normal',crashMin:1.2,crashRange:8,crashBonusChance:20,crashBonusMax:20,betTime:6,explodeTime:2.2,crashWait:3,multSpeed:0.002,multAccel:0.00036,tokenMax:20,tokenSpawnRate:3,tokenBoost:25,tokenVals:'1.1,1.2,1.5,2.0,3.0,5.0',tokenWeights:'25,25,20,15,10,5',bhMax:5,bhSpawnRate:0.4,bhMinMult:3,bhGravity:200,bhVals:'5,10,15,20,30',bhWeights:'30,30,20,12,8',startBal:1000,betMin:0.1,betMax:100,winCap:10000,steerTokenDist:400,steerTokenX:2,steerBhDist:300,steerBhX:2.5,steerBhPriority:0.7,suckTime:0.4,insideTime:0.3,ejectTime:0.35,ejectDist:250,bhSpeedBoost:0.02},
+  usual:{crashMode:'usual',crashMin:1.01,crashRange:0,crashBonusChance:0,crashBonusMax:0,betTime:6,explodeTime:2.2,crashWait:3,multSpeed:0.002,multAccel:0.00036,tokenMax:15,tokenSpawnRate:2.5,tokenBoost:15,tokenVals:'1.1,1.2,1.5,2.0,3.0,5.0',tokenWeights:'30,25,20,13,8,4',bhMax:3,bhSpawnRate:0.25,bhMinMult:4,bhGravity:180,bhVals:'5,10,15,20',bhWeights:'40,30,20,10',startBal:1000,betMin:0.1,betMax:100,winCap:10000,steerTokenDist:350,steerTokenX:1.8,steerBhDist:250,steerBhX:2,steerBhPriority:0.6,suckTime:0.4,insideTime:0.3,ejectTime:0.35,ejectDist:250,bhSpeedBoost:0.02}
+};
+var ALL_FIELDS=['crashMode','crashMin','crashRange','crashBonusChance','crashBonusMax','betTime','explodeTime','crashWait','multSpeed','multAccel','tokenMax','tokenSpawnRate','tokenBoost','tokenVals','tokenWeights','bhMax','bhSpawnRate','bhMinMult','bhGravity','bhVals','bhWeights','startBal','betMin','betMax','winCap','steerTokenDist','steerTokenX','steerBhDist','steerBhX','steerBhPriority','suckTime','insideTime','ejectTime','ejectDist','bhSpeedBoost'];
+
+function getConfig(){var c={};ALL_FIELDS.forEach(function(f){var e=document.getElementById(f);if(!e)return;c[f]=e.tagName==='SELECT'?e.value:e.type==='number'?parseFloat(e.value)||0:e.value});return c}
+function setConfig(c){ALL_FIELDS.forEach(function(f){var e=document.getElementById(f);if(e&&c[f]!==undefined)e.value=c[f]})}
+function applyPreset(n){if(!PRESETS[n])return;setConfig(PRESETS[n]);document.querySelectorAll('.preset-card').forEach(function(b){b.classList.remove('active')});var el=document.getElementById('pre'+n.charAt(0).toUpperCase()+n.slice(1));if(el)el.classList.add('active');saveConfig();toast('Mode: '+n+' applied')}
+function saveConfig(){
+  var cfg=getConfig();
+  localStorage.setItem('skydrop_admin_config',JSON.stringify(cfg));
+  _savedSnapshot=_takeSnapshot();
+  _checkDirty();
+  if(typeof FB!=='undefined'&&FB.isOnline()){
+    FB.saveConfig(cfg).then(function(){toast('Settings saved (synced)')}).catch(function(){toast('Settings saved (local only)')});
+  }else{toast('Settings saved')}
+}
+function resetToPreset(){var a=document.querySelector('.preset-card.active');applyPreset(a?a.id.replace('pre','').toLowerCase():'easy')}
+function resetBalance(){localStorage.removeItem('skydrop_balance');toast('Balances reset')}
+
+// ── Dirty Tracking ──
+var _savedSnapshot='';
+function _takeSnapshot(){return JSON.stringify(getConfig())}
+function _checkDirty(){
+  var dirty=(_takeSnapshot()!==_savedSnapshot);
+  var bar=document.getElementById('stickyBar');
+  if(bar)bar.classList.toggle('show',dirty);
+  var tabBtn=document.querySelector('.tab-btn[data-tab="settings"]');
+  if(tabBtn)tabBtn.classList.toggle('has-dot',dirty);
+}
+function _initDirtyTracking(){
+  _savedSnapshot=_takeSnapshot();
+  var tab=document.getElementById('tab-settings');
+  if(tab){tab.addEventListener('input',_checkDirty);tab.addEventListener('change',_checkDirty)}
+}
+
+// ── Collapsible Advanced ──
+function toggleAdvanced(){
+  var body=document.getElementById('advancedBody');
+  var chev=document.getElementById('advChevron');
+  if(!body)return;
+  var isCollapsed=body.classList.contains('collapsed');
+  body.classList.toggle('collapsed',!isCollapsed);
+  if(chev)chev.classList.toggle('rotated',!isCollapsed);
+}
+function clearAll(){
+  showModal({
+    icon:'danger',emoji:'\u26A0\uFE0F',
+    title:'Factory Reset',
+    desc:'This will erase ALL game data including settings, balances, round history, and Firebase data.',
+    warn:'This action is permanent and cannot be undone. All players will lose their data.',
+    btn:'Reset Everything',
+    onConfirm:function(){
+      var k=[];for(var i=0;i<localStorage.length;i++){var x=localStorage.key(i);if(x&&x.startsWith('skydrop_'))k.push(x)};k.forEach(function(x){localStorage.removeItem(x)});
+      if(typeof FB!=='undefined'&&FB.isOnline()){FB.factoryReset().then(function(){toast('Factory reset done (local + cloud)');resetToPreset();loadDashboard();loadRoundHistory()}).catch(function(){toast('Factory reset done (local only)');resetToPreset();loadDashboard();loadRoundHistory()})}
+      else{toast('Factory reset done');resetToPreset();loadDashboard();loadRoundHistory()}
+    }
+  });
+}
+function toast(m){var t=document.getElementById('toast');if(!t)return;t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove('show')},2200)}
+
+// ── Modal System ──
+function showModal(opts){
+  var m=document.getElementById('confirmModal');if(!m)return;
+  var ic=document.getElementById('modalIcon');
+  if(ic){ic.className='modal-icon '+(opts.icon||'danger');ic.textContent=opts.emoji||'\u26A0\uFE0F'}
+  var tEl=document.getElementById('modalTitle');if(tEl)tEl.textContent=opts.title||'Are you sure?';
+  var dEl=document.getElementById('modalDesc');if(dEl)dEl.textContent=opts.desc||'';
+  var bd=document.getElementById('modalBody');
+  if(bd){if(opts.body){bd.innerHTML=opts.body;bd.style.display=''}else{bd.innerHTML='';bd.style.display='none'}}
+  var w=document.getElementById('modalWarn');
+  if(w){if(opts.warn){w.textContent=opts.warn;w.classList.add('show')}else{w.classList.remove('show')}}
+  var cb=document.getElementById('modalConfirm');
+  if(cb){cb.textContent=opts.btn||'Confirm';cb.className='btn '+(opts.btnClass||'btn-danger');cb.onclick=function(){closeModal();if(opts.onConfirm)opts.onConfirm()}}
+  m.classList.add('show');
+  m.onclick=function(e){if(e.target===m)closeModal()};
+  document.addEventListener('keydown',_modalEsc);
+}
+function _modalEsc(e){if(e.key==='Escape')closeModal()}
+function closeModal(){
+  var m=document.getElementById('confirmModal');if(m)m.classList.remove('show');
+  document.removeEventListener('keydown',_modalEsc);
+}
+
+var _clearTimeRange='all';
+function _selectTimeRange(val){
+  _clearTimeRange=val;
+  document.querySelectorAll('.time-range-opt').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-range')===val)});
+}
+function clearRoundData(){
+  _clearTimeRange='all';
+  showModal({
+    icon:'danger',emoji:'\uD83D\uDDD1\uFE0F',
+    title:'Clear Round Data',
+    desc:'Choose how much data to delete:',
+    body:'<div class="time-range-grid">'+
+      '<button class="time-range-opt" data-range="1h" onclick="_selectTimeRange(\'1h\')"><span class="tr-label">1 Hour</span><span class="tr-sub">Last 60 min</span></button>'+
+      '<button class="time-range-opt" data-range="6h" onclick="_selectTimeRange(\'6h\')"><span class="tr-label">6 Hours</span><span class="tr-sub">Last 6 hrs</span></button>'+
+      '<button class="time-range-opt" data-range="12h" onclick="_selectTimeRange(\'12h\')"><span class="tr-label">12 Hours</span><span class="tr-sub">Last 12 hrs</span></button>'+
+      '<button class="time-range-opt" data-range="24h" onclick="_selectTimeRange(\'24h\')"><span class="tr-label">24 Hours</span><span class="tr-sub">Last day</span></button>'+
+      '<button class="time-range-opt" data-range="7d" onclick="_selectTimeRange(\'7d\')"><span class="tr-label">7 Days</span><span class="tr-sub">Last week</span></button>'+
+      '<button class="time-range-opt active" data-range="all" onclick="_selectTimeRange(\'all\')"><span class="tr-label">All Data</span><span class="tr-sub">Everything</span></button>'+
+    '</div>',
+    warn:'This cannot be undone. Selected data will be permanently deleted.',
+    btn:'Delete Selected Data',
+    onConfirm:function(){
+      var cutoff=0;
+      var now=Date.now();
+      if(_clearTimeRange==='1h')cutoff=now-3600000;
+      else if(_clearTimeRange==='6h')cutoff=now-21600000;
+      else if(_clearTimeRange==='12h')cutoff=now-43200000;
+      else if(_clearTimeRange==='24h')cutoff=now-86400000;
+      else if(_clearTimeRange==='7d')cutoff=now-604800000;
+      if(typeof FB!=='undefined'&&FB.isOnline()){
+        FB.clearRoundsByTime(cutoff).then(function(count){
+          if(count===-1)toast('All round data cleared');
+          else toast(count+' rounds deleted from Firebase');
+          loadDashboard();loadRoundHistory();
+        }).catch(function(){
+          toast('Firebase clear failed — check permissions');
+          loadDashboard();loadRoundHistory();
+        });
+      }
+      if(_clearTimeRange==='all'){
+        localStorage.removeItem('skydrop_history');
+        localStorage.removeItem('skydrop_betHistory');
+      }
+      if(!FB.isOnline()){toast('Local data cleared');loadDashboard();loadRoundHistory()}
+    }
+  });
+}
+
+function switchTab(n){
+  document.querySelectorAll('.tab-panel').forEach(function(t){t.classList.remove('active')});
+  document.querySelectorAll('.tab-btn').forEach(function(t){t.classList.remove('active')});
+  var p=document.getElementById('tab-'+n);if(p)p.classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(function(b){if(b.getAttribute('data-tab')===n)b.classList.add('active')});
+  if(n==='dashboard')loadDashboard();if(n==='rounds')loadRoundHistory();
+}
+function _ls(k){try{var v=localStorage.getItem('skydrop_'+k);return v?JSON.parse(v):null}catch(e){return null}}
+function _esc(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+// Shared: smooth SVG cubic bezier path from points
+function _smoothPath(pts){
+  if(pts.length<2)return'M'+pts[0].x+','+pts[0].y;
+  var d='M'+pts[0].x+','+pts[0].y;
+  for(var i=0;i<pts.length-1;i++){
+    var cx=(pts[i].x+pts[i+1].x)/2;
+    d+=' C'+cx+','+pts[i].y+' '+cx+','+pts[i+1].y+' '+pts[i+1].x+','+pts[i+1].y;
+  }
+  return d;
+}
+
+var _dashFilter='all';
+function setDashFilter(f){
+  _dashFilter=f;
+  document.querySelectorAll('#dashFilters .tf-btn').forEach(function(b){b.classList.remove('active')});
+  var btn=document.querySelector('#dashFilters .tf-btn[data-tf="'+f+'"]');
+  if(btn)btn.classList.add('active');
+  loadDashboard();
+}
+function _filterByTime(rounds,filter){
+  if(filter==='all')return rounds;
+  var ms={
+    '1h':3600000,'6h':21600000,'12h':43200000,
+    '24h':86400000,'7d':604800000,'30d':2592000000
+  };
+  var cutoff=Date.now()-(ms[filter]||0);
+  return rounds.filter(function(r){
+    if(r.ts)return r.ts>=cutoff;
+    if(r.time){
+      var d=new Date(r.time);
+      if(!isNaN(d.getTime()))return d.getTime()>=cutoff;
+    }
+    return true;
+  });
+}
+
+// ─── Crash Chart Filters ───
+var _ccfRounds=100;
+var _ccfRange='all';
+var _ccfScale='log';
+var _ccfAllData=[];
+
+function setCcfRounds(n){
+  _ccfRounds=n;
+  document.querySelectorAll('#ccfRounds .tf-btn').forEach(function(b){b.classList.toggle('active',parseInt(b.getAttribute('data-ccr'))===n)});
+  _renderCrashChart();
+}
+function setCcfRange(r){
+  _ccfRange=r;
+  document.querySelectorAll('#ccfRange .tf-btn').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-ccv')===r)});
+  _renderCrashChart();
+}
+function setCcfScale(s){
+  _ccfScale=s;
+  document.querySelectorAll('#ccfScale .tf-btn').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-ccs')===s)});
+  _renderCrashChart();
+}
+
+function _filterCcfRange(arr){
+  if(_ccfRange==='all')return arr;
+  return arr.filter(function(r){
+    var v=r.v;
+    if(_ccfRange==='low')return v<2;
+    if(_ccfRange==='mid')return v>=2&&v<5;
+    if(_ccfRange==='high')return v>=5&&v<10;
+    if(_ccfRange==='moon')return v>=10;
+    return true;
+  });
+}
+
+function _renderCrashChart(){
+  var h=_ccfAllData;if(!h||!h.length)return;
+  var sliced=h.slice(0,_ccfRounds);
+  var filtered=_filterCcfRange(sliced);
+  var rc=filtered.slice().reverse();
+  var areaEl=document.getElementById('crashAreaChart');
+  var axisEl=document.getElementById('crashAreaAxis');
+  var statsEl=document.getElementById('ccfStats');
+  if(!areaEl)return;
+
+  // Stats bar
+  if(filtered.length){
+    var sum=0,mn=Infinity,mx=0,lt2=0;
+    filtered.forEach(function(r){sum+=r.v;if(r.v<mn)mn=r.v;if(r.v>mx)mx=r.v;if(r.v<2)lt2++});
+    var avg=sum/filtered.length;
+    var lt2Pct=((lt2/filtered.length)*100).toFixed(1);
+    var med=filtered.slice().sort(function(a,b){return a.v-b.v});
+    var median=med.length%2===0?(med[med.length/2-1].v+med[med.length/2].v)/2:med[Math.floor(med.length/2)].v;
+    if(statsEl)statsEl.innerHTML=
+      '<span class="ccf-stat">Showing <b>'+filtered.length+'</b> of '+sliced.length+'</span>'+
+      '<span class="ccf-stat">Avg <b>'+avg.toFixed(2)+'x</b></span>'+
+      '<span class="ccf-stat">Median <b>'+median.toFixed(2)+'x</b></span>'+
+      '<span class="ccf-stat">Min <b style="color:var(--danger)">'+mn.toFixed(2)+'x</b></span>'+
+      '<span class="ccf-stat">Max <b style="color:var(--success)">'+mx.toFixed(2)+'x</b></span>'+
+      '<span class="ccf-stat">&lt;2x <b style="color:var(--danger)">'+lt2Pct+'%</b></span>';
+  }else{if(statsEl)statsEl.innerHTML=''}
+
+  if(!rc.length){areaEl.innerHTML='<div class="empty-msg">No matching rounds</div>';axisEl.innerHTML='';return}
+
+  // Dimensions
+  var padL=38,padR=12,padT=16,padB=28;
+  var bw=areaEl.offsetWidth||600,bh2=180;
+  var cw=bw-padL-padR,ch2=bh2-padT-padB;
+  // Scale
+  var useLog=(_ccfScale==='log');
+  var vals=rc.map(function(r){return useLog?Math.log(Math.max(r.v,1.01)):r.v});
+  var mxVal=Math.max.apply(null,vals)||1;
+  var mnVal=0; // always start Y-axis at 0 for both scales
+  var range=mxVal-mnVal;if(range===0)range=1;
+  // Points
+  var pts=rc.map(function(r,i){
+    var x=padL+(rc.length>1?i*(cw/(rc.length-1)):cw/2);
+    var yNorm=(vals[i]-mnVal)/range;
+    var y=padT+ch2-(yNorm*ch2);
+    return{x:x,y:y,v:r.v,rnd:r.round};
+  });
+  function _vc(v){return v>=10?'#17c964':v>=5?'#006FEE':v>=2?'#f5a524':'#f31260'}
+  var linePath=_smoothPath(pts);
+  var areaPath=linePath+' L'+pts[pts.length-1].x+','+(padT+ch2)+' L'+pts[0].x+','+(padT+ch2)+' Z';
+  // Grid lines + Y labels
+  var gridY='';var yLabels=[];
+  for(var gi=0;gi<=4;gi++){
+    var gy=padT+ch2-(gi/4)*ch2;
+    gridY+='<line x1="'+padL+'" y1="'+gy+'" x2="'+(padL+cw)+'" y2="'+gy+'"/>';
+    var lv=useLog?Math.exp(mnVal+(gi/4)*range):mnVal+(gi/4)*range;
+    yLabels.push({y:gy,label:lv<10?lv.toFixed(1)+'x':Math.round(lv)+'x'});
+  }
+  // SVG
+  var svg='<svg class="area-chart-svg" viewBox="0 0 '+bw+' '+bh2+'" preserveAspectRatio="none">';
+  svg+='<defs>';
+  svg+='<linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">';
+  svg+='<stop offset="0%" stop-color="#006FEE" stop-opacity=".35"/>';
+  svg+='<stop offset="100%" stop-color="#006FEE" stop-opacity="0"/>';
+  svg+='</linearGradient>';
+  svg+='<linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">';
+  svg+='<stop offset="0%" stop-color="#006FEE"/><stop offset="50%" stop-color="#17c964"/><stop offset="100%" stop-color="#006FEE"/>';
+  svg+='</linearGradient>';
+  svg+='</defs>';
+  svg+='<g class="area-chart-grid">'+gridY+'</g>';
+  svg+='<path class="area-chart-fill" d="'+areaPath+'" fill="url(#areaGrad)"/>';
+  svg+='<path class="area-chart-line" d="'+linePath+'" stroke="url(#lineGrad)"/>';
+  // Dots — skip if too many to keep it clean
+  var showDots=rc.length<=100;
+  if(showDots){pts.forEach(function(p,i){
+    svg+='<circle class="area-chart-dot" cx="'+p.x+'" cy="'+p.y+'" r="3.5" fill="'+_vc(p.v)+'" stroke="#18181b" stroke-width="1.5" data-i="'+i+'"/>';
+  })}
+  svg+='</svg>';
+  var yHtml='<div class="area-chart-y">';
+  yLabels.reverse().forEach(function(yl){yHtml+='<span>'+yl.label+'</span>'});
+  yHtml+='</div>';
+  var ttHtml='<div class="area-tooltip" id="areaTT"></div>';
+  areaEl.innerHTML=svg+yHtml+ttHtml;
+  // Axis
+  if(rc.length>1){axisEl.innerHTML='<span>#'+rc[0].round+'</span><span>'+rc.length+' rounds</span><span>#'+rc[rc.length-1].round+'</span>'}
+  else if(rc.length===1){axisEl.innerHTML='<span>#'+rc[0].round+'</span>'}
+  else{axisEl.innerHTML=''}
+  // Hover
+  if(showDots){
+    var tt=document.getElementById('areaTT');
+    areaEl.querySelectorAll('.area-chart-dot').forEach(function(dot){
+      dot.addEventListener('mouseenter',function(){
+        var i=parseInt(dot.getAttribute('data-i'));
+        var p=pts[i];if(!p)return;
+        var c=_vc(p.v);
+        tt.innerHTML='<div class="tt-val" style="color:'+c+'">'+p.v.toFixed(2)+'x</div><div class="tt-sub">Round #'+p.rnd+'</div>';
+        tt.style.left=p.x+'px';tt.style.top=(p.y-10)+'px';
+        tt.classList.add('show');
+      });
+      dot.addEventListener('mouseleave',function(){tt.classList.remove('show')});
+    });
+  }
+}
+
+function loadDashboard(){
+  if(typeof FB!=='undefined'&&FB.isOnline()){
+    FB.loadRounds().then(function(fbRounds){
+      var rounds=fbRounds.length?fbRounds:(_ls('history')||[]);
+      rounds=_filterByTime(rounds,_dashFilter);
+      // Extract all bets from Firebase rounds (handle both arrays and Firebase objects)
+      var allBets=[];
+      rounds.forEach(function(r){
+        var bets=r.bets;
+        if(bets){
+          var arr=Array.isArray(bets)?bets:Object.keys(bets).map(function(k){return bets[k]});
+          arr.forEach(function(b){if(b)allBets.push({bet:b.bet||0,win:b.win||0,mult:b.cashMult||0})});
+        }
+      });
+      // If no embedded bets, fall back to localStorage
+      if(!allBets.length){var lbh=_ls('betHistory')||[];allBets=lbh}
+      _renderDashboard(rounds,allBets);
+    });
+  }else{
+    var h=_ls('history')||[],bh=_ls('betHistory')||[];
+    h=_filterByTime(h,_dashFilter);
+    _renderDashboard(h,bh);
+  }
+}
+function _renderDashboard(h,bh){
+  // All-player stats from embedded bets
+  var tw=0,won=0,w=0,l=0,bestC=0,uniqueUids={},totalBets=0;
+  h.forEach(function(r){
+    var bets=r.bets;
+    if(bets){
+      // Firebase may return array or object — normalize
+      var arr=Array.isArray(bets)?bets:Object.keys(bets).map(function(k){return bets[k]});
+      arr.forEach(function(b){
+        if(!b)return;
+        totalBets++;
+        tw+=b.bet||0;
+        if(b.win>0){won+=b.win;w++;if((b.cashMult||0)>bestC)bestC=b.cashMult}else{l++}
+        if(b.uid)uniqueUids[b.uid]=true;
+      });
+    }else if(r.totalBet){
+      // No embedded bets — use round-level totalBet
+      tw+=r.totalBet;
+    }
+  });
+  // Fallback to bh array if no embedded bets
+  if(!totalBets){
+    bh.forEach(function(b){totalBets++;tw+=b.bet||0;if(b.win>0){won+=b.win;w++;if((b.mult||0)>bestC)bestC=b.mult}else l++});
+  }
+  var hp=tw-won;
+  var avg=0;if(h.length){var s=0;h.forEach(function(r){s+=r.v||0});avg=s/h.length}
+  var wr=totalBets?((w/totalBets)*100).toFixed(1):'0.0';
+  var uniqueCount=Object.keys(uniqueUids).length;
+  var avgBetsPerRound=h.length?(totalBets/h.length).toFixed(1):'0';
+  var _ds=document.getElementById('dashStats');if(_ds)_ds.innerHTML=
+    '<div class="stat-card"><div class="stat-value cyan">'+h.length+'</div><div class="stat-name">Total Rounds</div></div>'+
+    '<div class="stat-card"><div class="stat-value">'+totalBets+'</div><div class="stat-name">Total Bets</div></div>'+
+    '<div class="stat-card"><div class="stat-value gold">'+uniqueCount+'</div><div class="stat-name">Unique Players</div></div>'+
+    '<div class="stat-card"><div class="stat-value cyan">'+avgBetsPerRound+'</div><div class="stat-name">Avg Bets/Round</div></div>'+
+    '<div class="stat-card"><div class="stat-value">$'+tw.toFixed(2)+'</div><div class="stat-name">Total Wagered</div></div>'+
+    '<div class="stat-card"><div class="stat-value green">$'+won.toFixed(2)+'</div><div class="stat-name">Total Paid Out</div></div>'+
+    '<div class="stat-card"><div class="stat-value '+(hp>=0?'green':'red')+'">$'+hp.toFixed(2)+'</div><div class="stat-name">House Profit</div></div>'+
+    '<div class="stat-card"><div class="stat-value '+(wr>=50?'green':'red')+'">'+wr+'%</div><div class="stat-name">Player Win Rate</div></div>'+
+    '<div class="stat-card"><div class="stat-value gold">'+(bestC>0?bestC.toFixed(2)+'x':'N/A')+'</div><div class="stat-name">Best Cashout</div></div>'+
+    '<div class="stat-card"><div class="stat-value cyan">'+avg.toFixed(2)+'x</div><div class="stat-name">Avg Crash</div></div>';
+  // ── Crash Distribution Chart ──
+  var bk=[
+    {l:'1.0-1.5x',a:0,b:1.5,c:0,cl:'#f31260',g:'linear-gradient(90deg,#f31260,#ff4d8a)'},
+    {l:'1.5-2.0x',a:1.5,b:2,c:0,cl:'#f5a524',g:'linear-gradient(90deg,#f5a524,#ffbe45)'},
+    {l:'2.0-3.0x',a:2,b:3,c:0,cl:'#f5a524',g:'linear-gradient(90deg,#e89420,#f5a524)'},
+    {l:'3.0-5.0x',a:3,b:5,c:0,cl:'#17c964',g:'linear-gradient(90deg,#12a550,#17c964)'},
+    {l:'5.0-10x',a:5,b:10,c:0,cl:'#17c964',g:'linear-gradient(90deg,#17c964,#34e87f)'},
+    {l:'10-20x',a:10,b:20,c:0,cl:'#006FEE',g:'linear-gradient(90deg,#006FEE,#3d9bff)'},
+    {l:'20-50x',a:20,b:50,c:0,cl:'#006FEE',g:'linear-gradient(90deg,#0058c4,#006FEE)'},
+    {l:'50x+',a:50,b:1e9,c:0,cl:'#7828c8',g:'linear-gradient(90deg,#7828c8,#a855f7)'}
+  ];
+  h.forEach(function(r){for(var i=0;i<bk.length;i++){if(r.v>=bk[i].a&&r.v<bk[i].b){bk[i].c++;break}}});
+  var mx=Math.max.apply(null,bk.map(function(b){return b.c}))||1;
+  var totalR=h.length||1;
+  var dh='';bk.forEach(function(b){
+    var pct=((b.c/totalR)*100).toFixed(1);
+    var bw=Math.max(2,Math.round(b.c/mx*100));
+    dh+='<div class="bar-row"><div class="bar-name">'+b.l+'</div><div class="bar-track"><div class="bar-fill" style="width:'+bw+'%;background:'+b.g+'"><span class="bar-fill-label">'+(bw>18?pct+'%':'')+'</span></div></div><div class="bar-count">'+b.c+'<span style="color:var(--foreground-400);font-weight:400;font-size:10px;margin-left:3px">('+pct+'%)</span></div></div>'});
+  var _cdc=document.getElementById('crashDistChart');if(_cdc)_cdc.innerHTML=dh||'<div class="empty-msg">No data</div>';
+  var _dl=document.getElementById('distLegend');if(_dl)_dl.innerHTML='<span class="chart-legend-item" style="font-size:10px;color:var(--foreground-400)">'+h.length+' rounds</span>';
+
+  // ── Recent Crash Points — SVG Area Chart ──
+  _ccfAllData=h;
+  _renderCrashChart();
+
+  // ── Win Rate Donut ──
+  var wrPct=totalBets?Math.round((w/totalBets)*100):0;
+  var lrPct=100-wrPct;
+  var radius=42,circ=2*Math.PI*radius;
+  var winArc=(wrPct/100)*circ,lossArc=circ-winArc;
+  var wrSvg='<defs><linearGradient id="wGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#17c964"/><stop offset="100%" stop-color="#34e87f"/></linearGradient><linearGradient id="lGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f31260"/><stop offset="100%" stop-color="#ff4d8a"/></linearGradient></defs>';
+  wrSvg+='<circle cx="50" cy="50" r="'+radius+'" fill="none" stroke="var(--default-100)" stroke-width="10"/>';
+  wrSvg+='<circle cx="50" cy="50" r="'+radius+'" fill="none" stroke="url(#wGrad)" stroke-width="10" stroke-dasharray="'+winArc+' '+lossArc+'" stroke-linecap="round"/>';
+  if(lrPct>0)wrSvg+='<circle cx="50" cy="50" r="'+radius+'" fill="none" stroke="url(#lGrad)" stroke-width="10" stroke-dasharray="'+lossArc+' '+winArc+'" stroke-dashoffset="-'+winArc+'" stroke-linecap="round"/>';
+  var _wrc=document.getElementById('winRateChart');if(_wrc)_wrc.innerHTML=
+    '<div class="wr-donut-wrap">'+
+      '<div class="wr-donut"><svg viewBox="0 0 100 100">'+wrSvg+'</svg>'+
+        '<div class="wr-donut-center"><div class="wr-donut-pct">'+wrPct+'%</div><div class="wr-donut-sub">win rate</div></div>'+
+      '</div>'+
+      '<div class="wr-stats">'+
+        '<div class="wr-stat-row"><div class="wr-stat-dot" style="background:#17c964;color:#17c964"></div><div class="wr-stat-info"><div class="wr-stat-name">Wins</div><div class="wr-stat-val" style="color:#17c964">'+w+'</div></div></div>'+
+        '<div class="wr-stat-row"><div class="wr-stat-dot" style="background:#f31260;color:#f31260"></div><div class="wr-stat-info"><div class="wr-stat-name">Losses</div><div class="wr-stat-val" style="color:#f31260">'+l+'</div></div></div>'+
+        '<div class="wr-stat-row"><div class="wr-stat-dot" style="background:var(--default-300);color:var(--default-300)"></div><div class="wr-stat-info"><div class="wr-stat-name">Total Bets</div><div class="wr-stat-val">'+totalBets+'</div></div></div>'+
+      '</div>'+
+    '</div>';
+
+  // ── House Profit Chart (cumulative) ──
+  var pd=[],cm=0;h.slice(0,30).reverse().forEach(function(r){
+    var rIn=0,rOut=0,bets=r.bets;
+    if(bets){var arr=Array.isArray(bets)?bets:Object.keys(bets).map(function(k){return bets[k]});arr.forEach(function(b){if(b){rIn+=b.bet||0;rOut+=b.win||0}})}
+    else{rIn=r.totalBet||0}
+    cm+=rIn-rOut;pd.push(cm);
+  });
+  var pnlEl=document.getElementById('pnlSummary');
+  if(pnlEl&&pd.length){var finalPnl=pd[pd.length-1];pnlEl.innerHTML='<span style="color:'+(finalPnl>=0?'#17c964':'#f31260')+';font-size:13px">'+(finalPnl>=0?'+$':'−$')+Math.abs(finalPnl).toFixed(2)+'</span>'}
+  else if(pnlEl){pnlEl.innerHTML=''}
+  var pnlChEl=document.getElementById('pnlChart');
+  if(!pd.length){pnlChEl.innerHTML='<div class="empty-msg">No data</div>'}
+  else{
+  var pm=Math.max.apply(null,pd.map(function(v){return Math.abs(v)}))||1;
+  var sw=pnlChEl.offsetWidth||300,sh=110;
+  var pPadL=8,pPadR=8,pPadT=12,pPadB=4;
+  var pcw=sw-pPadL-pPadR,pch=sh-pPadT-pPadB;
+  var zeroY=pPadT+pch/2;
+  // Build points
+  var ppts=pd.map(function(v,i){
+    var x=pPadL+(pd.length>1?i*(pcw/(pd.length-1)):pcw/2);
+    var y=zeroY-(v/pm)*(pch/2);
+    return{x:x,y:y,v:v};
+  });
+  // Smooth path
+  var pLine=_smoothPath(ppts);
+  // Split fill: positive area (above zero) and negative area (below zero)
+  var posArea=pLine+' L'+ppts[ppts.length-1].x+','+zeroY+' L'+ppts[0].x+','+zeroY+' Z';
+  // SVG
+  var ps='<svg class="pnl-svg" viewBox="0 0 '+sw+' '+sh+'">';
+  ps+='<defs>';
+  ps+='<linearGradient id="pnlGradPos" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#17c964" stop-opacity=".4"/><stop offset="100%" stop-color="#17c964" stop-opacity="0"/></linearGradient>';
+  ps+='<linearGradient id="pnlGradNeg" x1="0" y1="1" x2="0" y2="0"><stop offset="0%" stop-color="#f31260" stop-opacity=".4"/><stop offset="100%" stop-color="#f31260" stop-opacity="0"/></linearGradient>';
+  ps+='<clipPath id="clipPos"><rect x="0" y="0" width="'+sw+'" height="'+zeroY+'"/></clipPath>';
+  ps+='<clipPath id="clipNeg"><rect x="0" y="'+zeroY+'" width="'+sw+'" height="'+(sh-zeroY)+'"/></clipPath>';
+  ps+='</defs>';
+  // Zero line
+  ps+='<line x1="'+pPadL+'" y1="'+zeroY+'" x2="'+(pPadL+pcw)+'" y2="'+zeroY+'" stroke="rgba(255,255,255,.1)" stroke-dasharray="4 4"/>';
+  // Fills clipped to pos/neg
+  ps+='<path d="'+posArea+'" fill="url(#pnlGradPos)" clip-path="url(#clipPos)"/>';
+  ps+='<path d="'+posArea+'" fill="url(#pnlGradNeg)" clip-path="url(#clipNeg)"/>';
+  // Line
+  var lastV=pd[pd.length-1];
+  var lineCol=lastV>=0?'#17c964':'#f31260';
+  ps+='<path class="pnl-line" d="'+pLine+'" stroke="'+lineCol+'" filter="drop-shadow(0 0 3px '+lineCol+'44)"/>';
+  // Dots
+  ppts.forEach(function(p,i){
+    var dc=p.v>=0?'#17c964':'#f31260';
+    ps+='<circle class="pnl-dot" cx="'+p.x+'" cy="'+p.y+'" r="3" fill="'+dc+'" stroke="#18181b" stroke-width="1.2" data-pi="'+i+'"/>';
+  });
+  // $0 label
+  ps+='<text x="'+(pPadL-2)+'" y="'+(zeroY+3.5)+'" fill="rgba(255,255,255,.25)" font-size="8" text-anchor="end" font-weight="600">$0</text>';
+  ps+='</svg>';
+  // Tooltip
+  ps+='<div class="area-tooltip" id="pnlTT"></div>';
+  pnlChEl.innerHTML='<div class="pnl-svg-wrap">'+ps+'</div><div class="pnl-axis"><span>Round '+(Math.max(1,h.length-29))+'</span><span>'+pd.length+' rounds</span><span>Round '+h.length+'</span></div>';
+  // Hover
+  var ptt=document.getElementById('pnlTT');
+  pnlChEl.querySelectorAll('.pnl-dot').forEach(function(dot){
+    dot.addEventListener('mouseenter',function(){
+      var i=parseInt(dot.getAttribute('data-pi'));
+      var p=ppts[i];if(!p)return;
+      var c=p.v>=0?'#17c964':'#f31260';
+      ptt.innerHTML='<div class="tt-val" style="color:'+c+'">'+(p.v>=0?'+$':'−$')+Math.abs(p.v).toFixed(2)+'</div>';
+      ptt.style.left=p.x+'px';ptt.style.top=(p.y-10)+'px';
+      ptt.classList.add('show');
+    });
+    dot.addEventListener('mouseleave',function(){ptt.classList.remove('show')});
+  });
+  }
+}
+
+// ── Round History State ──
+var _rhFilter='all';
+var _rhAllRounds=[];
+var _rhDisplayed=[];
+var _rhPage=16;
+var _rhCurrentPage=1;
+var _rhSortKey='';
+var _rhSortDir='desc';
+
+function setRhFilter(f){
+  _rhFilter=f;
+  document.querySelectorAll('#rhFilters .tf-btn').forEach(function(b){b.classList.remove('active')});
+  var btn=document.querySelector('.tf-btn[data-rhf="'+f+'"]');
+  if(btn)btn.classList.add('active');
+  loadRoundHistory();
+}
+
+function loadRoundHistory(){
+  if(typeof FB!=='undefined'&&FB.isOnline()){
+    FB.loadRounds().then(function(fbRounds){
+      var rounds=fbRounds.length?fbRounds:(_ls('history')||[]);
+      _rhAllRounds=_filterByTime(rounds,_rhFilter);
+      _rhProcessAndRender();
+    });
+  }else{
+    _rhAllRounds=_filterByTime(_ls('history')||[],_rhFilter);
+    _rhProcessAndRender();
+  }
+}
+
+function _rhProcessAndRender(){
+  // Enrich each round with computed fields
+  _rhAllRounds.forEach(function(r){
+    if(r._enriched)return;
+    r._enriched=true;
+    var totalIn=0,totalOut=0,betArr=[];
+    var bets=r.bets;
+    if(bets){
+      var arr=Array.isArray(bets)?bets:Object.keys(bets).map(function(k){return bets[k]});
+      arr.forEach(function(b){if(b){totalIn+=b.bet||0;totalOut+=b.win||0;betArr.push(b)}});
+    }else{totalIn=r.totalBet||0}
+    r._totalIn=totalIn;r._totalOut=totalOut;r._profit=totalIn-totalOut;r._betArr=betArr;
+    r._rv=(typeof r.v==='number'&&isFinite(r.v))?r.v:0;
+    r._players=parseInt(r.players)||0;
+    r._ts=r.ts||(r.time?new Date(r.time).getTime():0);
+  });
+
+  // Apply search filter
+  var sq=document.getElementById('rhSearchInput');
+  var query=sq?sq.value.trim():'';
+  if(query){
+    _rhDisplayed=_rhAllRounds.filter(function(r){return String(r.round).indexOf(query)!==-1});
+  }else{
+    _rhDisplayed=_rhAllRounds.slice();
+  }
+
+  // Apply sort
+  if(_rhSortKey){
+    var dir=_rhSortDir==='asc'?1:-1;
+    _rhDisplayed.sort(function(a,b){
+      var va,vb;
+      if(_rhSortKey==='round'){va=a.round||0;vb=b.round||0}
+      else if(_rhSortKey==='crash'){va=a._rv;vb=b._rv}
+      else if(_rhSortKey==='players'){va=a._players;vb=b._players}
+      else if(_rhSortKey==='bet'){va=a._totalIn;vb=b._totalIn}
+      else if(_rhSortKey==='pnl'){va=a._profit;vb=b._profit}
+      else if(_rhSortKey==='time'){va=a._ts;vb=b._ts}
+      else{va=0;vb=0}
+      return va<vb?-dir:va>vb?dir:0;
+    });
+  }
+
+  _rhCurrentPage=1;
+  _renderRhStats();
+  _renderRhTable();
+}
+
+function _renderRhStats(){
+  var h=_rhDisplayed;
+  var el=document.getElementById('rhStats');if(!el)return;
+  if(!h.length){el.innerHTML='';return}
+  var totalIn=0,totalOut=0,sumV=0,maxV=0,minV=Infinity;
+  h.forEach(function(r){totalIn+=r._totalIn;totalOut+=r._totalOut;sumV+=r._rv;if(r._rv>maxV)maxV=r._rv;if(r._rv<minV)minV=r._rv});
+  var profit=totalIn-totalOut;
+  var avg=h.length?sumV/h.length:0;
+  el.innerHTML=
+    '<div class="rh-stat"><div class="rh-stat-val cyan">'+h.length+'</div><div class="rh-stat-name">Rounds</div></div>'+
+    '<div class="rh-stat"><div class="rh-stat-val">$'+totalIn.toFixed(2)+'</div><div class="rh-stat-name">Total Wagered</div></div>'+
+    '<div class="rh-stat"><div class="rh-stat-val '+(profit>=0?'green':'red')+'">$'+profit.toFixed(2)+'</div><div class="rh-stat-name">House Profit</div></div>'+
+    '<div class="rh-stat"><div class="rh-stat-val cyan">'+avg.toFixed(2)+'x</div><div class="rh-stat-name">Avg Crash</div></div>'+
+    '<div class="rh-stat"><div class="rh-stat-val green">'+maxV.toFixed(2)+'x</div><div class="rh-stat-name">Highest</div></div>'+
+    '<div class="rh-stat"><div class="rh-stat-val red">'+(minV===Infinity?'—':minV.toFixed(2)+'x')+'</div><div class="rh-stat-name">Lowest</div></div>';
+}
+
+function _renderRhTable(){
+  var bd=document.getElementById('roundHistBody'),wr=document.getElementById('roundHistWrap'),em=document.getElementById('roundEmpty');
+  var pgEl=document.getElementById('rhPagination'),shEl=document.getElementById('rhShowing');
+  var _rcl=document.getElementById('roundCountLabel');
+  if(_rcl)_rcl.textContent=_rhDisplayed.length+' rounds';
+  if(!bd||!wr||!em)return;
+  if(!_rhDisplayed.length){bd.innerHTML='';wr.style.display='none';em.style.display='block';if(pgEl)pgEl.innerHTML='';if(shEl)shEl.textContent='';document.getElementById('rhStats').innerHTML='';return}
+  wr.style.display='block';em.style.display='none';
+
+  var totalPages=Math.ceil(_rhDisplayed.length/_rhPage);
+  if(_rhCurrentPage>totalPages)_rhCurrentPage=totalPages;
+  var start=(_rhCurrentPage-1)*_rhPage;
+  var end=Math.min(start+_rhPage,_rhDisplayed.length);
+  var slice=_rhDisplayed.slice(start,end);
+
+  var o='';
+  slice.forEach(function(r,i){
+    var idx=start+i;
+    var c=r._rv>=5?'badge-success':r._rv>=1.5?'badge-warning':'badge-danger';
+    var rs=r._profit>=0?'+$'+r._profit.toFixed(2):'-$'+Math.abs(r._profit).toFixed(2);
+    var rc=r._profit>0?'pnl-pos':r._profit<0?'pnl-neg':'pnl-zero';
+    var relTime=_relativeTime(r._ts);
+    var fullTime=_esc(r.time||new Date(r._ts).toLocaleString());
+    o+='<tr class="rh-row" data-ri="'+idx+'" onclick="_rhToggleRow('+idx+')">';
+    o+='<td><span class="rh-expand-icon">&#9654;</span></td>';
+    o+='<td>#'+_esc(r.round)+'</td>';
+    o+='<td><span class="badge '+c+'">'+r._rv.toFixed(2)+'x</span></td>';
+    o+='<td>'+r._players+'</td>';
+    o+='<td>$'+r._totalIn.toFixed(2)+'</td>';
+    o+='<td class="'+rc+'">'+rs+'</td>';
+    o+='<td style="color:var(--foreground-400);font-size:12px" title="'+fullTime+'">'+relTime+'</td>';
+    o+='</tr>';
+    o+='<tr class="rh-detail" id="rhDetail'+idx+'"><td colspan="7">';
+    if(r._betArr.length){
+      o+='<div class="rh-bets-wrap">';
+      r._betArr.forEach(function(b){
+        o+='<div class="rh-bet-row">';
+        o+='<span class="rh-bet-uid">'+(b.uid?_esc(b.uid.substring(0,8))+'...':'Anon')+'</span>';
+        o+='<span class="rh-bet-amount">Bet $'+(b.bet||0).toFixed(2)+'</span>';
+        if(b.win>0){o+='<span class="rh-bet-cash" style="color:var(--success)">Won $'+b.win.toFixed(2)+' @ '+(b.cashMult||0).toFixed(2)+'x</span>'}
+        else{o+='<span class="rh-bet-cash" style="color:var(--danger)">Lost</span>'}
+        o+='</div>';
+      });
+      o+='</div>';
+    }else{o+='<div class="rh-no-bets">No bet details available for this round</div>'}
+    o+='</td></tr>';
+  });
+  bd.innerHTML=o;
+
+  // Pagination
+  if(pgEl){
+    if(totalPages<=1){pgEl.innerHTML=''}
+    else{
+      var pg='';
+      pg+='<button class="rh-pg-btn" onclick="_rhGoPage('+(_rhCurrentPage-1)+')"'+(  _rhCurrentPage<=1?' disabled':'')+'>&#9664;</button>';
+      var pages=_paginationRange(_rhCurrentPage,totalPages);
+      pages.forEach(function(p){
+        if(p==='...'){pg+='<span class="rh-pg-dots">...</span>'}
+        else{pg+='<button class="rh-pg-btn'+(p===_rhCurrentPage?' active':'')+'" onclick="_rhGoPage('+p+')">'+p+'</button>'}
+      });
+      pg+='<button class="rh-pg-btn" onclick="_rhGoPage('+(_rhCurrentPage+1)+')"'+(_rhCurrentPage>=totalPages?' disabled':'')+'>&#9654;</button>';
+      pgEl.innerHTML=pg;
+    }
+  }
+  if(shEl)shEl.textContent='Showing '+(start+1)+'–'+end+' of '+_rhDisplayed.length+' rounds';
+}
+
+function _paginationRange(current,total){
+  if(total<=7)return Array.from({length:total},function(_,i){return i+1});
+  var pages=[];
+  pages.push(1);
+  if(current>3)pages.push('...');
+  var s=Math.max(2,current-1),e=Math.min(total-1,current+1);
+  for(var i=s;i<=e;i++)pages.push(i);
+  if(current<total-2)pages.push('...');
+  pages.push(total);
+  return pages;
+}
+
+function _rhGoPage(p){
+  var totalPages=Math.ceil(_rhDisplayed.length/_rhPage);
+  if(p<1||p>totalPages)return;
+  _rhCurrentPage=p;
+  _renderRhTable();
+  var wr=document.getElementById('roundHistWrap');
+  if(wr)wr.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function _rhToggleRow(idx){
+  var row=document.querySelector('tr.rh-row[data-ri="'+idx+'"]');
+  var detail=document.getElementById('rhDetail'+idx);
+  if(!row||!detail)return;
+  var isOpen=row.classList.contains('expanded');
+  row.classList.toggle('expanded',!isOpen);
+  detail.classList.toggle('show',!isOpen);
+}
+
+function _rhSearch(){
+  _rhProcessAndRender();
+}
+
+function _rhSort(key){
+  // Update header styles
+  document.querySelectorAll('th.sortable').forEach(function(th){th.classList.remove('sort-asc','sort-desc')});
+  if(_rhSortKey===key){_rhSortDir=_rhSortDir==='desc'?'asc':'desc'}
+  else{_rhSortKey=key;_rhSortDir='desc'}
+  var th=document.querySelector('th[data-sort="'+key+'"]');
+  if(th)th.classList.add('sort-'+_rhSortDir);
+  _rhProcessAndRender();
+}
+
+function _relativeTime(ts){
+  if(!ts)return'—';
+  var diff=Date.now()-ts;
+  if(diff<0)return'just now';
+  if(diff<60000)return Math.floor(diff/1000)+'s ago';
+  if(diff<3600000)return Math.floor(diff/60000)+'m ago';
+  if(diff<86400000)return Math.floor(diff/3600000)+'h ago';
+  if(diff<604800000)return Math.floor(diff/86400000)+'d ago';
+  return new Date(ts).toLocaleDateString();
+}
+
+function exportCSV(){
+  if(!_rhDisplayed.length){toast('No data to export');return}
+  var rows=['Round,Crash,Players,Total Bet,House P/L,Time'];
+  _rhDisplayed.forEach(function(r){
+    rows.push([r.round,r._rv.toFixed(2),r._players,r._totalIn.toFixed(2),r._profit.toFixed(2),'"'+(r.time||new Date(r._ts).toLocaleString())+'"'].join(','));
+  });
+  var blob=new Blob([rows.join('\n')],{type:'text/csv'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;a.download='skydrop_rounds_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('CSV exported');
+}
+
+window.addEventListener('storage',function(e){
+  if(!e.key||!e.key.startsWith('skydrop_'))return;
+  var a=document.querySelector('.tab-panel.active');if(!a)return;
+  if(a.id==='tab-dashboard')loadDashboard();
+  else if(a.id==='tab-rounds')loadRoundHistory();
+});
+
+// Load config: Firebase first, localStorage fallback
+function _initConfig(c){
+  if(!c)return;
+  setConfig(c);
+  var m=c.crashMode||'easy';
+  document.querySelectorAll('.preset-card').forEach(function(b){b.classList.remove('active')});
+  var b=document.getElementById('pre'+m.charAt(0).toUpperCase()+m.slice(1));if(b)b.classList.add('active');
+  _savedSnapshot=_takeSnapshot();
+  _checkDirty();
+}
+// First load from localStorage (instant)
+(function(){
+  var s=localStorage.getItem('skydrop_admin_config');
+  if(s){try{_initConfig(JSON.parse(s))}catch(e){}}
+  _initDirtyTracking();
+})();
+
+// ─── LOGIN SYSTEM ───
+var ADMIN_PASS_HASH='c1b68308fe07ac9b1f850cc23e2b6b9845b9d29b78a6c4160b63fa2a75bc9c06';
+
+// SHA-256 hash using Web Crypto API
+function sha256(str){
+  var buf=new TextEncoder().encode(str);
+  return crypto.subtle.digest('SHA-256',buf).then(function(hash){
+    return Array.from(new Uint8Array(hash)).map(function(b){return b.toString(16).padStart(2,'0')}).join('');
+  });
+}
+
+function togglePassVis(){
+  var inp=document.getElementById('loginPass');
+  var tog=document.getElementById('loginToggle');
+  if(inp.type==='password'){inp.type='text';tog.innerHTML='&#128064;'}
+  else{inp.type='password';tog.innerHTML='&#128065;'}
+}
+
+function handleLogin(e){
+  e.preventDefault();
+  var pass=document.getElementById('loginPass').value;
+  var btn=document.getElementById('loginBtn');
+  var errEl=document.getElementById('loginError');
+  var inp=document.getElementById('loginPass');
+  if(!pass){errEl.textContent='Please enter a password';inp.classList.add('error');setTimeout(function(){inp.classList.remove('error')},500);return}
+  btn.disabled=true;btn.innerHTML='<span class="login-spinner"></span>Checking...';errEl.textContent='';
+
+  sha256(pass).then(function(hash){
+    // Check against Firebase-stored hash first, fallback to hardcoded
+    FB.getAdminPassHash().then(function(storedHash){
+      var correctHash=storedHash||ADMIN_PASS_HASH;
+      if(hash===correctHash){
+        // Correct password — register as admin
+        if(!storedHash){FB.setAdminPassHash(ADMIN_PASS_HASH)} // store hash in Firebase on first login
+        FB.makeAdmin().then(function(){
+          _onAdminGranted();
+        }).catch(function(){
+          errEl.textContent='Failed to register admin. Try again.';btn.disabled=false;btn.textContent='Log In';
+        });
+      }else{
+        errEl.textContent='Wrong password';inp.classList.add('error');inp.value='';inp.focus();
+        setTimeout(function(){inp.classList.remove('error')},500);
+        btn.disabled=false;btn.textContent='Log In';
+      }
+    }).catch(function(){
+      // Firebase read failed — try hardcoded hash
+      if(hash===ADMIN_PASS_HASH){
+        FB.makeAdmin().then(function(){_onAdminGranted()}).catch(function(){
+          errEl.textContent='Failed to register admin.';btn.disabled=false;btn.textContent='Log In';
+        });
+      }else{
+        errEl.textContent='Wrong password';inp.classList.add('error');inp.value='';inp.focus();
+        setTimeout(function(){inp.classList.remove('error')},500);
+        btn.disabled=false;btn.textContent='Log In';
+      }
+    });
+  });
+}
+
+function _onAdminGranted(){
+  // Hide login, show panel
+  var overlay=document.getElementById('loginOverlay');
+  overlay.classList.add('hidden');
+  setTimeout(function(){overlay.style.display='none'},300);
+  document.getElementById('logoutBtn').style.display='';
+  var st=document.getElementById('fbStatus');
+  st.textContent='Logged in';st.style.display='block';st.style.background='#052814';st.style.color='#17c964';
+  setTimeout(function(){st.style.display='none'},2500);
+  // Load config + dashboard
+  FB.loadConfig().then(function(cfg){
+    if(cfg){_initConfig(cfg);localStorage.setItem('skydrop_admin_config',JSON.stringify(cfg))}
+  });
+  loadDashboard();
+  FB.onNewRound(function(){
+    var a=document.querySelector('.tab-panel.active');
+    if(a&&a.id==='tab-dashboard')loadDashboard();
+    else if(a&&a.id==='tab-rounds')loadRoundHistory();
+  });
+}
+
+function handleLogout(){
+  FB.revokeAdmin();
+  document.getElementById('logoutBtn').style.display='none';
+  var overlay=document.getElementById('loginOverlay');
+  overlay.style.display='';overlay.classList.remove('hidden');
+  document.getElementById('loginPass').value='';
+  document.getElementById('loginError').textContent='';
+  document.getElementById('loginBtn').disabled=false;document.getElementById('loginBtn').textContent='Log In';
+  var st=document.getElementById('fbStatus');
+  st.textContent='Logged out';st.style.display='block';st.style.background='#312107';st.style.color='#f5a524';
+  setTimeout(function(){st.style.display='none'},2500);
+}
+
+// ─── INIT ───
+if(typeof FB!=='undefined'){
+  FB.onReady(function(online){
+    var st=document.getElementById('fbStatus');
+    if(online){
+      if(FB.isAdmin()){
+        // Already admin (UID in Firebase) — skip login
+        _onAdminGranted();
+      }
+      // else: login overlay stays visible, user must enter password
+    }else{
+      // Offline mode — hide login, use localStorage
+      document.getElementById('loginOverlay').style.display='none';
+      st.textContent='Offline Mode (localStorage)';st.style.display='block';st.style.background='#312107';st.style.color='#f5a524';
+      setTimeout(function(){st.style.display='none'},3000);
+      loadDashboard();
+    }
+  });
+}
+</script>
+</body>
+</html>
