@@ -392,19 +392,29 @@ function _drawOctagon(cx2, acx, acy, radius, close) {
 // ======================== MAIN RENDER ========================
 function render() {
   try {
+  if (!cv || !cx) return;
   var W = cv.width, H = cv.height;
+  if (!W || !H) return;
+  cx.clearRect(0, 0, W, H);
   cx.save();
 
   // Camera shake
-  if (G.camera.shake > 0.1) {
-    cx.translate((Math.random() - 0.5) * G.camera.shake, (Math.random() - 0.5) * G.camera.shake);
+  var cam = G.camera || {};
+  if ((cam.shake || 0) > 0.1) {
+    cx.translate((Math.random() - 0.5) * cam.shake, (Math.random() - 0.5) * cam.shake);
   }
-  if (G.camera.zoom !== 1) {
-    var z = G.camera.zoom;
-    cx.translate(G.camera.zoomX, G.camera.zoomY);
+  var z = cam.zoom || 1;
+  if (z !== 1) {
+    var zx = cam.zoomX || W * 0.5, zy = cam.zoomY || H * 0.45;
+    cx.translate(zx, zy);
     cx.scale(z, z);
-    cx.translate(-G.camera.zoomX, -G.camera.zoomY);
+    cx.translate(-zx, -zy);
   }
+
+  // Safety init — ensure fighters and crowd exist
+  if (!G.f1 || !G.f2) { try { initFighterState(); } catch(e2) {} }
+  if (!G.crowd || G.crowd.length === 0) { try { initCrowd(); } catch(e3) {} }
+  if (!G.stars || G.stars.length === 0) { G.stars = []; for (var _si = 0; _si < 50; _si++) G.stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()+0.3,ph:Math.random()*6.28,sp:0.005+Math.random()*0.005}); }
 
   // Update tension
   G.tension = getTension(G.mult || 1);
