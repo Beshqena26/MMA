@@ -95,18 +95,21 @@ function updateFighters(){
   }
   else if(G.phase==='FREEFALL'){
     G.fightStarted=true;
+
+    // ── OPPONENT'S FISTS hit YOU (the fighter on screen) ──
+    // Opponent punches = fists animate, YOU get hit, bonus +X popup
     if(!fists._stanceTimer)fists._stanceTimer=0;
     fists._stanceTimer-=dt;
-    var pi=Math.max(0.8,2.2-t*0.9); // your punches — slower
+    var oppPI=Math.max(0.4,1.4-t*0.7); // opponent hits often
     if(fists._stanceTimer<=0&&fists.punchPhase==='idle'){
-      if(Math.random()<0.7){
+      if(Math.random()<Math.max(0.5,0.75-t*0.15)){
         fists.punchPhase='windup';fists.punchTimer=0.06;fists.punchWindup=0;
         fists.combo=Math.min(6,fists.combo+1);
         fists.punchArm=fists.combo%2===0?1:-1;
-        fists._stanceTimer=pi*(0.5+Math.random()*0.6);
-        var _hitArm=fists.punchArm; // capture before setTimeout
+        fists._stanceTimer=oppPI*(0.5+Math.random()*0.6);
+        var _hitArm=fists.punchArm;
         setTimeout(function(){
-          // Left fist (-1) = face hit, Right fist (1) = body hit
+          // Opponent hits YOU — face or body
           opp.hitPose=_hitArm===-1?'face':'body';
           opp.hitPoseTimer=0.25;
           opp.hitFlash=0.35;opp.recoilTimer=0.25;
@@ -120,35 +123,33 @@ function updateFighters(){
           G.arenaShake=Math.max(G.arenaShake,1+t*3);
           G.crowdRoar=Math.min(1,G.crowdRoar+0.12);
           spawnParticles(W*0.5+opp.staggerX*3,H*0.35,t>0.5?'fire':'gold',Math.floor(2+t*6));
-          // Bonus multiplier popup
+          // Bonus multiplier popup — opponent scores
           var bonus=+(0.05+Math.random()*0.2+t*0.15).toFixed(2);
           G.bonusPopups.push({x:W*0.5+(Math.random()-0.5)*80,y:H*0.3,val:bonus,life:1.2});
         },100);
       }else{
-        fists._stanceTimer=pi*(0.7+Math.random());fists.combo=0;
+        fists._stanceTimer=oppPI*(0.5+Math.random());fists.combo=0;
       }
     }
     if(t>0.75)opp.health=Math.max(0,opp.health-dt*0.02*(t-0.5));
 
-    // ── Opponent attacks YOU back ──
+    // ── YOU (the fighter on screen) punch back ──
+    // Less frequent, you fight back but lose
     if(!opp._atkTimer)opp._atkTimer=0;
     opp._atkTimer-=dt;
-    var oppAtkInterval=Math.max(0.4,1.4-t*0.7); // opponent attacks more often
+    var myAtkInterval=Math.max(0.8,2.5-t*1.0); // you hit back rarely
     if(opp._atkTimer<=0&&fists.punchPhase==='idle'){
-      // Opponent sometimes hits you
-      if(Math.random()<Math.max(0.4,0.7-t*0.2)){
-        opp._atkTimer=oppAtkInterval*(1+Math.random()*0.8);
-        // Opponent attacks — show punch or kick image
+      if(Math.random()<Math.max(0.2,0.4-t*0.2)){
+        opp._atkTimer=myAtkInterval*(1+Math.random()*0.8);
+        // YOU attack — show punch or kick pose
         opp.atkPose=Math.random()<0.6?'punch':'kick';
         opp.atkPoseTimer=0.35;
         opp.hitPose='idle';opp.hitPoseTimer=0;
-        // You get hit — red flash + screen shake
-        G.playerHit.flash=0.4;
-        G.playerHit.shakeX=(Math.random()-0.5)*12;
-        G.playerHit.shakeY=(Math.random()-0.5)*6;
-        G.arenaShake=Math.max(G.arenaShake,2+t*2);
+        // Opponent gets hit (screen shakes a bit)
+        G.playerHit.flash=0.15;
+        G.arenaShake=Math.max(G.arenaShake,1);
       }else{
-        opp._atkTimer=oppAtkInterval*(0.5+Math.random()*0.5);
+        opp._atkTimer=myAtkInterval*(0.5+Math.random()*0.5);
       }
     }
   }
@@ -275,7 +276,7 @@ function render(){
     cx.strokeRect(bX,bY,bW,bH);
     // Label
     cx.fillStyle='rgba(255,255,255,0.7)';cx.font='bold 10px sans-serif';cx.textAlign='center';
-    cx.fillText('OPPONENT',W*0.5,bY-3);
+    cx.fillText('YOU',W*0.5,bY-3);
   }
 
   // ═══ L4: YOUR FISTS ═══
