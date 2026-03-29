@@ -284,7 +284,7 @@ function render(){
   // ═══ L4: OPPONENT'S FISTS (always visible) ═══
   {
     // Fixed fist size as % of screen
-    var fistW2=W<600?W*0.35:W<900?W*0.28:W*0.25;
+    var fistW2=W<600?W*0.455:W<900?W*0.364:W*0.325;
     var fistH2=fistW2*0.56; // aspect ratio ~1536/2752 ≈ 0.56
 
     var idleBobL=Math.sin(time*2)*(W<600?3:5);
