@@ -434,10 +434,7 @@ function render(){
       }
     }
 
-    // Red flash
-    if((G.koFlash||0)>0){
-      cx.globalAlpha=G.koFlash*0.4;cx.fillStyle='#ff0000';cx.fillRect(0,0,W,H);cx.globalAlpha=1;
-    }
+    // (red flash removed)
 
     // K.O. text
     if(koT>0.5){
