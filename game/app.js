@@ -761,6 +761,7 @@ function startBettingPhase(){
 function startExplodePhase(){
   G.phase='EXPLODE';G.phaseTimer=0;
   try{lockPanels(true);setSt('FIGHTERS READY','s2');setCine('3...','FIGHTERS READY');G.camera.zoomTarget=1.6}catch(e){}
+  try{$('roundBanner').style.display='none'}catch(e){}
 }
 
 function startFreefallPhase(){
@@ -848,8 +849,10 @@ function update(ts){
     if(G.phase==='BETTING'){
       G.phaseTimer-=G.dt;
       var pct=G.phaseTimer/BET_TIME;
+      var secsLeft=Math.max(0,G.phaseTimer).toFixed(2);
       try{$('timerBar').style.width=(pct*100)+'%';$('timerBar').classList.toggle('urgent',pct<.4)}catch(e){}
-      setSt('PLACE YOUR BETS — '+Math.ceil(Math.max(0,G.phaseTimer))+'s','s1');
+      try{var rb=$('roundBanner');if(rb){rb.style.display='';$('rbTitle').textContent='Next Round';$('rbBarFill').style.width=(pct*100)+'%';$('rbBarText').textContent='Starts in '+secsLeft+'s'}}catch(e){}
+      setSt('','s1'); // hide old text, use banner instead
       G.camera.zoomTarget=1;
       if(G.phaseTimer<=0)startExplodePhase();
     }
