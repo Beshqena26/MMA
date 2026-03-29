@@ -12,17 +12,13 @@ function _lerp(a,b,t){return a+(b-a)*t}
 // ── Image loader ──
 var IMG={};
 var _imgList=[
-  {key:'bg',src:'assets/arena-bg.png'},
+  {key:'bg',src:'assets/bg.png'},
   {key:'idle',src:'assets/Fighter-Idle.png'},
-  {key:'face',src:'assets/Fighter-face.png'},
-  {key:'body',src:'assets/Fighter-body.png'},
-  {key:'ko',src:'assets/Fighter-ko.png'},
-  {key:'fistL',src:'assets/Left.png'},
-  {key:'fistR',src:'assets/Right.png'},
-  {key:'oppPunch',src:'assets/Fighter-punch.png'},
-  {key:'oppKick',src:'assets/Fighter-kick.png'},
-  {key:'legL',src:'assets/leg-left.png'},
-  {key:'legR',src:'assets/leg-right.png'}
+  {key:'hook',src:'assets/Fighter-hook.png'},
+  {key:'kick',src:'assets/fighter-Kick.png'},
+  {key:'victory',src:'assets/fighter-Victory.png'},
+  {key:'fistL',src:'assets/hand-Left.png'},
+  {key:'fistR',src:'assets/hand-Right.png'}
 ];
 var _imgsLoaded=0;
 function _loadImages(){
@@ -207,14 +203,18 @@ function render(){
 
   // ═══ L2: OPPONENT ═══
   var isKO=G.phase==='CRASH';
+  var koT=G.koTimer||0;
   var hitPose=opp.hitPose||'idle';
   var atkPose=opp.atkPose||'idle';
   var oppImg;
-  if(isKO&&IMG.ko&&IMG.ko.complete){oppImg=IMG.ko}
-  else if(atkPose==='punch'&&IMG.oppPunch&&IMG.oppPunch.complete){oppImg=IMG.oppPunch}
-  else if(atkPose==='kick'&&IMG.oppKick&&IMG.oppKick.complete){oppImg=IMG.oppKick}
-  else if(hitPose==='face'&&IMG.face&&IMG.face.complete){oppImg=IMG.face}
-  else if(hitPose==='body'&&IMG.body&&IMG.body.complete){oppImg=IMG.body}
+  // KO: first show kick pose, then victory
+  if(isKO&&koT>1.0&&IMG.victory&&IMG.victory.complete){oppImg=IMG.victory}
+  else if(isKO&&IMG.kick&&IMG.kick.complete){oppImg=IMG.kick}
+  // My attack — hook pose (randomized usage)
+  else if(atkPose!=='idle'&&IMG.hook&&IMG.hook.complete){oppImg=IMG.hook}
+  // Getting hit — also show hook (fighting back)
+  else if(hitPose!=='idle'&&IMG.hook&&IMG.hook.complete){oppImg=IMG.hook}
+  // Default idle
   else{oppImg=IMG.idle&&IMG.idle.complete?IMG.idle:null}
   if(oppImg&&oppImg.naturalWidth){
     cx.save();
