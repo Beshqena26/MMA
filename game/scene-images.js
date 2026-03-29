@@ -287,11 +287,11 @@ function render(){
     var idleBobL=Math.sin(time*2)*(W<600?3:5);
     var idleBobR=Math.sin(time*2+1)*(W<600?3:5);
 
-    // Base positions — bottom corners, desktop: bottom -30px
-    var fistBottomOffset=30; // desktop: 30px below screen edge
-    var lBaseX=-fistW2*0.1;
+    // Base positions — centered toward fighter, bottom -30px
+    var fistBottomOffset=30;
+    var lBaseX=W*0.5-fistW2*1.1; // left fist near center-left
     var lBaseY=H-fistH2+fistBottomOffset+idleBobL;
-    var rBaseX=W-fistW2*0.9;
+    var rBaseX=W*0.5+fistW2*0.1; // right fist near center-right
     var rBaseY=H-fistH2+fistBottomOffset+idleBobR;
 
     // Punch animation offsets
