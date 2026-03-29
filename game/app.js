@@ -329,15 +329,15 @@ var SND={
   _playing:{},
   play:function(key,vol){
     if(!this.soundOn)return;
-    var s=this._sounds[key];if(!s)return;
-    try{var c=s.cloneNode();c.volume=vol||0.5;c.play();this._playing[key]=c}catch(e){}
+    var s=this._sounds[key];if(!s){console.warn('SND: no sound for key',key);return}
+    try{var c=s.cloneNode();c.volume=vol||0.5;var p=c.play();if(p&&p.catch)p.catch(function(){});this._playing[key]=c}catch(e){console.warn('SND play error:',e)}
   },
   stop:function(key){
     var c=this._playing[key];if(!c)return;
     try{c.pause();c.currentTime=0}catch(e){}
     this._playing[key]=null;
   },
-  stopAll:function(){for(var k in this._playing){this.stop(k)}},
+  stopAll:function(){for(var k in this._playing){if(this._playing[k])this.stop(k)}},
   startBG:function(){
     if(!this.musicOn||this._bgPlaying||!this._bgMusic)return;
     try{this._bgMusic.play();this._bgPlaying=true}catch(e){}
@@ -760,8 +760,8 @@ function showPanel2(){
 // ======================== PHASE FUNCTIONS ========================
 var _lastBettingRound=0;
 function startBettingPhase(){
-  // Stop all sounds from previous round
-  if(typeof SND!=='undefined')SND.stopAll();
+  // Stop victory sound from previous round
+  if(typeof SND!=='undefined')SND.stop('victory');
   G.phase='BETTING';
   G.phaseTimer=BET_TIME;
   // When SYNC is active, use Firebase round number directly to prevent double-increment
