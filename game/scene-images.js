@@ -225,7 +225,7 @@ function render(){
     var oppW=oppImg.naturalWidth*oppScale;
     var oppH=oppImg.naturalHeight*oppScale;
     var oppX=W*0.5-oppW/2+(opp.staggerX||0)+(opp.shakeX||0);
-    var oppY=H*0.08+(opp.staggerY||0)+(opp.shakeY||0)+Math.sin(opp.breathCycle||0)*2;
+    var oppY=H-oppH+(opp.staggerY||0)+(opp.shakeY||0)+Math.sin(opp.breathCycle||0)*2;
 
     // Lean from hits
     if(opp.leanAngle){
@@ -278,10 +278,8 @@ function render(){
     cx.fillText('YOU',W*0.5,bY-3);
   }
 
-  // ═══ L4: OPPONENT'S FISTS ═══
-  var koFade=G._koFistFade||0;
-  if(G.phase!=='CRASH'||koFade<1){
-    if(koFade>0)cx.globalAlpha=1-koFade;
+  // ═══ L4: OPPONENT'S FISTS (always visible) ═══
+  {
     // Size fists as % of screen, not % of image
     var fistTargetW=W<600?W*0.35:W<900?W*0.28:W*0.25;
     var fistNatW=IMG.fistL?IMG.fistL.naturalWidth:2752;
