@@ -222,6 +222,47 @@ canvas{position:fixed;top:0;left:0;z-index:1}
 .mobile-chat-panel{width:100%;height:75vh;height:75dvh;background:var(--panel);border-radius:14px 14px 0 0;display:flex;flex-direction:column;overflow:hidden;animation:chatSlideUp .3s ease}
 @keyframes chatSlideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 .mobile-chat-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;font-family:'Oxanium',sans-serif;font-size:13px;font-weight:700;color:var(--txt);letter-spacing:2px;border-bottom:1px solid var(--border);flex-shrink:0}
+/* ── Mobile (< 600px) ── */
+@media(max-width:599px){
+  .hd{padding:6px 8px}
+  .logo{font-size:14px}
+  .bval{font-size:13px}
+  .ibtn{width:28px;height:28px;font-size:13px}
+  .bbox{padding:3px 7px;gap:3px}
+  .hs{padding:3px 8px;gap:3px}
+  .hc{font-size:10px;padding:2px 6px}
+  .round-banner{width:240px;top:8%}
+  .rb-title{font-size:15px;margin-bottom:6px}
+  .rb-bar-wrap{height:30px;border-radius:15px}
+  .rb-bar-fill{top:2px;left:2px;bottom:2px;border-radius:13px}
+  .rb-bar-text{font-size:11px}
+  .cine .c1{font-size:42px}
+  .cine .c2{font-size:10px;letter-spacing:2px}
+  .bp{padding:4px;gap:3px}
+  .bet-panel{border-radius:8px}
+  .bp-body{padding:4px;gap:4px}
+  .bp-amt{font-size:14px}
+  .bp-btn{width:32px;height:32px;font-size:15px}
+  .bp-q{font-size:10px;padding:3px 0}
+  .bp-betbtn{min-height:44px;border-radius:6px}
+  .bp-betbtn .bb-label{font-size:12px}
+  .bp-betbtn .bb-amount{font-size:10px}
+  .bp-auto-row{padding:3px 6px;font-size:9px;gap:4px}
+  .bm .bt{font-size:11px}.bm .bb{font-size:36px}
+  #panel2{display:none!important}
+  .bp-add-btn{display:none}
+}
+
+/* ── Tablet (600-899px) ── */
+@media(min-width:600px) and (max-width:899px){
+  .round-banner{width:270px}
+  .rb-title{font-size:17px}
+  .cine .c1{font-size:56px}
+  .bp{gap:4px}
+  .bet-panel{max-width:340px}
+}
+
+/* ── Desktop (900px+) ── */
 @media(min-width:900px){
   .mobile-sb{display:none}
   .hd{padding:10px 20px}.logo{font-size:22px}.bval{font-size:16px}.ibtn{width:36px;height:36px;font-size:16px}

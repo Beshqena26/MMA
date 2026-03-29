@@ -218,7 +218,10 @@ function render(){
   else{oppImg=IMG.idle&&IMG.idle.complete?IMG.idle:null}
   if(oppImg&&oppImg.naturalWidth){
     cx.save();
-    var oppScale=Math.min(W*0.5/oppImg.naturalWidth,H*0.75/oppImg.naturalHeight);
+    var isMob=W<600,isTab=W>=600&&W<900;
+    var oppMaxW=isMob?0.6:isTab?0.5:0.45;
+    var oppMaxH=isMob?0.65:isTab?0.7:0.75;
+    var oppScale=Math.min(W*oppMaxW/oppImg.naturalWidth,H*oppMaxH/oppImg.naturalHeight);
     var oppW=oppImg.naturalWidth*oppScale;
     var oppH=oppImg.naturalHeight*oppScale;
     var oppX=W*0.5-oppW/2+(opp.staggerX||0)+(opp.shakeX||0);
@@ -250,7 +253,7 @@ function render(){
 
   // ═══ L3: HEALTH BAR ═══
   if(G.phase!=='BETTING'&&G.phase!=='WAITING'&&G.phase!=='INIT'){
-    var bW=Math.min(300,W*0.35),bH=12,bY=H*0.04;
+    var bW=W<600?Math.min(200,W*0.55):Math.min(300,W*0.35),bH=W<600?10:12,bY=H*(W<600?0.03:0.04);
     var bX=W*0.5-bW/2;
     // Background
     cx.fillStyle='rgba(0,0,0,0.5)';
@@ -279,20 +282,21 @@ function render(){
   var koFade=G._koFistFade||0;
   if(G.phase!=='CRASH'||koFade<1){
     if(koFade>0)cx.globalAlpha=1-koFade;
-    var fistScale=Math.min(W/2752,H/1536)*0.88;
+    var fistMult=W<600?0.65:W<900?0.78:0.88;
+    var fistScale=Math.min(W/2752,H/1536)*fistMult;
     var fistLW=(IMG.fistL?IMG.fistL.naturalWidth:600)*fistScale;
     var fistLH=(IMG.fistL?IMG.fistL.naturalHeight:400)*fistScale;
     var fistRW=(IMG.fistR?IMG.fistR.naturalWidth:600)*fistScale;
     var fistRH=(IMG.fistR?IMG.fistR.naturalHeight:400)*fistScale;
 
-    var idleBobL=Math.sin(time*2)*5;
-    var idleBobR=Math.sin(time*2+1)*5;
+    var idleBobL=Math.sin(time*2)*(W<600?3:5);
+    var idleBobR=Math.sin(time*2+1)*(W<600?3:5);
 
-    // Base positions (bottom corners)
-    var lBaseX=-fistLW*0.15;
-    var lBaseY=H-fistLH*0.65+idleBobL;
-    var rBaseX=W-fistRW*0.85;
-    var rBaseY=H-fistRH*0.65+idleBobR;
+    // Base positions (bottom corners) — responsive
+    var lBaseX=W<600?-fistLW*0.25:-fistLW*0.15;
+    var lBaseY=H-fistLH*(W<600?0.55:0.65)+idleBobL;
+    var rBaseX=W<600?W-fistRW*0.75:W-fistRW*0.85;
+    var rBaseY=H-fistRH*(W<600?0.55:0.65)+idleBobR;
 
     // Punch animation offsets
     var lOffX=0,lOffY=0,rOffX=0,rOffY=0;
