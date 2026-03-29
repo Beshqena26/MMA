@@ -14,6 +14,8 @@ var IMG={};
 var _imgList=[
   {key:'bg',src:'assets/arena-bg.png'},
   {key:'idle',src:'assets/Fighter-Idle.png'},
+  {key:'face',src:'assets/Fighter-face.png'},
+  {key:'body',src:'assets/Fighter-body.png'},
   {key:'ko',src:'assets/Fighter-ko.png'},
   {key:'fistL',src:'assets/Left.png'},
   {key:'fistR',src:'assets/Right.png'}
@@ -32,7 +34,7 @@ _loadImages();
 
 // ── State ──
 function initFighterState(){
-  G.opp={health:1,hitFlash:0,staggerX:0,staggerY:0,recoilTimer:0,leanAngle:0,breathCycle:0,blinkTimer:3,blinkAmount:0,flinchTimer:0,shakeX:0,shakeY:0};
+  G.opp={health:1,hitFlash:0,staggerX:0,staggerY:0,recoilTimer:0,leanAngle:0,breathCycle:0,blinkTimer:3,blinkAmount:0,flinchTimer:0,shakeX:0,shakeY:0,hitPose:'idle',hitPoseTimer:0};
   G.myFists={punchArm:0,punchPhase:'idle',punchTimer:0,punchWindup:0,combo:0,_stanceTimer:0};
   G.koKick={active:false,timer:0};
   G.tension=0;G.koTimer=0;G.koFlash=0;G.bellRing=0;G.arenaShake=0;G.crowdRoar=0;G.crowdRoarSmooth=0;G.fightStarted=false;
@@ -58,6 +60,8 @@ function updateFighters(){
   opp.leanAngle=_lerp(opp.leanAngle,0,dt*4);
   opp.flinchTimer=Math.max(0,(opp.flinchTimer||0)-dt*3);
   opp.shakeX=_lerp(opp.shakeX||0,0,dt*10);
+  // Hit pose timer — shows face/body hit image then returns to idle
+  if(opp.hitPoseTimer>0){opp.hitPoseTimer-=dt;if(opp.hitPoseTimer<=0)opp.hitPose='idle'}
   opp.shakeY=_lerp(opp.shakeY||0,0,dt*10);
 
   // Punch phases
@@ -92,7 +96,11 @@ function updateFighters(){
         fists.combo=Math.min(6,fists.combo+1);
         fists.punchArm=fists.combo%2===0?1:-1;
         fists._stanceTimer=pi*(0.5+Math.random()*0.6);
+        var _hitArm=fists.punchArm; // capture before setTimeout
         setTimeout(function(){
+          // Left fist (-1) = face hit, Right fist (1) = body hit
+          opp.hitPose=_hitArm===-1?'face':'body';
+          opp.hitPoseTimer=0.25;
           opp.hitFlash=0.35;opp.recoilTimer=0.25;
           opp.staggerX=(Math.random()-0.5)*10;
           opp.staggerY=-2-Math.random()*3;
@@ -165,7 +173,12 @@ function render(){
 
   // ═══ L2: OPPONENT ═══
   var isKO=G.phase==='CRASH';
-  var oppImg=isKO&&IMG.ko&&IMG.ko.complete?IMG.ko:(IMG.idle&&IMG.idle.complete?IMG.idle:null);
+  var hitPose=opp.hitPose||'idle';
+  var oppImg;
+  if(isKO&&IMG.ko&&IMG.ko.complete){oppImg=IMG.ko}
+  else if(hitPose==='face'&&IMG.face&&IMG.face.complete){oppImg=IMG.face}
+  else if(hitPose==='body'&&IMG.body&&IMG.body.complete){oppImg=IMG.body}
+  else{oppImg=IMG.idle&&IMG.idle.complete?IMG.idle:null}
   if(oppImg&&oppImg.naturalWidth){
     cx.save();
     var oppScale=Math.min(W*0.5/oppImg.naturalWidth,H*0.75/oppImg.naturalHeight);
