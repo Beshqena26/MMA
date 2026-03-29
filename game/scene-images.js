@@ -282,12 +282,15 @@ function render(){
   var koFade=G._koFistFade||0;
   if(G.phase!=='CRASH'||koFade<1){
     if(koFade>0)cx.globalAlpha=1-koFade;
-    var fistMult=W<600?0.65:W<900?0.78:0.88;
-    var fistScale=Math.min(W/2752,H/1536)*fistMult;
-    var fistLW=(IMG.fistL?IMG.fistL.naturalWidth:600)*fistScale;
-    var fistLH=(IMG.fistL?IMG.fistL.naturalHeight:400)*fistScale;
-    var fistRW=(IMG.fistR?IMG.fistR.naturalWidth:600)*fistScale;
-    var fistRH=(IMG.fistR?IMG.fistR.naturalHeight:400)*fistScale;
+    // Size fists as % of screen, not % of image
+    var fistTargetW=W<600?W*0.35:W<900?W*0.28:W*0.25;
+    var fistNatW=IMG.fistL?IMG.fistL.naturalWidth:2752;
+    var fistNatH=IMG.fistL?IMG.fistL.naturalHeight:1536;
+    var fistScale=fistTargetW/fistNatW;
+    var fistLW=fistNatW*fistScale;
+    var fistLH=fistNatH*fistScale;
+    var fistRW=(IMG.fistR?IMG.fistR.naturalWidth:fistNatW)*fistScale;
+    var fistRH=(IMG.fistR?IMG.fistR.naturalHeight:fistNatH)*fistScale;
 
     var idleBobL=Math.sin(time*2)*(W<600?3:5);
     var idleBobR=Math.sin(time*2+1)*(W<600?3:5);
