@@ -177,32 +177,36 @@ function genFighter(w,h,masked){
 function render(){
   try{
   if(!cv||!cx)return;var W=cv.width,H=cv.height;if(!W||!H)return;
-  SCENE.ready=true;
+  if(!SCENE.ready||SCENE._lastW!==W||SCENE._lastH!==H){SCENE.images.bg=genBG(W,H);SCENE.images.floor=genFloor(W,H);SCENE.images.cage=genCage(W,H);SCENE.images.crowdBack=genCrowd(W,H,2);SCENE.images.crowdMid=genCrowd(W,H,1);SCENE.images.crowdFront=genCrowd(W,H,0);SCENE.images.f1=genFighter(240,360,true);SCENE.images.f2=genFighter(240,360,false);SCENE.ready=true;SCENE._lastW=W;SCENE._lastH=H}
   if(!G.f1||!G.f2){try{initFighterState()}catch(e){}}
   if(!G.crowd||G.crowd.length===0){try{initCrowd()}catch(e){}}
   cx.clearRect(0,0,W,H);cx.save();
   var cam=G.camera||{};if((cam.shake||0)>0.1)cx.translate((Math.random()-0.5)*cam.shake,(Math.random()-0.5)*cam.shake);
   var z=cam.zoom||1;if(z!==1){var zx=cam.zoomX||W*0.5,zy=cam.zoomY||H*0.45;cx.translate(zx,zy);cx.scale(z,z);cx.translate(-zx,-zy)}
   G.tension=getTension(G.mult||1);var t=G.tension,acx=W*0.5,acy=H*0.55;
+  var cBob=Math.sin((G.time||0)*1.5)*(2+(G.crowdRoarSmooth||0)*8);
 
-  // Fight video — fullscreen cover
-  var fightVid=document.getElementById('fightVideo');
-  if(fightVid){
-    if(fightVid.paused&&fightVid.readyState>=2){try{fightVid.play()}catch(e){}}
-    if(fightVid.readyState>=2){
-      var vidW=fightVid.videoWidth||1280,vidH=fightVid.videoHeight||720;
-      var vidAspect=vidW/vidH,scrAspect=W/H;
-      // Cover: fill entire screen, crop overflow
-      var drawW,drawH;
-      if(scrAspect>vidAspect){drawW=W;drawH=W/vidAspect}else{drawH=H;drawW=H*vidAspect}
-      cx.drawImage(fightVid,(W-drawW)/2,(H-drawH)/2,drawW,drawH);
-    }else{
-      // Black until video loads
-      cx.fillStyle='#000';cx.fillRect(0,0,W,H);
-    }
-  }else{
-    cx.fillStyle='#000';cx.fillRect(0,0,W,H);
-  }
+  cx.drawImage(SCENE.images.bg,0,0);
+  cx.drawImage(SCENE.images.crowdBack,0,H*0.1+cBob*0.2);
+  cx.drawImage(SCENE.images.crowdMid,0,H*0.2+cBob*0.4);
+  cx.drawImage(SCENE.images.floor,0,0);
+
+  // Spotlight
+  var slA=0.04+t*0.06;var slG=cx.createRadialGradient(acx,acy,20,acx,acy,W*0.3);slG.addColorStop(0,'rgba(255,255,240,'+slA+')');slG.addColorStop(0.5,'rgba(255,255,240,'+slA*0.3+')');slG.addColorStop(1,'transparent');cx.fillStyle=slG;cx.fillRect(0,0,W,H);
+
+  // Blood
+  if(t>0.5&&G.fightStarted){cx.globalAlpha=(t-0.5)*0.2;for(var bi=0;bi<Math.floor(t*6);bi++){cx.fillStyle='rgba(140,20,20,0.7)';cx.beginPath();cx.ellipse(acx+Math.sin(bi*7.13)*W*0.1,acy+Math.cos(bi*4.27)*H*0.03,3+bi*2,1.5+bi,Math.sin(bi)*0.5,0,Math.PI*2);cx.fill()}cx.globalAlpha=1}
+
+  // Fighters
+  var f1=G.f1,f2=G.f2;
+  if(f1&&f2){var fSc=Math.max(0.5,Math.min(2.2,Math.min(W,H)/380)),fW=240*fSc,fH=360*fSc;
+    cx.save();cx.translate(f2.x,f2.y);if(f2.leanAngle)cx.rotate(f2.leanAngle);cx.scale(-1,1);if(f2.hitFlash>0)cx.globalAlpha=1-f2.hitFlash*0.3;cx.drawImage(SCENE.images.f2,-fW/2,-fH*0.52,fW,fH);if(f2.hitFlash>0){cx.globalAlpha=f2.hitFlash*0.4;cx.fillStyle='#fff';cx.fillRect(-fW/2,-fH*0.52,fW,fH)}cx.globalAlpha=1;cx.restore();
+    cx.save();cx.translate(f1.x,f1.y);if(f1.leanAngle)cx.rotate(f1.leanAngle);if(f1.hitFlash>0)cx.globalAlpha=1-f1.hitFlash*0.3;cx.drawImage(SCENE.images.f1,-fW/2,-fH*0.52,fW,fH);if(f1.hitFlash>0){cx.globalAlpha=f1.hitFlash*0.4;cx.fillStyle='#fff';cx.fillRect(-fW/2,-fH*0.52,fW,fH)}cx.globalAlpha=1;cx.restore();
+    // Impact
+    if(f1.punchPhase==='hold'||f1.punchPhase==='extend'){var ix=f2.x+(f2.staggerX||0)*0.5,iy=f2.y-fH*0.3;cx.save();cx.globalAlpha=0.5;var ig=cx.createRadialGradient(ix,iy,0,ix,iy,28*fSc);ig.addColorStop(0,'rgba(255,255,255,0.9)');ig.addColorStop(0.3,'rgba(255,240,150,0.4)');ig.addColorStop(1,'transparent');cx.fillStyle=ig;cx.beginPath();cx.arc(ix,iy,28*fSc,0,Math.PI*2);cx.fill();cx.strokeStyle='rgba(255,230,100,0.6)';cx.lineWidth=1.5;for(var il=0;il<6;il++){var ia=il/6*Math.PI*2+(G.time||0)*12;cx.beginPath();cx.moveTo(ix+Math.cos(ia)*8*fSc,iy+Math.sin(ia)*8*fSc);cx.lineTo(ix+Math.cos(ia)*20*fSc,iy+Math.sin(ia)*20*fSc);cx.stroke()}cx.restore()}}
+
+  cx.drawImage(SCENE.images.cage,0,0);
+  cx.drawImage(SCENE.images.crowdFront,0,H*0.8+cBob*0.6);
 
   // Health bars
   if(f1&&f2&&G.phase!=='BETTING'&&G.phase!=='WAITING'&&G.phase!=='INIT'){var bW=Math.min(200,W*0.2),bH=10,bY=H*0.07;cx.fillStyle='rgba(0,0,0,0.55)';cx.fillRect(acx-bW-28,bY-1,bW+2,bH+2);var hp1=Math.max(0,Math.min(1,f1.health));var hg1=cx.createLinearGradient(acx-bW-27,0,acx-27,0);hg1.addColorStop(0,'#2266cc');hg1.addColorStop(1,'#44aaff');cx.fillStyle=hg1;cx.fillRect(acx-bW-27,bY,bW*hp1,bH);cx.fillStyle='#4488ff';cx.font='bold 11px sans-serif';cx.textAlign='right';cx.fillText('MASKED',acx-28,bY-3);cx.fillStyle='rgba(0,0,0,0.55)';cx.fillRect(acx+26,bY-1,bW+2,bH+2);var hp2=Math.max(0,Math.min(1,f2.health));var hg2=cx.createLinearGradient(acx+27,0,acx+27+bW*hp2,0);hg2.addColorStop(0,'#cc2222');hg2.addColorStop(1,'#ff4444');cx.fillStyle=hg2;cx.fillRect(acx+27,bY,bW*hp2,bH);cx.fillStyle='#ff4444';cx.textAlign='left';cx.fillText('FIGHTER',acx+28,bY-3)}
