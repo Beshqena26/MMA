@@ -439,10 +439,10 @@ function render(){
   if(!SCENE.ready||SCENE._lastW!==W||SCENE._lastH!==H){
     SCENE.images.bg=genBG(W,H);
     SCENE.images.crowd=genCrowd(W,H);
-    SCENE.images.opponent=genOpponent(Math.floor(W*0.7),Math.floor(H*0.8));
-    SCENE.images.fistL=genFist(Math.floor(W*0.3),Math.floor(H*0.45),true);
-    SCENE.images.fistR=genFist(Math.floor(W*0.3),Math.floor(H*0.45),false);
-    SCENE.images.foot=genFoot(Math.floor(W*0.6),Math.floor(H*0.6));
+    SCENE.images.opponent=genOpponent(Math.floor(W*0.5),Math.floor(H*0.6));
+    SCENE.images.fistL=genFist(Math.floor(W*0.22),Math.floor(H*0.35),true);
+    SCENE.images.fistR=genFist(Math.floor(W*0.22),Math.floor(H*0.35),false);
+    SCENE.images.foot=genFoot(Math.floor(W*0.5),Math.floor(H*0.5));
     SCENE.ready=true;SCENE._lastW=W;SCENE._lastH=H;
   }
   if(!G.opp){try{initFighterState()}catch(e){}}
@@ -464,9 +464,9 @@ function render(){
 
   // L3: Opponent (centered, large, slight sway)
   cx.save();
-  var oppW=W*0.7,oppH=H*0.8;
+  var oppW=W*0.5,oppH=H*0.6;
   var oppX=W*0.5-oppW/2+(opp.staggerX||0);
-  var oppY=H*0.12+(opp.staggerY||0)+Math.sin((opp.breathCycle||0))*3;
+  var oppY=H*0.18+(opp.staggerY||0)+Math.sin((opp.breathCycle||0))*3;
   // Lean from hits
   if(opp.leanAngle){cx.translate(W*0.5,H*0.5);cx.rotate(opp.leanAngle);cx.translate(-W*0.5,-H*0.5)}
   // Flinch (close eyes, pull back slightly)
@@ -497,9 +497,9 @@ function render(){
 
   // L5: Your fists (at bottom of screen)
   if(G.phase!=='CRASH'){
-    var fistW=W*0.3,fistH=H*0.45;
-    var baseLeftX=W*0.08,baseRightX=W*0.62;
-    var baseY2=H*0.62;
+    var fistW=W*0.22,fistH=H*0.35;
+    var baseLeftX=W*0.1,baseRightX=W*0.68;
+    var baseY2=H*0.68;
     var idleBob=Math.sin(time*2)*4;
     var idleBob2=Math.sin(time*2+1)*4;
 
