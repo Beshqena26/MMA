@@ -287,11 +287,12 @@ function render(){
     var idleBobL=Math.sin(time*2)*(W<600?3:5);
     var idleBobR=Math.sin(time*2+1)*(W<600?3:5);
 
-    // Base positions — bottom corners, partially offscreen
+    // Base positions — bottom corners, desktop: bottom -30px
+    var fistBottomOffset=30; // desktop: 30px below screen edge
     var lBaseX=-fistW2*0.1;
-    var lBaseY=H-fistH2*0.7+idleBobL;
+    var lBaseY=H-fistH2+fistBottomOffset+idleBobL;
     var rBaseX=W-fistW2*0.9;
-    var rBaseY=H-fistH2*0.7+idleBobR;
+    var rBaseY=H-fistH2+fistBottomOffset+idleBobR;
 
     // Punch animation offsets
     var lOffX=0,lOffY=0,rOffX=0,rOffY=0;
