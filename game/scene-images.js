@@ -91,7 +91,7 @@ function updateFighters(){
     G.fightStarted=true;
     if(!fists._stanceTimer)fists._stanceTimer=0;
     fists._stanceTimer-=dt;
-    var pi=Math.max(0.18,0.85-t*0.6);
+    var pi=Math.max(0.5,1.6-t*0.8);
     if(fists._stanceTimer<=0&&fists.punchPhase==='idle'){
       if(Math.random()<0.7){
         fists.punchPhase='windup';fists.punchTimer=0.06;fists.punchWindup=0;
@@ -127,7 +127,7 @@ function updateFighters(){
     // ── Opponent attacks YOU back ──
     if(!opp._atkTimer)opp._atkTimer=0;
     opp._atkTimer-=dt;
-    var oppAtkInterval=Math.max(0.6,2.5-t*1.5); // faster at high tension
+    var oppAtkInterval=Math.max(1.0,3.5-t*1.8); // slower, more realistic
     if(opp._atkTimer<=0&&fists.punchPhase==='idle'){
       // Opponent sometimes hits you
       if(Math.random()<Math.max(0.15,0.4-t*0.25)){
