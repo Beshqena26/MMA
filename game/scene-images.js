@@ -281,20 +281,22 @@ function render(){
     cx.fillText('YOU',W*0.5,bY-3);
   }
 
-  // ═══ L4: OPPONENT'S FISTS (always visible) ═══
-  {
+  // ═══ L4: OPPONENT'S FISTS ═══
+  var koFade=G._koFistFade||0;
+  if(koFade<1){
+    if(koFade>0)cx.globalAlpha=1-koFade;
     // Fixed fist size as % of screen
-    var fistW2=W<600?W*0.455:W<900?W*0.364:W*0.325;
+    var fistW2=W<600?W*0.5:W<900?W*0.4:W*0.358;
     var fistH2=fistW2*0.56; // aspect ratio ~1536/2752 ≈ 0.56
 
     var idleBobL=Math.sin(time*2)*(W<600?3:5);
     var idleBobR=Math.sin(time*2+1)*(W<600?3:5);
 
-    // Base positions — centered toward fighter, bottom -30px
+    // Base positions — tighter to center, bottom -30px
     var fistBottomOffset=30;
-    var lBaseX=W*0.5-fistW2*1.1; // left fist near center-left
+    var lBaseX=W*0.5-fistW2*0.95; // closer to center
     var lBaseY=H-fistH2+fistBottomOffset+idleBobL;
-    var rBaseX=W*0.5+fistW2*0.1; // right fist near center-right
+    var rBaseX=W*0.5-fistW2*0.05; // closer to center
     var rBaseY=H-fistH2+fistBottomOffset+idleBobR;
 
     // Punch animation offsets
