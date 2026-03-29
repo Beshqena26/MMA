@@ -92,7 +92,7 @@ function updateFighters(){
     if(G.phaseTimer>1.2&&G.bellRing<=0)G.bellRing=0.5;
   }
   else if(G.phase==='FREEFALL'){
-    G.fightStarted=true;
+    if(!G.fightStarted){G.fightStarted=true;if(typeof SND!=='undefined')SND.play('fight',0.6)}
 
     // ── OPPONENT (fists) hits ME (fighter on screen) — frequent ──
     if(!fists._stanceTimer)fists._stanceTimer=0;
@@ -120,6 +120,7 @@ function updateFighters(){
           G.arenaShake=Math.max(G.arenaShake,1+t*3);
           G.crowdRoar=Math.min(1,G.crowdRoar+0.12);
           spawnParticles(W*0.5+opp.staggerX*3,H*0.35,t>0.5?'fire':'gold',Math.floor(2+t*6));
+          if(typeof SND!=='undefined')SND.play('punch',0.3+t*0.3);
         },100);
       }else{
         fists._stanceTimer=oppPI*(0.5+Math.random());fists.combo=0;
@@ -144,6 +145,7 @@ function updateFighters(){
         var bonus=+(0.05+Math.random()*0.2+t*0.15).toFixed(2);
         G.bonusPopups.push({x:W*0.5+(Math.random()-0.5)*80,y:H*0.3,val:bonus,life:1.2});
         spawnParticles(W*0.5,H*0.55,'gold',Math.floor(3+t*4));
+        if(typeof SND!=='undefined')SND.play('punch',0.5);
       }else{
         opp._atkTimer=myAtkInterval*(0.5+Math.random()*0.5);
       }
@@ -153,8 +155,8 @@ function updateFighters(){
     G.koTimer+=dt;
     if(G.koTimer<0.05){
       G.arenaShake=12;G.crowdRoar=1;
-      // Fighter (me) wins — show victory punch pose
       opp.atkPose='punch';opp.atkPoseTimer=2;
+      if(typeof SND!=='undefined'){SND.play('punch',0.7);setTimeout(function(){SND.play('victory',0.6)},500)}
     }
     // Opponent's fists fade out (they lose)
     G._koFistFade=Math.min(1,G.koTimer/0.5); // 0→1 over 0.5s

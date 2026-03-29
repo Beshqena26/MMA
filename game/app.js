@@ -314,14 +314,48 @@ var SYNC={
   }
 };
 
-// ======================== SFX ENGINE (disabled) ========================
+// ======================== SFX ENGINE ========================
+var SND={
+  _sounds:{},_bgMusic:null,_bgPlaying:false,soundOn:true,musicOn:true,
+  _load:function(key,src){var a=new Audio(src);a.preload='auto';this._sounds[key]=a},
+  init:function(){
+    this._load('punch','assets/sounds/punch.mp3');
+    this._load('victory','assets/sounds/crowd-victory.wav');
+    this._load('fight','assets/sounds/fight-voice.mp3');
+    this._load('intro','assets/sounds/intro-music.mp3');
+    this._bgMusic=new Audio('assets/sounds/bg-music.mp3');
+    this._bgMusic.loop=true;this._bgMusic.volume=0.15;
+  },
+  play:function(key,vol){
+    if(!this.soundOn)return;
+    var s=this._sounds[key];if(!s)return;
+    try{var c=s.cloneNode();c.volume=vol||0.5;c.play()}catch(e){}
+  },
+  startBG:function(){
+    if(!this.musicOn||this._bgPlaying||!this._bgMusic)return;
+    try{this._bgMusic.play();this._bgPlaying=true}catch(e){}
+  },
+  stopBG:function(){
+    if(!this._bgMusic)return;
+    try{this._bgMusic.pause();this._bgMusic.currentTime=0;this._bgPlaying=false}catch(e){}
+  },
+  toggleSound:function(){this.soundOn=!this.soundOn;return this.soundOn},
+  toggleMusic:function(){this.musicOn=!this.musicOn;if(this.musicOn)this.startBG();else this.stopBG();return this.musicOn}
+};
+SND.init();
+// Start audio on first interaction
+function _startAudio(){SND.startBG();document.removeEventListener('click',_startAudio);document.removeEventListener('touchstart',_startAudio)}
+document.addEventListener('click',_startAudio);
+document.addEventListener('touchstart',_startAudio);
+// Compat: old sfx calls still work
 var sfx={
-  ctx:null,soundOn:false,musicOn:false,_ready:false,bgOn:false,
-  init:function(){},res:function(){},play:function(){},
-  startBG:function(){},stopFreefall:function(){},startFreefall:function(){},
+  ctx:null,soundOn:true,musicOn:true,_ready:true,bgOn:false,
+  init:function(){},res:function(){},
+  play:function(t){if(t==='bet')SND.play('punch',0.3);else if(t==='cashout')SND.play('victory',0.4)},
+  startBG:function(){SND.startBG()},stopFreefall:function(){},startFreefall:function(){},
   setMood:function(){},toggle:function(){},
-  toggleSound:function(){return false},
-  toggleMusic:function(){return false}
+  toggleSound:function(){return SND.toggleSound()},
+  toggleMusic:function(){return SND.toggleMusic()}
 };
 
 // ======================== GAME STATE ========================
