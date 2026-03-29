@@ -280,24 +280,18 @@ function render(){
 
   // ═══ L4: OPPONENT'S FISTS (always visible) ═══
   {
-    // Size fists as % of screen, not % of image
-    var fistTargetW=W<600?W*0.35:W<900?W*0.28:W*0.25;
-    var fistNatW=IMG.fistL?IMG.fistL.naturalWidth:2752;
-    var fistNatH=IMG.fistL?IMG.fistL.naturalHeight:1536;
-    var fistScale=fistTargetW/fistNatW;
-    var fistLW=fistNatW*fistScale;
-    var fistLH=fistNatH*fistScale;
-    var fistRW=(IMG.fistR?IMG.fistR.naturalWidth:fistNatW)*fistScale;
-    var fistRH=(IMG.fistR?IMG.fistR.naturalHeight:fistNatH)*fistScale;
+    // Fixed fist size as % of screen
+    var fistW2=W<600?W*0.35:W<900?W*0.28:W*0.25;
+    var fistH2=fistW2*0.56; // aspect ratio ~1536/2752 ≈ 0.56
 
     var idleBobL=Math.sin(time*2)*(W<600?3:5);
     var idleBobR=Math.sin(time*2+1)*(W<600?3:5);
 
-    // Base positions (bottom corners) — responsive
-    var lBaseX=W<600?-fistLW*0.25:-fistLW*0.15;
-    var lBaseY=H-fistLH*(W<600?0.55:0.65)+idleBobL;
-    var rBaseX=W<600?W-fistRW*0.75:W-fistRW*0.85;
-    var rBaseY=H-fistRH*(W<600?0.55:0.65)+idleBobR;
+    // Base positions — bottom corners, partially offscreen
+    var lBaseX=-fistW2*0.1;
+    var lBaseY=H-fistH2*0.7+idleBobL;
+    var rBaseX=W-fistW2*0.9;
+    var rBaseY=H-fistH2*0.7+idleBobR;
 
     // Punch animation offsets
     var lOffX=0,lOffY=0,rOffX=0,rOffY=0;
@@ -305,19 +299,19 @@ function render(){
       var wb=fists.punchWindup||0;
       if(fists.punchArm===-1){lOffY=15*wb;lOffX=-10*wb}else{rOffY=15*wb;rOffX=10*wb}
     }else if(fists.punchPhase==='extend'||fists.punchPhase==='hold'){
-      if(fists.punchArm===-1){lOffY=-H*0.2;lOffX=W*0.15}else{rOffY=-H*0.2;rOffX=-W*0.15}
+      if(fists.punchArm===-1){lOffY=-H*0.2;lOffX=W*0.12}else{rOffY=-H*0.2;rOffX=-W*0.12}
     }else if(fists.punchPhase==='retract'){
       var rp=Math.max(0,(fists.punchTimer||0)/0.15);
-      if(fists.punchArm===-1){lOffY=-H*0.2*rp;lOffX=W*0.15*rp}else{rOffY=-H*0.2*rp;rOffX=-W*0.15*rp}
+      if(fists.punchArm===-1){lOffY=-H*0.2*rp;lOffX=W*0.12*rp}else{rOffY=-H*0.2*rp;rOffX=-W*0.12*rp}
     }
 
     // Draw left fist
-    if(IMG.fistL&&IMG.fistL.complete){
-      cx.drawImage(IMG.fistL,lBaseX+lOffX,lBaseY+lOffY,fistLW,fistLH);
+    if(IMG.fistL&&IMG.fistL.complete&&IMG.fistL.naturalWidth>0){
+      cx.drawImage(IMG.fistL,lBaseX+lOffX,lBaseY+lOffY,fistW2,fistH2);
     }
     // Draw right fist
-    if(IMG.fistR&&IMG.fistR.complete){
-      cx.drawImage(IMG.fistR,rBaseX+rOffX,rBaseY+rOffY,fistRW,fistRH);
+    if(IMG.fistR&&IMG.fistR.complete&&IMG.fistR.naturalWidth>0){
+      cx.drawImage(IMG.fistR,rBaseX+rOffX,rBaseY+rOffY,fistW2,fistH2);
     }
     cx.globalAlpha=1;
   }
