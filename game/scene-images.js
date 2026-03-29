@@ -34,7 +34,9 @@ _loadImages();
 
 // ── State ──
 function initFighterState(){
-  G.opp={health:1,hitFlash:0,staggerX:0,staggerY:0,recoilTimer:0,leanAngle:0,breathCycle:0,blinkTimer:3,blinkAmount:0,flinchTimer:0,shakeX:0,shakeY:0,hitPose:'idle',hitPoseTimer:0};
+  G.opp={health:1,hitFlash:0,staggerX:0,staggerY:0,recoilTimer:0,leanAngle:0,breathCycle:0,blinkTimer:3,blinkAmount:0,flinchTimer:0,shakeX:0,shakeY:0,hitPose:'idle',hitPoseTimer:0,_atkTimer:0};
+  G.playerHit={flash:0,shakeX:0,shakeY:0}; // when opponent hits you
+  G.bonusPopups=[]; // floating "+X" text popups
   G.myFists={punchArm:0,punchPhase:'idle',punchTimer:0,punchWindup:0,combo:0,_stanceTimer:0};
   G.koKick={active:false,timer:0};
   G.tension=0;G.koTimer=0;G.koFlash=0;G.bellRing=0;G.arenaShake=0;G.crowdRoar=0;G.crowdRoarSmooth=0;G.fightStarted=false;
@@ -112,12 +114,35 @@ function updateFighters(){
           G.arenaShake=Math.max(G.arenaShake,1+t*3);
           G.crowdRoar=Math.min(1,G.crowdRoar+0.12);
           spawnParticles(W*0.5+opp.staggerX*3,H*0.35,t>0.5?'fire':'gold',Math.floor(2+t*6));
+          // Bonus multiplier popup
+          var bonus=+(0.05+Math.random()*0.2+t*0.15).toFixed(2);
+          G.bonusPopups.push({x:W*0.5+(Math.random()-0.5)*80,y:H*0.3,val:bonus,life:1.2});
         },100);
       }else{
         fists._stanceTimer=pi*(0.7+Math.random());fists.combo=0;
       }
     }
     if(t>0.75)opp.health=Math.max(0,opp.health-dt*0.02*(t-0.5));
+
+    // ── Opponent attacks YOU back ──
+    if(!opp._atkTimer)opp._atkTimer=0;
+    opp._atkTimer-=dt;
+    var oppAtkInterval=Math.max(0.6,2.5-t*1.5); // faster at high tension
+    if(opp._atkTimer<=0&&fists.punchPhase==='idle'){
+      // Opponent sometimes hits you
+      if(Math.random()<Math.max(0.15,0.4-t*0.25)){
+        opp._atkTimer=oppAtkInterval*(1+Math.random()*0.8);
+        // You get hit — red flash + screen shake
+        G.playerHit.flash=0.4;
+        G.playerHit.shakeX=(Math.random()-0.5)*12;
+        G.playerHit.shakeY=(Math.random()-0.5)*6;
+        G.arenaShake=Math.max(G.arenaShake,2+t*2);
+        // Opponent briefly goes to idle (he's punching, not getting hit)
+        opp.hitPose='idle';opp.hitPoseTimer=0;
+      }else{
+        opp._atkTimer=oppAtkInterval*(0.5+Math.random()*0.5);
+      }
+    }
   }
   else if(G.phase==='CRASH'){
     G.koTimer+=dt;
@@ -136,6 +161,10 @@ function updateFighters(){
   G.crowdRoar=Math.max(0,G.crowdRoar-dt*0.4);
   G.crowdRoarSmooth=_lerp(G.crowdRoarSmooth||0,G.crowdRoar,dt*5);
   if(G.arenaShake>0.3)G.camera.shake=Math.max(G.camera.shake,G.arenaShake*0.6);
+  // Player hit flash decay
+  if(G.playerHit){G.playerHit.flash=Math.max(0,G.playerHit.flash-dt*2.5);G.playerHit.shakeX=_lerp(G.playerHit.shakeX,0,dt*10);G.playerHit.shakeY=_lerp(G.playerHit.shakeY,0,dt*10)}
+  // Bonus popups decay
+  if(G.bonusPopups){G.bonusPopups=G.bonusPopups.filter(function(p){p.life-=dt;p.y-=dt*60;return p.life>0})}
   if(G.f1)G.f1.health=1;
   if(G.f2)G.f2.health=opp.health;
 }
@@ -308,6 +337,48 @@ function render(){
     cx.fillStyle='hsla('+(p.hue||20)+','+(p.sat||100)+'%,'+(p.lit||55)+'%,'+a+')';
     cx.fill();return true;
   });
+
+  // ═══ L6b: PLAYER GOT HIT — red edge flash ═══
+  if(G.playerHit&&G.playerHit.flash>0){
+    var phf=G.playerHit.flash;
+    // Red vignette edges (you got punched)
+    cx.save();
+    var redVig=cx.createRadialGradient(W/2,H/2,H*0.25,W/2,H/2,H*0.7);
+    redVig.addColorStop(0,'transparent');
+    redVig.addColorStop(0.6,'rgba(200,20,20,'+phf*0.15+')');
+    redVig.addColorStop(1,'rgba(180,10,10,'+phf*0.4+')');
+    cx.fillStyle=redVig;cx.fillRect(0,0,W,H);
+    // Screen offset from hit
+    if(Math.abs(G.playerHit.shakeX)>0.5||Math.abs(G.playerHit.shakeY)>0.5){
+      cx.translate(G.playerHit.shakeX,G.playerHit.shakeY);
+    }
+    cx.restore();
+  }
+
+  // ═══ L6c: BONUS MULTIPLIER POPUPS ═══
+  if(G.bonusPopups&&G.bonusPopups.length>0){
+    cx.save();
+    for(var bi=0;bi<G.bonusPopups.length;bi++){
+      var bp=G.bonusPopups[bi];
+      var bpAlpha=Math.min(1,bp.life*2); // fade out in last 0.5s
+      var bpScale=0.8+_easeOutCubic(Math.min(1,(1.2-bp.life)/0.3))*0.4; // pop in
+      cx.save();
+      cx.translate(bp.x,bp.y);
+      cx.scale(bpScale,bpScale);
+      cx.globalAlpha=bpAlpha;
+      // Glow behind text
+      cx.shadowColor='#ffd700';cx.shadowBlur=12;
+      cx.font='bold 22px sans-serif';cx.textAlign='center';cx.textBaseline='middle';
+      cx.fillStyle='#ffd700';
+      cx.fillText('+'+bp.val.toFixed(2)+'x',0,0);
+      cx.shadowBlur=0;
+      // White outline
+      cx.strokeStyle='rgba(255,255,255,0.4)';cx.lineWidth=1;
+      cx.strokeText('+'+bp.val.toFixed(2)+'x',0,0);
+      cx.restore();
+    }
+    cx.restore();
+  }
 
   // ═══ L7: KO SEQUENCE ═══
   if(G.phase==='CRASH'){
