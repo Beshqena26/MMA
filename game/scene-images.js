@@ -247,7 +247,7 @@ function render(){
 
   // ═══ L4: YOUR FISTS ═══
   if(G.phase!=='CRASH'||G.koTimer<0.2){
-    var fistScale=Math.min(W/2752,H/1536)*1.1;
+    var fistScale=Math.min(W/2752,H/1536)*0.88;
     var fistLW=(IMG.fistL?IMG.fistL.naturalWidth:600)*fistScale;
     var fistLH=(IMG.fistL?IMG.fistL.naturalHeight:400)*fistScale;
     var fistRW=(IMG.fistR?IMG.fistR.naturalWidth:600)*fistScale;
