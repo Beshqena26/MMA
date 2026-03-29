@@ -247,13 +247,6 @@ function render(){
       cx.globalAlpha=1;
     }
 
-    // Damage red tint at low health
-    if(opp.health<0.4&&G.fightStarted){
-      cx.globalAlpha=(0.4-opp.health)*0.3;
-      cx.fillStyle='#ff0000';
-      cx.fillRect(oppX,oppY,oppW,oppH);
-      cx.globalAlpha=1;
-    }
 
     cx.restore();
   }
