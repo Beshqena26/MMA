@@ -17,6 +17,8 @@ var _imgList=[
   {key:'hook',src:'assets/Fighter-hook.png'},
   {key:'kick',src:'assets/fighter-Kick.png'},
   {key:'victory',src:'assets/fighter-Victory.png'},
+  {key:'hitL',src:'assets/fighter-hit-left.png'},
+  {key:'hitR',src:'assets/fighter-hit-right.png'},
   {key:'fistL',src:'assets/hand-Left.png'},
   {key:'fistR',src:'assets/hand-Right.png'}
 ];
@@ -210,10 +212,11 @@ function render(){
   // KO: first show kick pose, then victory
   if(isKO&&koT>1.0&&IMG.victory&&IMG.victory.complete){oppImg=IMG.victory}
   else if(isKO&&IMG.kick&&IMG.kick.complete){oppImg=IMG.kick}
-  // My attack — hook pose (randomized usage)
+  // My attack — hook pose
   else if(atkPose!=='idle'&&IMG.hook&&IMG.hook.complete){oppImg=IMG.hook}
-  // Getting hit — also show hook (fighting back)
-  else if(hitPose!=='idle'&&IMG.hook&&IMG.hook.complete){oppImg=IMG.hook}
+  // Getting hit — show hit-left or hit-right based on which fist hit
+  else if(hitPose==='face'&&IMG.hitL&&IMG.hitL.complete){oppImg=IMG.hitL}
+  else if(hitPose==='body'&&IMG.hitR&&IMG.hitR.complete){oppImg=IMG.hitR}
   // Default idle
   else{oppImg=IMG.idle&&IMG.idle.complete?IMG.idle:null}
   if(oppImg&&oppImg.naturalWidth){
