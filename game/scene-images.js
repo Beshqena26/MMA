@@ -87,7 +87,7 @@ function updateFighters(){
   if(G.phase==='BETTING'){
     opp.health=1;opp.hitFlash=0;opp.staggerX=0;opp.staggerY=0;opp.leanAngle=0;opp.flinchTimer=0;opp.shakeX=0;opp.shakeY=0;
     fists.punchPhase='idle';fists.combo=0;
-    G.koKick={active:false,timer:0};G.koTimer=0;G._koLegSide=null;
+    G.koKick={active:false,timer:0};G.koTimer=0;G._koLegSide=null;G._koFistFade=0;
   }
   else if(G.phase==='EXPLODE'){
     G.bellRing=Math.max(0,(G.bellRing||0)-dt);
@@ -96,8 +96,7 @@ function updateFighters(){
   else if(G.phase==='FREEFALL'){
     G.fightStarted=true;
 
-    // ── OPPONENT'S FISTS hit YOU (the fighter on screen) ──
-    // Opponent punches = fists animate, YOU get hit, bonus +X popup
+    // ── OPPONENT (fists) hits ME (fighter on screen) — frequent ──
     if(!fists._stanceTimer)fists._stanceTimer=0;
     fists._stanceTimer-=dt;
     var oppPI=Math.max(0.4,1.4-t*0.7); // opponent hits often
@@ -109,7 +108,7 @@ function updateFighters(){
         fists._stanceTimer=oppPI*(0.5+Math.random()*0.6);
         var _hitArm=fists.punchArm;
         setTimeout(function(){
-          // Opponent hits YOU — face or body
+          // I get hit — face or body reaction
           opp.hitPose=_hitArm===-1?'face':'body';
           opp.hitPoseTimer=0.25;
           opp.hitFlash=0.35;opp.recoilTimer=0.25;
@@ -123,9 +122,6 @@ function updateFighters(){
           G.arenaShake=Math.max(G.arenaShake,1+t*3);
           G.crowdRoar=Math.min(1,G.crowdRoar+0.12);
           spawnParticles(W*0.5+opp.staggerX*3,H*0.35,t>0.5?'fire':'gold',Math.floor(2+t*6));
-          // Bonus multiplier popup — opponent scores
-          var bonus=+(0.05+Math.random()*0.2+t*0.15).toFixed(2);
-          G.bonusPopups.push({x:W*0.5+(Math.random()-0.5)*80,y:H*0.3,val:bonus,life:1.2});
         },100);
       }else{
         fists._stanceTimer=oppPI*(0.5+Math.random());fists.combo=0;
@@ -133,21 +129,23 @@ function updateFighters(){
     }
     if(t>0.75)opp.health=Math.max(0,opp.health-dt*0.02*(t-0.5));
 
-    // ── YOU (the fighter on screen) punch back ──
-    // Less frequent, you fight back but lose
+    // ── ME (fighter on screen) hits OPPONENT back — gives +X bonus ──
     if(!opp._atkTimer)opp._atkTimer=0;
     opp._atkTimer-=dt;
-    var myAtkInterval=Math.max(0.8,2.5-t*1.0); // you hit back rarely
+    var myAtkInterval=Math.max(0.8,2.2-t*0.9);
     if(opp._atkTimer<=0&&fists.punchPhase==='idle'){
-      if(Math.random()<Math.max(0.2,0.4-t*0.2)){
+      if(Math.random()<Math.max(0.25,0.5-t*0.2)){
         opp._atkTimer=myAtkInterval*(1+Math.random()*0.8);
-        // YOU attack — show punch or kick pose
+        // I attack — show punch or kick pose
         opp.atkPose=Math.random()<0.6?'punch':'kick';
         opp.atkPoseTimer=0.35;
         opp.hitPose='idle';opp.hitPoseTimer=0;
-        // Opponent gets hit (screen shakes a bit)
-        G.playerHit.flash=0.15;
-        G.arenaShake=Math.max(G.arenaShake,1);
+        G.arenaShake=Math.max(G.arenaShake,1.5);
+        G.crowdRoar=Math.min(1,G.crowdRoar+0.1);
+        // Bonus multiplier popup — I score!
+        var bonus=+(0.05+Math.random()*0.2+t*0.15).toFixed(2);
+        G.bonusPopups.push({x:W*0.5+(Math.random()-0.5)*80,y:H*0.3,val:bonus,life:1.2});
+        spawnParticles(W*0.5,H*0.55,'gold',Math.floor(3+t*4));
       }else{
         opp._atkTimer=myAtkInterval*(0.5+Math.random()*0.5);
       }
@@ -155,15 +153,13 @@ function updateFighters(){
   }
   else if(G.phase==='CRASH'){
     G.koTimer+=dt;
-    if(G.koTimer<0.05&&!G.koKick.active){
-      G.koKick={active:true,timer:0};G.koFlash=1;G.arenaShake=18;G.crowdRoar=1;
+    if(G.koTimer<0.05){
+      G.arenaShake=12;G.crowdRoar=1;
+      // Fighter (me) wins — show victory punch pose
+      opp.atkPose='punch';opp.atkPoseTimer=2;
     }
-    G.koFlash=Math.max(0,G.koFlash-dt*1.5);
-    var fp=_easeOutCubic(Math.min(1,G.koTimer/0.8));
-    opp.leanAngle=_lerp(0,0.35,fp);
-    opp.staggerY=_lerp(0,60,fp);
-    opp.staggerX=_lerp(0,30,fp);
-    opp.health=Math.max(0,1-fp*3);
+    // Opponent's fists fade out (they lose)
+    G._koFistFade=Math.min(1,G.koTimer/0.5); // 0→1 over 0.5s
   }
 
   G.arenaShake=Math.max(0,G.arenaShake*(1-dt*8));
@@ -279,8 +275,10 @@ function render(){
     cx.fillText('YOU',W*0.5,bY-3);
   }
 
-  // ═══ L4: YOUR FISTS ═══
-  if(G.phase!=='CRASH'||G.koTimer<0.2){
+  // ═══ L4: OPPONENT'S FISTS ═══
+  var koFade=G._koFistFade||0;
+  if(G.phase!=='CRASH'||koFade<1){
+    if(koFade>0)cx.globalAlpha=1-koFade;
     var fistScale=Math.min(W/2752,H/1536)*0.88;
     var fistLW=(IMG.fistL?IMG.fistL.naturalWidth:600)*fistScale;
     var fistLH=(IMG.fistL?IMG.fistL.naturalHeight:400)*fistScale;
@@ -316,6 +314,7 @@ function render(){
     if(IMG.fistR&&IMG.fistR.complete){
       cx.drawImage(IMG.fistR,rBaseX+rOffX,rBaseY+rOffY,fistRW,fistRH);
     }
+    cx.globalAlpha=1;
   }
 
   // ═══ L5: IMPACT FLASH ═══
@@ -389,46 +388,7 @@ function render(){
   if(G.phase==='CRASH'){
     var koT=G.koTimer||0;
 
-    // KO Leg — ONE foot sweeps in (randomly left or right)
-    if(!G._koLegSide)G._koLegSide=Math.random()<0.5?'left':'right';
-    if(koT<1.5){
-      var legProg=_easeOutBack(Math.min(1,koT/0.35));
-      var legScale=Math.min(W/2752,H/1536)*1.4;
-      var isLeft=G._koLegSide==='left';
-      var legImg=isLeft?(IMG.legL&&IMG.legL.complete?IMG.legL:null):(IMG.legR&&IMG.legR.complete?IMG.legR:null);
-
-      if(legImg){
-        var lW=legImg.naturalWidth*legScale,lH=legImg.naturalHeight*legScale;
-        var lX,lY,rotStart,rotEnd;
-        if(isLeft){
-          lX=_lerp(-lW*0.8,W*0.05,legProg);
-          lY=_lerp(H*1.1,H*0.25,legProg);
-          rotStart=0.5;rotEnd=-0.15;
-        }else{
-          lX=_lerp(W+lW*0.3,W*0.45,legProg);
-          lY=_lerp(H*1.1,H*0.25,legProg);
-          rotStart=-0.5;rotEnd=0.15;
-        }
-        cx.save();
-        cx.globalAlpha=Math.min(1,legProg*2);
-        cx.translate(lX+lW*0.3,lY+lH*0.5);
-        cx.rotate(_lerp(rotStart,rotEnd,legProg));
-        cx.drawImage(legImg,-lW*0.3,-lH*0.5,lW,lH);
-        cx.restore();
-      }
-
-      // Impact flash when leg hits
-      if(legProg>0.7&&legProg<1.1){
-        var impAlpha=(1-Math.abs(legProg-0.9)*5)*0.6;
-        cx.save();cx.globalAlpha=Math.max(0,impAlpha);
-        var koImpG=cx.createRadialGradient(W*0.5,H*0.35,0,W*0.5,H*0.35,W*0.15);
-        koImpG.addColorStop(0,'rgba(255,255,255,0.9)');koImpG.addColorStop(0.4,'rgba(255,200,100,0.3)');koImpG.addColorStop(1,'transparent');
-        cx.fillStyle=koImpG;cx.beginPath();cx.arc(W*0.5,H*0.35,W*0.15,0,Math.PI*2);cx.fill();
-        cx.restore();
-      }
-    }
-
-    // (red flash removed)
+    // (KO legs removed — opponent fists just fade out)
 
     // K.O. text
     if(koT>0.5){
