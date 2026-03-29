@@ -157,7 +157,7 @@ function updateFighters(){
     if(G.koTimer<0.05){
       G.arenaShake=12;G.crowdRoar=1;
       opp.atkPose='punch';opp.atkPoseTimer=2;
-      if(typeof SND!=='undefined'){SND.play('punch',0.7);setTimeout(function(){SND.play('victory',0.6)},500)}
+      if(typeof SND!=='undefined'){SND.play('punch',0.7);setTimeout(function(){SND.play('victory',0.25)},500)}
     }
     // Opponent's fists fade out (they lose)
     G._koFistFade=Math.min(1,G.koTimer/0.5); // 0→1 over 0.5s
