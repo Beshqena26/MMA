@@ -294,9 +294,9 @@ function render(){
 
     // Base positions — tighter to center, bottom -30px
     var fistBottomOffset=30;
-    var lBaseX=W*0.5-fistW2*0.95; // closer to center
+    var lBaseX=W*0.5-fistW2*0.8; // tight to center
     var lBaseY=H-fistH2+fistBottomOffset+idleBobL;
-    var rBaseX=W*0.5-fistW2*0.05; // closer to center
+    var rBaseX=W*0.5-fistW2*0.2; // tight to center
     var rBaseY=H-fistH2+fistBottomOffset+idleBobR;
 
     // Punch animation offsets
