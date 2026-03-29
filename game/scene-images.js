@@ -18,7 +18,11 @@ var _imgList=[
   {key:'body',src:'assets/Fighter-body.png'},
   {key:'ko',src:'assets/Fighter-ko.png'},
   {key:'fistL',src:'assets/Left.png'},
-  {key:'fistR',src:'assets/Right.png'}
+  {key:'fistR',src:'assets/Right.png'},
+  {key:'oppPunch',src:'assets/Fighter-punch.png'},
+  {key:'oppKick',src:'assets/Fighter-kick.png'},
+  {key:'legL',src:'assets/leg-left.png'},
+  {key:'legR',src:'assets/leg-right.png'}
 ];
 var _imgsLoaded=0;
 function _loadImages(){
@@ -34,7 +38,7 @@ _loadImages();
 
 // ── State ──
 function initFighterState(){
-  G.opp={health:1,hitFlash:0,staggerX:0,staggerY:0,recoilTimer:0,leanAngle:0,breathCycle:0,blinkTimer:3,blinkAmount:0,flinchTimer:0,shakeX:0,shakeY:0,hitPose:'idle',hitPoseTimer:0,_atkTimer:0};
+  G.opp={health:1,hitFlash:0,staggerX:0,staggerY:0,recoilTimer:0,leanAngle:0,breathCycle:0,blinkTimer:3,blinkAmount:0,flinchTimer:0,shakeX:0,shakeY:0,hitPose:'idle',hitPoseTimer:0,_atkTimer:0,atkPose:'idle',atkPoseTimer:0};
   G.playerHit={flash:0,shakeX:0,shakeY:0}; // when opponent hits you
   G.bonusPopups=[]; // floating "+X" text popups
   G.myFists={punchArm:0,punchPhase:'idle',punchTimer:0,punchWindup:0,combo:0,_stanceTimer:0};
@@ -64,6 +68,8 @@ function updateFighters(){
   opp.shakeX=_lerp(opp.shakeX||0,0,dt*10);
   // Hit pose timer — shows face/body hit image then returns to idle
   if(opp.hitPoseTimer>0){opp.hitPoseTimer-=dt;if(opp.hitPoseTimer<=0)opp.hitPose='idle'}
+  // Attack pose timer — shows punch/kick when opponent attacks you
+  if(opp.atkPoseTimer>0){opp.atkPoseTimer-=dt;if(opp.atkPoseTimer<=0)opp.atkPose='idle'}
   opp.shakeY=_lerp(opp.shakeY||0,0,dt*10);
 
   // Punch phases
@@ -132,13 +138,15 @@ function updateFighters(){
       // Opponent sometimes hits you
       if(Math.random()<Math.max(0.15,0.4-t*0.25)){
         opp._atkTimer=oppAtkInterval*(1+Math.random()*0.8);
+        // Opponent attacks — show punch or kick image
+        opp.atkPose=Math.random()<0.6?'punch':'kick';
+        opp.atkPoseTimer=0.35;
+        opp.hitPose='idle';opp.hitPoseTimer=0;
         // You get hit — red flash + screen shake
         G.playerHit.flash=0.4;
         G.playerHit.shakeX=(Math.random()-0.5)*12;
         G.playerHit.shakeY=(Math.random()-0.5)*6;
         G.arenaShake=Math.max(G.arenaShake,2+t*2);
-        // Opponent briefly goes to idle (he's punching, not getting hit)
-        opp.hitPose='idle';opp.hitPoseTimer=0;
       }else{
         opp._atkTimer=oppAtkInterval*(0.5+Math.random()*0.5);
       }
@@ -203,8 +211,11 @@ function render(){
   // ═══ L2: OPPONENT ═══
   var isKO=G.phase==='CRASH';
   var hitPose=opp.hitPose||'idle';
+  var atkPose=opp.atkPose||'idle';
   var oppImg;
   if(isKO&&IMG.ko&&IMG.ko.complete){oppImg=IMG.ko}
+  else if(atkPose==='punch'&&IMG.oppPunch&&IMG.oppPunch.complete){oppImg=IMG.oppPunch}
+  else if(atkPose==='kick'&&IMG.oppKick&&IMG.oppKick.complete){oppImg=IMG.oppKick}
   else if(hitPose==='face'&&IMG.face&&IMG.face.complete){oppImg=IMG.face}
   else if(hitPose==='body'&&IMG.body&&IMG.body.complete){oppImg=IMG.body}
   else{oppImg=IMG.idle&&IMG.idle.complete?IMG.idle:null}
@@ -383,6 +394,48 @@ function render(){
   // ═══ L7: KO SEQUENCE ═══
   if(G.phase==='CRASH'){
     var koT=G.koTimer||0;
+
+    // KO Legs — sweep in from bottom corners
+    if(koT<1.5){
+      var legProg=_easeOutBack(Math.min(1,koT/0.35));
+      var legScale=Math.min(W/2752,H/1536)*1.4;
+
+      // Left leg — from bottom-left
+      if(IMG.legL&&IMG.legL.complete){
+        var llW=IMG.legL.naturalWidth*legScale,llH=IMG.legL.naturalHeight*legScale;
+        var llX=_lerp(-llW*0.8,W*0.05,legProg);
+        var llY=_lerp(H*1.1,H*0.25,legProg);
+        cx.save();
+        cx.globalAlpha=Math.min(1,legProg*2);
+        cx.translate(llX+llW*0.3,llY+llH*0.5);
+        cx.rotate(_lerp(0.5,-0.15,legProg));
+        cx.drawImage(IMG.legL,-llW*0.3,-llH*0.5,llW,llH);
+        cx.restore();
+      }
+
+      // Right leg — from bottom-right
+      if(IMG.legR&&IMG.legR.complete){
+        var lrW=IMG.legR.naturalWidth*legScale,lrH=IMG.legR.naturalHeight*legScale;
+        var lrX=_lerp(W+lrW*0.3,W*0.45,legProg);
+        var lrY=_lerp(H*1.1,H*0.25,legProg);
+        cx.save();
+        cx.globalAlpha=Math.min(1,legProg*2);
+        cx.translate(lrX+lrW*0.3,lrY+lrH*0.5);
+        cx.rotate(_lerp(-0.5,0.15,legProg));
+        cx.drawImage(IMG.legR,-lrW*0.3,-lrH*0.5,lrW,lrH);
+        cx.restore();
+      }
+
+      // Impact flash when legs hit
+      if(legProg>0.7&&legProg<1.1){
+        var impAlpha=(1-Math.abs(legProg-0.9)*5)*0.6;
+        cx.save();cx.globalAlpha=Math.max(0,impAlpha);
+        var koImpG=cx.createRadialGradient(W*0.5,H*0.35,0,W*0.5,H*0.35,W*0.15);
+        koImpG.addColorStop(0,'rgba(255,255,255,0.9)');koImpG.addColorStop(0.4,'rgba(255,200,100,0.3)');koImpG.addColorStop(1,'transparent');
+        cx.fillStyle=koImpG;cx.beginPath();cx.arc(W*0.5,H*0.35,W*0.15,0,Math.PI*2);cx.fill();
+        cx.restore();
+      }
+    }
 
     // Red flash
     if((G.koFlash||0)>0){
