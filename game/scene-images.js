@@ -87,7 +87,7 @@ function updateFighters(){
   if(G.phase==='BETTING'){
     opp.health=1;opp.hitFlash=0;opp.staggerX=0;opp.staggerY=0;opp.leanAngle=0;opp.flinchTimer=0;opp.shakeX=0;opp.shakeY=0;
     fists.punchPhase='idle';fists.combo=0;
-    G.koKick={active:false,timer:0};G.koTimer=0;
+    G.koKick={active:false,timer:0};G.koTimer=0;G._koLegSide=null;
   }
   else if(G.phase==='EXPLODE'){
     G.bellRing=Math.max(0,(G.bellRing||0)-dt);
@@ -97,7 +97,7 @@ function updateFighters(){
     G.fightStarted=true;
     if(!fists._stanceTimer)fists._stanceTimer=0;
     fists._stanceTimer-=dt;
-    var pi=Math.max(0.5,1.6-t*0.8);
+    var pi=Math.max(0.8,2.2-t*0.9); // your punches — slower
     if(fists._stanceTimer<=0&&fists.punchPhase==='idle'){
       if(Math.random()<0.7){
         fists.punchPhase='windup';fists.punchTimer=0.06;fists.punchWindup=0;
@@ -133,10 +133,10 @@ function updateFighters(){
     // ── Opponent attacks YOU back ──
     if(!opp._atkTimer)opp._atkTimer=0;
     opp._atkTimer-=dt;
-    var oppAtkInterval=Math.max(1.0,3.5-t*1.8); // slower, more realistic
+    var oppAtkInterval=Math.max(0.4,1.4-t*0.7); // opponent attacks more often
     if(opp._atkTimer<=0&&fists.punchPhase==='idle'){
       // Opponent sometimes hits you
-      if(Math.random()<Math.max(0.15,0.4-t*0.25)){
+      if(Math.random()<Math.max(0.4,0.7-t*0.2)){
         opp._atkTimer=oppAtkInterval*(1+Math.random()*0.8);
         // Opponent attacks — show punch or kick image
         opp.atkPose=Math.random()<0.6?'punch':'kick';
@@ -395,38 +395,35 @@ function render(){
   if(G.phase==='CRASH'){
     var koT=G.koTimer||0;
 
-    // KO Legs — sweep in from bottom corners
+    // KO Leg — ONE foot sweeps in (randomly left or right)
+    if(!G._koLegSide)G._koLegSide=Math.random()<0.5?'left':'right';
     if(koT<1.5){
       var legProg=_easeOutBack(Math.min(1,koT/0.35));
       var legScale=Math.min(W/2752,H/1536)*1.4;
+      var isLeft=G._koLegSide==='left';
+      var legImg=isLeft?(IMG.legL&&IMG.legL.complete?IMG.legL:null):(IMG.legR&&IMG.legR.complete?IMG.legR:null);
 
-      // Left leg — from bottom-left
-      if(IMG.legL&&IMG.legL.complete){
-        var llW=IMG.legL.naturalWidth*legScale,llH=IMG.legL.naturalHeight*legScale;
-        var llX=_lerp(-llW*0.8,W*0.05,legProg);
-        var llY=_lerp(H*1.1,H*0.25,legProg);
+      if(legImg){
+        var lW=legImg.naturalWidth*legScale,lH=legImg.naturalHeight*legScale;
+        var lX,lY,rotStart,rotEnd;
+        if(isLeft){
+          lX=_lerp(-lW*0.8,W*0.05,legProg);
+          lY=_lerp(H*1.1,H*0.25,legProg);
+          rotStart=0.5;rotEnd=-0.15;
+        }else{
+          lX=_lerp(W+lW*0.3,W*0.45,legProg);
+          lY=_lerp(H*1.1,H*0.25,legProg);
+          rotStart=-0.5;rotEnd=0.15;
+        }
         cx.save();
         cx.globalAlpha=Math.min(1,legProg*2);
-        cx.translate(llX+llW*0.3,llY+llH*0.5);
-        cx.rotate(_lerp(0.5,-0.15,legProg));
-        cx.drawImage(IMG.legL,-llW*0.3,-llH*0.5,llW,llH);
+        cx.translate(lX+lW*0.3,lY+lH*0.5);
+        cx.rotate(_lerp(rotStart,rotEnd,legProg));
+        cx.drawImage(legImg,-lW*0.3,-lH*0.5,lW,lH);
         cx.restore();
       }
 
-      // Right leg — from bottom-right
-      if(IMG.legR&&IMG.legR.complete){
-        var lrW=IMG.legR.naturalWidth*legScale,lrH=IMG.legR.naturalHeight*legScale;
-        var lrX=_lerp(W+lrW*0.3,W*0.45,legProg);
-        var lrY=_lerp(H*1.1,H*0.25,legProg);
-        cx.save();
-        cx.globalAlpha=Math.min(1,legProg*2);
-        cx.translate(lrX+lrW*0.3,lrY+lrH*0.5);
-        cx.rotate(_lerp(-0.5,0.15,legProg));
-        cx.drawImage(IMG.legR,-lrW*0.3,-lrH*0.5,lrW,lrH);
-        cx.restore();
-      }
-
-      // Impact flash when legs hit
+      // Impact flash when leg hits
       if(legProg>0.7&&legProg<1.1){
         var impAlpha=(1-Math.abs(legProg-0.9)*5)*0.6;
         cx.save();cx.globalAlpha=Math.max(0,impAlpha);
