@@ -760,7 +760,8 @@ function showPanel2(){
 // ======================== PHASE FUNCTIONS ========================
 var _lastBettingRound=0;
 function startBettingPhase(){
-  // Line 1: set phase — NOTHING can prevent this
+  // Stop all sounds from previous round
+  if(typeof SND!=='undefined')SND.stopAll();
   G.phase='BETTING';
   G.phaseTimer=BET_TIME;
   // When SYNC is active, use Firebase round number directly to prevent double-increment
