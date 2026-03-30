@@ -226,13 +226,14 @@ function render(){
     var isMob=W<600,isTab=W>=600&&W<900;
     // On mobile, use visible area (55vh) not full canvas height
     var visH=isMob?H:H;
-    var oppMaxW=isMob?0.66:isTab?0.5:0.45;
-    var oppMaxH=isMob?0.66:isTab?0.7:0.75;
+    var oppMaxW=isMob?0.79:isTab?0.5:0.45;
+    var oppMaxH=isMob?0.79:isTab?0.7:0.75;
     var oppScale=Math.min(W*oppMaxW/oppImg.naturalWidth,visH*oppMaxH/oppImg.naturalHeight);
     var oppW=oppImg.naturalWidth*oppScale;
     var oppH=oppImg.naturalHeight*oppScale;
     var oppX=W*0.5-oppW/2+(opp.staggerX||0)+(opp.shakeX||0);
-    var oppY=visH-oppH+(opp.staggerY||0)+(opp.shakeY||0)+Math.sin(opp.breathCycle||0)*2;
+    var oppBottom=isMob?56:0;
+    var oppY=visH-oppH-oppBottom+(opp.staggerY||0)+(opp.shakeY||0)+Math.sin(opp.breathCycle||0)*2;
 
     // Lean from hits
     if(opp.leanAngle){
@@ -283,7 +284,7 @@ function render(){
   if(koFade<1){
     if(koFade>0)cx.globalAlpha=1-koFade;
     // Fixed fist size as % of screen
-    var fistW2=W<600?W*0.384:W<900?W*0.4:W*0.358;
+    var fistW2=W<600?W*0.46:W<900?W*0.4:W*0.358;
     var fistH2=fistW2*0.56; // aspect ratio ~1536/2752 ≈ 0.56
 
     var idleBobL=Math.sin(time*2)*(W<600?3:5);
@@ -291,7 +292,7 @@ function render(){
 
     // Base positions — tighter to center, bottom -30px
     var visHF=H;
-    var fistBottomOffset=W<600?32:30;
+    var fistBottomOffset=W<600?72:30;
     var lBaseX=W*0.5-fistW2*0.8;
     var lBaseY=visHF-fistH2+fistBottomOffset+idleBobL;
     var rBaseX=W*0.5-fistW2*0.2;
