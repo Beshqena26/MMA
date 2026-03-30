@@ -74,6 +74,22 @@
         <div class="bet-panel" id="panel1">
           <input id="au1" value="1.50" style="display:none">
           <div id="autoCash1" style="display:none"></div>
+          <!-- Auto Options Panel -->
+          <div class="bp-auto-panel" id="autoPanel1" style="display:none">
+            <div class="bp-ap-row">
+              <span class="bp-ap-label">Auto Cashout</span>
+              <button class="bp-ac-toggle" onclick="toggleAuto(1,'cash');this.classList.toggle('on')"><div class="dot"></div></button>
+              <button class="bp-ac-btn" onclick="var v=parseFloat($('au1').value)||1.01;$('au1').value=Math.max(1.01,v-0.1).toFixed(2);$('acDisp1').textContent=$('au1').value+'x'">−</button>
+              <div class="bp-ac-val" id="acDisp1">1.50x</div>
+              <button class="bp-ac-btn" onclick="var v=parseFloat($('au1').value)||1.01;$('au1').value=(v+0.1).toFixed(2);$('acDisp1').textContent=$('au1').value+'x'">+</button>
+            </div>
+            <div class="bp-ap-rounds">
+              <button class="bp-round-btn" onclick="if(typeof _autoRounds!=='undefined')_autoRounds[0]=20;this.parentNode.querySelectorAll('.bp-round-btn').forEach(function(b){b.classList.remove('active')});this.classList.add('active')"><span class="bp-rb-num">20</span><span class="bp-rb-txt">Round</span></button>
+              <button class="bp-round-btn" onclick="if(typeof _autoRounds!=='undefined')_autoRounds[0]=50;this.parentNode.querySelectorAll('.bp-round-btn').forEach(function(b){b.classList.remove('active')});this.classList.add('active')"><span class="bp-rb-num">50</span><span class="bp-rb-txt">Round</span></button>
+              <button class="bp-round-btn" onclick="if(typeof _autoRounds!=='undefined')_autoRounds[0]=100;this.parentNode.querySelectorAll('.bp-round-btn').forEach(function(b){b.classList.remove('active')});this.classList.add('active')"><span class="bp-rb-num">100</span><span class="bp-rb-txt">Round</span></button>
+              <button class="bp-round-btn" onclick="if(typeof _autoRounds!=='undefined')_autoRounds[0]=200;this.parentNode.querySelectorAll('.bp-round-btn').forEach(function(b){b.classList.remove('active')});this.classList.add('active')"><span class="bp-rb-num">200</span><span class="bp-rb-txt">Round</span></button>
+            </div>
+          </div>
           <div class="bp-amtrow">
             <button class="bp-btn" onclick="adj(1,-1)">−</button>
             <div class="bp-amt" id="a1">5.00</div>
@@ -86,7 +102,7 @@
             <button class="bp-q" onclick="sa(1,G.balance)">Max</button>
           </div>
           <div class="bp-actions">
-            <button class="bp-side-btn" id="autoBet1" onclick="toggleAuto(1,'bet')"><span class="bp-side-icon">↻</span></button>
+            <button class="bp-side-btn" id="autoBet1" onclick="var p=$('autoPanel1');p.style.display=p.style.display==='none'?'':'none';this.classList.toggle('active')"><span class="bp-side-icon">↻</span></button>
             <button class="bp-betbtn" id="btn1" onclick="betAction(1)"><span class="bb-label">BET</span><span class="bb-amount" id="btn1amt">5.00 USD</span></button>
             <button class="bp-side-btn" onclick="sa(1,G.bets[0].amount*2)"><span class="bp-side-icon">x2</span></button>
           </div>
@@ -95,6 +111,21 @@
         <div class="bet-panel" id="panel2">
           <input id="au2" value="1.50" style="display:none">
           <div id="autoCash2" style="display:none"></div>
+          <div class="bp-auto-panel" id="autoPanel2" style="display:none">
+            <div class="bp-ap-row">
+              <span class="bp-ap-label">Auto Cashout</span>
+              <button class="bp-ac-toggle" onclick="toggleAuto(2,'cash');this.classList.toggle('on')"><div class="dot"></div></button>
+              <button class="bp-ac-btn" onclick="var v=parseFloat($('au2').value)||1.01;$('au2').value=Math.max(1.01,v-0.1).toFixed(2);$('acDisp2').textContent=$('au2').value+'x'">−</button>
+              <div class="bp-ac-val" id="acDisp2">1.50x</div>
+              <button class="bp-ac-btn" onclick="var v=parseFloat($('au2').value)||1.01;$('au2').value=(v+0.1).toFixed(2);$('acDisp2').textContent=$('au2').value+'x'">+</button>
+            </div>
+            <div class="bp-ap-rounds">
+              <button class="bp-round-btn" onclick="if(typeof _autoRounds!=='undefined')_autoRounds[1]=20;this.parentNode.querySelectorAll('.bp-round-btn').forEach(function(b){b.classList.remove('active')});this.classList.add('active')"><span class="bp-rb-num">20</span><span class="bp-rb-txt">Round</span></button>
+              <button class="bp-round-btn" onclick="if(typeof _autoRounds!=='undefined')_autoRounds[1]=50;this.parentNode.querySelectorAll('.bp-round-btn').forEach(function(b){b.classList.remove('active')});this.classList.add('active')"><span class="bp-rb-num">50</span><span class="bp-rb-txt">Round</span></button>
+              <button class="bp-round-btn" onclick="if(typeof _autoRounds!=='undefined')_autoRounds[1]=100;this.parentNode.querySelectorAll('.bp-round-btn').forEach(function(b){b.classList.remove('active')});this.classList.add('active')"><span class="bp-rb-num">100</span><span class="bp-rb-txt">Round</span></button>
+              <button class="bp-round-btn" onclick="if(typeof _autoRounds!=='undefined')_autoRounds[1]=200;this.parentNode.querySelectorAll('.bp-round-btn').forEach(function(b){b.classList.remove('active')});this.classList.add('active')"><span class="bp-rb-num">200</span><span class="bp-rb-txt">Round</span></button>
+            </div>
+          </div>
           <div class="bp-amtrow">
             <button class="bp-btn" onclick="adj(2,-1)">−</button>
             <div class="bp-amt" id="a2">5.00</div>
@@ -107,7 +138,7 @@
             <button class="bp-q" onclick="sa(2,G.balance)">Max</button>
           </div>
           <div class="bp-actions">
-            <button class="bp-side-btn" id="autoBet2" onclick="toggleAuto(2,'bet')"><span class="bp-side-icon">↻</span></button>
+            <button class="bp-side-btn" id="autoBet2" onclick="var p=$('autoPanel2');p.style.display=p.style.display==='none'?'':'none';this.classList.toggle('active')"><span class="bp-side-icon">↻</span></button>
             <button class="bp-betbtn" id="btn2" onclick="betAction(2)"><span class="bb-label">BET</span><span class="bb-amount" id="btn2amt">5.00 USD</span></button>
             <button class="bp-side-btn" onclick="sa(2,G.bets[1].amount*2)"><span class="bp-side-icon">x2</span></button>
           </div>
