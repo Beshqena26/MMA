@@ -120,7 +120,7 @@ function updateFighters(){
           G.arenaShake=Math.max(G.arenaShake,1+t*3);
           G.crowdRoar=Math.min(1,G.crowdRoar+0.12);
           spawnParticles(W*0.5+opp.staggerX*3,H*0.35,t>0.5?'fire':'gold',Math.floor(2+t*6));
-          if(typeof SND!=='undefined')SND.playGame('punch',0.3+t*0.3);
+          if(typeof SND!=='undefined')SND.play('punch',0.3+t*0.3);
         },100);
       }else{
         fists._stanceTimer=oppPI*(0.5+Math.random());fists.combo=0;
@@ -145,7 +145,7 @@ function updateFighters(){
         var bonus=+(0.05+Math.random()*0.2+t*0.15).toFixed(2);
         G.bonusPopups.push({x:W*0.5+(Math.random()-0.5)*80,y:H*0.3,val:bonus,life:1.2});
         spawnParticles(W*0.5,H*0.55,'gold',Math.floor(3+t*4));
-        if(typeof SND!=='undefined')SND.playGame('punch',0.5);
+        if(typeof SND!=='undefined')SND.play('punch',0.5);
       }else{
         opp._atkTimer=myAtkInterval*(0.5+Math.random()*0.5);
       }
@@ -156,7 +156,7 @@ function updateFighters(){
     if(G.koTimer<0.05){
       G.arenaShake=12;G.crowdRoar=1;
       opp.atkPose='punch';opp.atkPoseTimer=2;
-      if(typeof SND!=='undefined'){SND.playGame('punch',0.7);SND.playGame('cheer',0.4)}
+      if(typeof SND!=='undefined'){SND.play('punch',0.7)}
     }
     // Opponent's fists fade out (they lose)
     G._koFistFade=Math.min(1,G.koTimer/0.5); // 0→1 over 0.5s
@@ -264,8 +264,8 @@ function render(){
     // Health fill
     var hp=Math.max(0,Math.min(1,opp.health||1));
     var hpG=cx.createLinearGradient(bX,0,bX+bW*hp,0);
-    hpG.addColorStop(0,hp>0.5?'#c62828':hp>0.25?'#e65100':'#b71c1c');
-    hpG.addColorStop(1,hp>0.5?'#e53935':hp>0.25?'#ff9800':'#d32f2f');
+    hpG.addColorStop(0,hp>0.5?'#22aa44':hp>0.25?'#cc8800':'#cc2222');
+    hpG.addColorStop(1,hp>0.5?'#44dd66':hp>0.25?'#ffaa00':'#ff4444');
     cx.fillStyle=hpG;
     cx.fillRect(bX+1,bY+1,(bW-2)*hp,bH-2);
     // Border

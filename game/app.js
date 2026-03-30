@@ -316,12 +316,12 @@ var SYNC={
 
 // ======================== SFX ENGINE ========================
 var SND={
-  _sounds:{},_bgMusic:null,_bgPlaying:false,soundOn:true,sfxOn:true,gameSndOn:true,musicOn:true,_ctx:null,
+  _sounds:{},_bgMusic:null,_bgPlaying:false,soundOn:true,musicOn:true,_ctx:null,
   _load:function(key,src){var a=new Audio(src);a.preload='auto';this._sounds[key]=a},
   _getCtx:function(){if(!this._ctx){try{this._ctx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}return this._ctx},
   init:function(){
     this._load('punch','assets/sounds/punch.mp3');
-    this._load('cheer','assets/sounds/crowd-cheer.mp3');
+    this._load('victory','assets/sounds/crowd-victory.wav');
     this._load('fight','assets/sounds/fight-voice.mp3');
     this._load('intro','assets/sounds/intro-music.mp3');
     this._bgMusic=new Audio('assets/sounds/bg-music.mp3');
@@ -335,7 +335,7 @@ var SND={
   },
   // Procedural UI sounds via Web Audio API
   playTone:function(freq,dur,vol,type){
-    if(!this.sfxOn)return;
+    if(!this.soundOn)return;
     var c=this._getCtx();if(!c)return;
     try{
       var n=c.currentTime;
@@ -348,29 +348,22 @@ var SND={
     }catch(e){}
   },
   // ── UI Sound Effects ──
-  // ── UI Sounds (sfxOn) ──
   playBet:function(){
-    if(!this.sfxOn)return;
+    // Satisfying "chip place" sound: quick ascending tone
     this.playTone(400,0.08,0.2,'sine');
     var self=this;setTimeout(function(){self.playTone(600,0.06,0.15,'sine')},50);
     setTimeout(function(){self.playTone(800,0.1,0.12,'sine')},90);
   },
   playCashout:function(){
-    if(!this.sfxOn)return;
-    this.playTone(523,0.1,0.2,'sine');
-    var self=this;setTimeout(function(){self.playTone(659,0.1,0.18,'sine')},80);
-    setTimeout(function(){self.playTone(784,0.15,0.2,'sine')},160);
-    setTimeout(function(){self.playTone(1047,0.2,0.15,'sine')},250);
+    // Happy "cash register" sound: bright ascending chime
+    this.playTone(523,0.1,0.2,'sine'); // C5
+    var self=this;setTimeout(function(){self.playTone(659,0.1,0.18,'sine')},80); // E5
+    setTimeout(function(){self.playTone(784,0.15,0.2,'sine')},160); // G5
+    setTimeout(function(){self.playTone(1047,0.2,0.15,'sine')},250); // C6
   },
   playClick:function(){
-    if(!this.sfxOn)return;
+    // Subtle button click
     this.playTone(800,0.04,0.1,'square');
-  },
-  // ── Game Sounds (gameSndOn) ──
-  playGame:function(key,vol){
-    if(!this.gameSndOn)return;
-    var s=this._sounds[key];if(!s)return;
-    try{var c=s.cloneNode();c.volume=vol||0.5;var p=c.play();if(p&&p.catch)p.catch(function(){});this._playing[key]=c}catch(e){}
   },
   stop:function(key){
     var c=this._playing[key];if(!c)return;
@@ -394,10 +387,8 @@ var SND={
     if(!this._bgMusic)return;
     try{this._bgMusic.pause();this._bgMusic.currentTime=0;this._bgPlaying=false}catch(e){}
   },
-  toggleSfx:function(){this.sfxOn=!this.sfxOn;return this.sfxOn},
-  toggleGameSnd:function(){this.gameSndOn=!this.gameSndOn;return this.gameSndOn},
-  toggleMusic:function(){this.musicOn=!this.musicOn;if(this.musicOn)this.startBG();else this.stopBG();return this.musicOn},
-  toggleSound:function(){this.soundOn=!this.soundOn;return this.soundOn}
+  toggleSound:function(){this.soundOn=!this.soundOn;return this.soundOn},
+  toggleMusic:function(){this.musicOn=!this.musicOn;if(this.musicOn)this.startBG();else this.stopBG();return this.musicOn}
 };
 SND.init();
 // Start audio on first interaction
@@ -772,28 +763,6 @@ function betAction(s){
 }
 
 function toggleAuto(s,type){try{if(type==='bet'){G.autoBet[s-1]=!G.autoBet[s-1];$('autoBet'+s).classList.toggle('on',G.autoBet[s-1])}else{G.autoCash[s-1]=!G.autoCash[s-1];$('autoCash'+s).classList.toggle('on',G.autoCash[s-1])}}catch(e){}}
-// Select or cancel auto rounds for a slot
-function setAutoRounds(slot,count,btnEl){
-  if(!window._autoRounds)window._autoRounds=[0,0];
-  var idx=slot-1;
-  var panel=$('autoPanel'+slot);
-  var badge=$('autoBadge'+slot);
-  var autoBtn=$('autoBet'+slot);
-  var roundBtns=panel?panel.querySelectorAll('.bp-round-btn'):[];
-  // If same button clicked again (already active) — cancel auto-bet, panel stays open
-  if(btnEl&&btnEl.classList.contains('active')){
-    window._autoRounds[idx]=0;
-    if(badge){badge.style.display='none'}
-    roundBtns.forEach(function(b){b.classList.remove('active');var p=b.querySelector('.bp-rb-play');if(p)p.textContent='▶'});
-    return;
-  }
-  // Set new count — panel stays open
-  window._autoRounds[idx]=count;
-  if(badge){badge.textContent=count;badge.style.display=''}
-  // Update button states
-  roundBtns.forEach(function(b){b.classList.remove('active');var p=b.querySelector('.bp-rb-play');if(p)p.textContent='▶'});
-  if(btnEl){btnEl.classList.add('active');var pi=btnEl.querySelector('.bp-rb-play');if(pi)pi.textContent='■'}
-}
 
 function switchTab(s,tab){
   try{
@@ -868,21 +837,8 @@ function startBettingPhase(){
   try{setSt('PLACE YOUR BETS — '+Math.ceil(G.phaseTimer)+'s','s1')}catch(e){}
   try{populateSidebar()}catch(e){}
   try{sfx.stopFreefall();sfx.play('launch')}catch(e){}
-  // Auto bet — from autoRounds counter or autoBet toggle
-  if(!window._autoRounds)window._autoRounds=[0,0];
-  for(var i=0;i<2;i++){try{
-    var shouldAuto=G.autoBet[i]||window._autoRounds[i]>0;
-    if(shouldAuto&&G.bets[i].amount>=(CFG.betMin||0.1)&&G.bets[i].amount<=(CFG.betMax||100)&&G.bets[i].amount<=G.balance){
-      G.balance-=G.bets[i].amount;G.bets[i].placed=true;G.bets[i].out=false;G.bets[i].cashMult=0;G.totWg+=G.bets[i].amount;updBal();updPanelBtn(i+1);
-      // Decrement auto rounds counter
-      if(window._autoRounds[i]>0){
-        window._autoRounds[i]--;
-        var badge=$('autoBadge'+(i+1));
-        if(badge){badge.textContent=window._autoRounds[i];if(window._autoRounds[i]<=0){badge.style.display='none';$('autoBet'+(i+1)).classList.remove('active')}}
-      }
-      if(SYNC.enabled){try{FB.writeBet(G.roundNum,{name:_selectedName||'Player',avatar:_selectedAvatar||'🥊',bet:G.bets[i].amount,slot:i+1,cashMult:0})}catch(e2){}}
-    }
-  }catch(e){}}
+  // Auto bet
+  for(var i=0;i<2;i++){try{if(G.autoBet[i]&&G.bets[i].amount>=(CFG.betMin||0.1)&&G.bets[i].amount<=(CFG.betMax||100)&&G.bets[i].amount<=G.balance){G.balance-=G.bets[i].amount;G.bets[i].placed=true;G.bets[i].out=false;G.bets[i].cashMult=0;G.totWg+=G.bets[i].amount;updBal();updPanelBtn(i+1);if(SYNC.enabled){try{FB.writeBet(G.roundNum,{name:_selectedName||'Player',avatar:_selectedAvatar||'🧑‍✈️',bet:G.bets[i].amount,slot:i+1,cashMult:0})}catch(e2){}}}}catch(e){}}
 }
 
 function startExplodePhase(){
@@ -890,7 +846,7 @@ function startExplodePhase(){
   try{lockPanels(true);setSt('FIGHTERS READY','s2');hideCine();G.camera.zoomTarget=1.6}catch(e){}
   try{$('roundBanner').style.display='none'}catch(e){}
   // FIGHT voice at round start
-  SND.playGame('fight',0.6);
+  SND.play('fight',0.6);
 }
 
 function startFreefallPhase(){
@@ -1756,13 +1712,8 @@ var _burgerBtn=document.getElementById('burgerBtn');if(_burgerBtn)_burgerBtn.onc
 var _menuClose=document.getElementById('menuClose');if(_menuClose)_menuClose.onclick=closeMenu;
 if(menuOverlay)menuOverlay.onclick=closeMenu;
 // Sound toggle in menu
-// Sound controls
-var _sfxToggle=document.getElementById('sfxToggle');
-var _gameSndToggle=document.getElementById('gameSndToggle');
-var _musicToggle=document.getElementById('musicToggle');
-document.getElementById('menuSfx').onclick=function(){var on=SND.toggleSfx();if(_sfxToggle)_sfxToggle.classList.toggle('on',on)};
-document.getElementById('menuGameSnd').onclick=function(){var on=SND.toggleGameSnd();if(_gameSndToggle)_gameSndToggle.classList.toggle('on',on)};
-document.getElementById('menuMusic').onclick=function(){var on=SND.toggleMusic();if(_musicToggle)_musicToggle.classList.toggle('on',on)};
+document.getElementById('menuSound').onclick=()=>{const on=sfx.toggleSound();document.getElementById('soundToggle').classList.toggle('on',on)};
+document.getElementById('menuMusic').onclick=()=>{const on=sfx.toggleMusic();document.getElementById('musicToggle').classList.toggle('on',on)};
 // Menu items open modals
 document.getElementById('menuHowToPlay').onclick=()=>{closeMenu();document.getElementById('infoModal').classList.add('open')};
 document.getElementById('menuGameRules').onclick=()=>{closeMenu();document.getElementById('rulesModal').classList.add('open')};
