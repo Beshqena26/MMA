@@ -62,7 +62,7 @@ canvas{position:fixed;top:0;left:0;z-index:1}
 @keyframes boostf{0%{opacity:1;transform:translateY(0) scale(1.2)}30%{opacity:1;transform:translateY(-15px) scale(1.35)}70%{opacity:.9;transform:translateY(-35px) scale(1.1)}100%{opacity:0;transform:translateY(-60px) scale(.7)}}
 /* ============ BOTTOM PANEL — MOBILE FIRST ============ */
 .bottom-dock{display:none}
-.bp{flex-shrink:0;background:rgba(8,10,18,.95);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:8px 8px calc(8px + var(--sab));border-top:1px solid rgba(255,255,255,.04);display:flex;flex-direction:row;gap:8px;margin-top:auto;justify-content:center}
+.bp{flex-shrink:0;background:rgba(8,10,18,.95);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:8px 8px calc(8px + var(--sab));border-top:1px solid rgba(255,255,255,.04);display:flex;flex-direction:row;gap:8px;justify-content:center;position:fixed;bottom:0;left:0;right:0;z-index:15}
 .bp-spacer{display:none}
 .bp-panel-tabs{display:none}
 .bet-panel{position:relative;max-width:400px}
