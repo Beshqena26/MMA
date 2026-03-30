@@ -93,7 +93,7 @@ function updateFighters(){
     if(G.phaseTimer>1.2&&G.bellRing<=0)G.bellRing=0.5;
   }
   else if(G.phase==='FREEFALL'){
-    if(!G.fightStarted){G.fightStarted=true;if(typeof SND!=='undefined')SND.play('fight',0.6)}
+    if(!G.fightStarted){G.fightStarted=true}
 
     // ── OPPONENT (fists) hits ME (fighter on screen) — frequent ──
     if(!fists._stanceTimer)fists._stanceTimer=0;

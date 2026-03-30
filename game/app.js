@@ -839,10 +839,11 @@ function startExplodePhase(){
   G.phase='EXPLODE';G.phaseTimer=0;
   try{lockPanels(true);setSt('FIGHTERS READY','s2');setCine('3...','FIGHTERS READY');G.camera.zoomTarget=1.6}catch(e){}
   try{$('roundBanner').style.display='none'}catch(e){}
-  // Ready bell sound — boxing bell + "ding ding"
+  // Ready bell + FIGHT voice
   SND.playTone(1200,0.15,0.25,'sine');
   setTimeout(function(){SND.playTone(1200,0.15,0.2,'sine')},200);
   setTimeout(function(){SND.playTone(1200,0.12,0.15,'sine')},400);
+  setTimeout(function(){SND.play('fight',0.6)},500);
 }
 
 function startFreefallPhase(){
