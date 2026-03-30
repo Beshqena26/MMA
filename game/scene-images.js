@@ -225,7 +225,7 @@ function render(){
     cx.save();
     var isMob=W<600,isTab=W>=600&&W<900;
     // On mobile, use visible area (55vh) not full canvas height
-    var visH=isMob?H*0.56:H;
+    var visH=isMob?H:H;
     var oppMaxW=isMob?0.66:isTab?0.5:0.45;
     var oppMaxH=isMob?0.66:isTab?0.7:0.75;
     var oppScale=Math.min(W*oppMaxW/oppImg.naturalWidth,visH*oppMaxH/oppImg.naturalHeight);
@@ -290,8 +290,8 @@ function render(){
     var idleBobR=Math.sin(time*2+1)*(W<600?3:5);
 
     // Base positions — tighter to center, bottom -30px
-    var visHF=W<600?H*0.56:H;
-    var fistBottomOffset=W<600?10:30;
+    var visHF=H;
+    var fistBottomOffset=W<600?32:30;
     var lBaseX=W*0.5-fistW2*0.8;
     var lBaseY=visHF-fistH2+fistBottomOffset+idleBobL;
     var rBaseX=W*0.5-fistW2*0.2;
