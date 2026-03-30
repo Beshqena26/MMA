@@ -292,7 +292,7 @@ function render(){
 
     // Base positions — tighter to center, bottom -30px
     var visHF=H;
-    var fistBottomOffset=W<600?72:30;
+    var fistBottomOffset=W<600?124:30;
     var lBaseX=W*0.5-fistW2*0.8;
     var lBaseY=visHF-fistH2+fistBottomOffset+idleBobL;
     var rBaseX=W*0.5-fistW2*0.2;
