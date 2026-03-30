@@ -846,8 +846,21 @@ function startBettingPhase(){
   try{setSt('PLACE YOUR BETS — '+Math.ceil(G.phaseTimer)+'s','s1')}catch(e){}
   try{populateSidebar()}catch(e){}
   try{sfx.stopFreefall();sfx.play('launch')}catch(e){}
-  // Auto bet
-  for(var i=0;i<2;i++){try{if(G.autoBet[i]&&G.bets[i].amount>=(CFG.betMin||0.1)&&G.bets[i].amount<=(CFG.betMax||100)&&G.bets[i].amount<=G.balance){G.balance-=G.bets[i].amount;G.bets[i].placed=true;G.bets[i].out=false;G.bets[i].cashMult=0;G.totWg+=G.bets[i].amount;updBal();updPanelBtn(i+1);if(SYNC.enabled){try{FB.writeBet(G.roundNum,{name:_selectedName||'Player',avatar:_selectedAvatar||'🧑‍✈️',bet:G.bets[i].amount,slot:i+1,cashMult:0})}catch(e2){}}}}catch(e){}}
+  // Auto bet — from autoRounds counter or autoBet toggle
+  if(!window._autoRounds)window._autoRounds=[0,0];
+  for(var i=0;i<2;i++){try{
+    var shouldAuto=G.autoBet[i]||window._autoRounds[i]>0;
+    if(shouldAuto&&G.bets[i].amount>=(CFG.betMin||0.1)&&G.bets[i].amount<=(CFG.betMax||100)&&G.bets[i].amount<=G.balance){
+      G.balance-=G.bets[i].amount;G.bets[i].placed=true;G.bets[i].out=false;G.bets[i].cashMult=0;G.totWg+=G.bets[i].amount;updBal();updPanelBtn(i+1);
+      // Decrement auto rounds counter
+      if(window._autoRounds[i]>0){
+        window._autoRounds[i]--;
+        var badge=$('autoBadge'+(i+1));
+        if(badge){badge.textContent=window._autoRounds[i];if(window._autoRounds[i]<=0){badge.style.display='none';$('autoBet'+(i+1)).classList.remove('active')}}
+      }
+      if(SYNC.enabled){try{FB.writeBet(G.roundNum,{name:_selectedName||'Player',avatar:_selectedAvatar||'🥊',bet:G.bets[i].amount,slot:i+1,cashMult:0})}catch(e2){}}
+    }
+  }catch(e){}}
 }
 
 function startExplodePhase(){
