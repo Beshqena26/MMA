@@ -323,6 +323,7 @@ var SND={
     this._load('punch','assets/sounds/punch.mp3');
     this._load('victory','assets/sounds/crowd-victory.wav');
     this._load('fight','assets/sounds/fight-voice.mp3');
+    this._load('cheer','assets/sounds/crowd-cheer.mp3');
     this._load('intro','assets/sounds/intro-music.mp3');
     this._bgMusic=new Audio('assets/sounds/bg-music.mp3');
     this._bgMusic.loop=true;this._bgMusic.volume=0.15;
