@@ -294,9 +294,9 @@ function render(){
     var visHF=H;
     var fistBottomOffset=W<600?124:30;
     var lBaseX=W*0.5-fistW2*0.8;
-    var lBaseY=visHF-fistH2+fistBottomOffset+idleBobL;
+    var lBaseY=visHF-fistH2-fistBottomOffset+idleBobL;
     var rBaseX=W*0.5-fistW2*0.2;
-    var rBaseY=visHF-fistH2+fistBottomOffset+idleBobR;
+    var rBaseY=visHF-fistH2-fistBottomOffset+idleBobR;
 
     // Punch animation offsets
     var lOffX=0,lOffY=0,rOffX=0,rOffY=0;
