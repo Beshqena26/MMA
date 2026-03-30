@@ -803,8 +803,6 @@ function showPanel2(){
 // ======================== PHASE FUNCTIONS ========================
 var _lastBettingRound=0;
 function startBettingPhase(){
-  // Stop victory sound from previous round
-  if(typeof SND!=='undefined')SND.stop('victory');
   G.phase='BETTING';
   G.phaseTimer=BET_TIME;
   // When SYNC is active, use Firebase round number directly to prevent double-increment
@@ -845,7 +843,7 @@ function startBettingPhase(){
 
 function startExplodePhase(){
   G.phase='EXPLODE';G.phaseTimer=0;
-  try{lockPanels(true);setSt('FIGHTERS READY','s2');setCine('3...','FIGHTERS READY');G.camera.zoomTarget=1.6}catch(e){}
+  try{lockPanels(true);setSt('FIGHTERS READY','s2');hideCine();G.camera.zoomTarget=1.6}catch(e){}
   try{$('roundBanner').style.display='none'}catch(e){}
   // FIGHT voice at round start
   SND.play('fight',0.6);
@@ -948,8 +946,7 @@ function update(ts){
     else if(G.phase==='EXPLODE'){
       G.phaseTimer+=G.dt;
       G.camera.zoomTarget=1.05;
-      var cd=3-Math.floor(G.phaseTimer/0.7);
-      if(cd>=1)setCine(cd+'...','FIGHTERS READY');
+      // countdown removed
       if(G.phaseTimer>=0.6&&G.mult<1.01){
         G.mult=1.0;G.speed=CFG.multSpeed||0.002;G.lastMultFloor=0;
         updAllBtns();

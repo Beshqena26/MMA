@@ -84,8 +84,6 @@ function updateFighters(){
   // Phase logic
   if(G.phase==='BETTING'){
     opp.health=1;opp.hitFlash=0;opp.staggerX=0;opp.staggerY=0;opp.leanAngle=0;opp.flinchTimer=0;opp.shakeX=0;opp.shakeY=0;
-    if(typeof SND!=='undefined')SND.stop('victory');
-    if(G._victoryTimeout){clearTimeout(G._victoryTimeout);G._victoryTimeout=null}
     fists.punchPhase='idle';fists.combo=0;
     G.koKick={active:false,timer:0};G.koTimer=0;G._koLegSide=null;G._koFistFade=0;
   }
@@ -158,20 +156,7 @@ function updateFighters(){
     if(G.koTimer<0.05){
       G.arenaShake=12;G.crowdRoar=1;
       opp.atkPose='punch';opp.atkPoseTimer=2;
-      if(typeof SND!=='undefined'){
-        SND.play('punch',0.7);
-        G._victoryTimeout=setTimeout(function(){
-          // Play victory and auto-kill after 2s
-          var vs=SND._sounds['victory'];
-          if(vs&&SND.soundOn){
-            var vc=vs.cloneNode();vc.volume=0.25;
-            try{vc.play()}catch(e){}
-            SND._playing['victory']=vc;
-            // Force stop after 2 seconds
-            setTimeout(function(){try{vc.pause();vc.currentTime=0}catch(e){}},2000);
-          }
-        },500);
-      }
+      if(typeof SND!=='undefined'){SND.play('punch',0.7)}
     }
     // Opponent's fists fade out (they lose)
     G._koFistFade=Math.min(1,G.koTimer/0.5); // 0→1 over 0.5s
