@@ -232,36 +232,17 @@
 <div class="menu-overlay" id="menuOverlay"></div>
 <div class="menu-panel" id="menuPanel">
   <div class="menu-head">
+    <div class="menu-avatar" id="menuAvatarBtn" style="cursor:default">🥊</div>
     <div class="menu-user">
-      <div class="menu-user-name">MMA</div>
-      <div class="menu-user-id">Fight Arena</div>
+      <div class="menu-user-name" id="menuUserName">Player</div>
+      <div class="menu-user-id">MMA</div>
     </div>
     <button class="menu-close" id="menuClose">✕</button>
   </div>
-
-  <!-- SOUND CONTROLS -->
-  <div class="menu-section">
-    <div class="menu-section-title">Sound Settings</div>
-    <div class="menu-item" id="menuSfx">
-      <span class="mi-icon">🔊</span>
-      <span class="mi-label">SFX</span>
-      <div class="menu-toggle on" id="sfxToggle"></div>
-    </div>
-    <div class="menu-item" id="menuGameSnd">
-      <span class="mi-icon">🥊</span>
-      <span class="mi-label">Fight</span>
-      <div class="menu-toggle on" id="gameSndToggle"></div>
-    </div>
-    <div class="menu-item" id="menuMusic">
-      <span class="mi-icon">🎵</span>
-      <span class="mi-label">Music</span>
-      <div class="menu-toggle on" id="musicToggle"></div>
-    </div>
+  <div style="display:none">
+    <div id="menuSound"></div><div id="soundToggle"></div>
+    <div id="menuMusic"></div><div id="musicToggle"></div>
   </div>
-
-  <div class="menu-divider"></div>
-
-  <!-- NAVIGATION -->
   <div class="menu-section">
     <div class="menu-item" id="menuHowToPlay"><span class="mi-icon">❓</span><span class="mi-label">How To Play</span></div>
     <div class="menu-item" id="menuGameRules"><span class="mi-icon">📋</span><span class="mi-label">Game Rules</span></div>
@@ -269,10 +250,9 @@
     <div class="menu-item" id="menuGameLimits"><span class="mi-icon">⚙️</span><span class="mi-label">Game Limits</span></div>
     <div class="menu-item" id="menuTerms"><span class="mi-icon">📄</span><span class="mi-label">Terms & Conditions</span></div>
   </div>
-
   <div class="menu-footer">
-    <div class="menu-footer-logo"><span style="color:#ef4444">MMA</span> Fight Arena</div>
-    <div class="menu-footer-ver">v1.0</div>
+    <div class="menu-footer-logo">SKY<span style="background:linear-gradient(135deg,#ff3366,#ff6644);-webkit-background-clip:text;-webkit-text-fill-color:transparent">DROP</span> II</div>
+    <div class="menu-footer-ver">v2.0 • Prototype</div>
   </div>
 </div>
 
