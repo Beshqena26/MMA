@@ -772,6 +772,32 @@ function betAction(s){
 }
 
 function toggleAuto(s,type){try{if(type==='bet'){G.autoBet[s-1]=!G.autoBet[s-1];$('autoBet'+s).classList.toggle('on',G.autoBet[s-1])}else{G.autoCash[s-1]=!G.autoCash[s-1];$('autoCash'+s).classList.toggle('on',G.autoCash[s-1])}}catch(e){}}
+// Select or cancel auto rounds for a slot
+function setAutoRounds(slot,count,btnEl){
+  if(!window._autoRounds)window._autoRounds=[0,0];
+  var idx=slot-1;
+  var panel=$('autoPanel'+slot);
+  var badge=$('autoBadge'+slot);
+  var autoBtn=$('autoBet'+slot);
+  var roundBtns=panel?panel.querySelectorAll('.bp-round-btn'):[];
+  // If same button clicked again (already active) — cancel
+  if(btnEl&&btnEl.classList.contains('active')){
+    window._autoRounds[idx]=0;
+    if(badge){badge.style.display='none'}
+    if(autoBtn)autoBtn.classList.remove('active');
+    roundBtns.forEach(function(b){b.classList.remove('active');var p=b.querySelector('.bp-rb-play');if(p)p.textContent='▶'});
+    if(panel)panel.style.display='none';
+    return;
+  }
+  // Set new count
+  window._autoRounds[idx]=count;
+  if(badge){badge.textContent=count;badge.style.display=''}
+  if(panel)panel.style.display='none';
+  if(autoBtn)autoBtn.classList.remove('active');
+  // Update button states
+  roundBtns.forEach(function(b){b.classList.remove('active');var p=b.querySelector('.bp-rb-play');if(p)p.textContent='▶'});
+  if(btnEl){btnEl.classList.add('active');var pi=btnEl.querySelector('.bp-rb-play');if(pi)pi.textContent='■'}
+}
 
 function switchTab(s,tab){
   try{
