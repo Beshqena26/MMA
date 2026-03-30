@@ -166,7 +166,7 @@ canvas{position:fixed;top:0;left:0;z-index:1}
 .menu-footer{padding:16px;text-align:center;margin-top:auto;border-top:1px solid rgba(255,255,255,.04)}
 .menu-footer-logo{font-family:'Oxanium',sans-serif;font-weight:800;font-size:14px;letter-spacing:2px;background:linear-gradient(135deg,#4caf50,#00e5ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .menu-footer-ver{font-size:9px;color:var(--dim);margin-top:2px}
-.mobile-sb{display:flex;flex-direction:column;background:var(--panel);border-top:1px solid var(--border);flex-shrink:0;padding-bottom:120px}
+.mobile-sb{display:none}
 .mobile-sb .sb-list{flex:none;overflow:visible}
 .mobile-sb .msb-content{display:flex;flex-direction:column;flex:none;overflow:visible}
 .mobile-sb .msb-content[style*="display: none"]{display:none!important}
