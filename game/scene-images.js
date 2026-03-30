@@ -15,7 +15,7 @@ var _imgList=[
   {key:'bg',src:'assets/bg.png'},
   {key:'idle',src:'assets/Fighter-Idle.png'},
   {key:'hook',src:'assets/Fighter-hook.png'},
-  {key:'kick',src:'assets/fighter-Kick.png'},
+  {key:'kick',src:'assets/Fighter-kick.png'},
   {key:'victory',src:'assets/fighter-Victory.png'},
   {key:'hitL',src:'assets/fighter-hit-left.png'},
   {key:'hitR',src:'assets/fighter-hit-right.png'},
