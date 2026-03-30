@@ -224,13 +224,15 @@ function render(){
   if(oppImg&&oppImg.naturalWidth){
     cx.save();
     var isMob=W<600,isTab=W>=600&&W<900;
-    var oppMaxW=isMob?0.45:isTab?0.5:0.45;
-    var oppMaxH=isMob?0.5:isTab?0.7:0.75;
-    var oppScale=Math.min(W*oppMaxW/oppImg.naturalWidth,H*oppMaxH/oppImg.naturalHeight);
+    // On mobile, use visible area (55vh) not full canvas height
+    var visH=isMob?H*0.55:H;
+    var oppMaxW=isMob?0.55:isTab?0.5:0.45;
+    var oppMaxH=isMob?0.55:isTab?0.7:0.75;
+    var oppScale=Math.min(W*oppMaxW/oppImg.naturalWidth,visH*oppMaxH/oppImg.naturalHeight);
     var oppW=oppImg.naturalWidth*oppScale;
     var oppH=oppImg.naturalHeight*oppScale;
     var oppX=W*0.5-oppW/2+(opp.staggerX||0)+(opp.shakeX||0);
-    var oppY=H-oppH+(opp.staggerY||0)+(opp.shakeY||0)+Math.sin(opp.breathCycle||0)*2;
+    var oppY=visH-oppH+(opp.staggerY||0)+(opp.shakeY||0)+Math.sin(opp.breathCycle||0)*2;
 
     // Lean from hits
     if(opp.leanAngle){
@@ -288,11 +290,12 @@ function render(){
     var idleBobR=Math.sin(time*2+1)*(W<600?3:5);
 
     // Base positions — tighter to center, bottom -30px
-    var fistBottomOffset=30;
-    var lBaseX=W*0.5-fistW2*0.8; // tight to center
-    var lBaseY=H-fistH2+fistBottomOffset+idleBobL;
-    var rBaseX=W*0.5-fistW2*0.2; // tight to center
-    var rBaseY=H-fistH2+fistBottomOffset+idleBobR;
+    var visHF=W<600?H*0.55:H;
+    var fistBottomOffset=W<600?10:30;
+    var lBaseX=W*0.5-fistW2*0.8;
+    var lBaseY=visHF-fistH2+fistBottomOffset+idleBobL;
+    var rBaseX=W*0.5-fistW2*0.2;
+    var rBaseY=visHF-fistH2+fistBottomOffset+idleBobR;
 
     // Punch animation offsets
     var lOffX=0,lOffY=0,rOffX=0,rOffY=0;
@@ -320,7 +323,7 @@ function render(){
   // ═══ L5: IMPACT FLASH ═══
   if(fists.punchPhase==='hold'||(fists.punchPhase==='extend'&&(fists.punchTimer||0)<0.03)){
     var impX=W*0.5+(opp.staggerX||0)*2;
-    var impY=H*0.35;
+    var impY=(W<600?H*0.55:H)*0.35;
     cx.save();cx.globalAlpha=0.5;
     var ig=cx.createRadialGradient(impX,impY,0,impX,impY,W*0.07);
     ig.addColorStop(0,'rgba(255,255,255,0.9)');ig.addColorStop(0.3,'rgba(255,240,150,0.4)');ig.addColorStop(1,'transparent');
