@@ -244,13 +244,6 @@ function render(){
     // Draw opponent
     cx.drawImage(oppImg,oppX,oppY,oppW,oppH);
 
-    // Hit flash white overlay
-    if((opp.hitFlash||0)>0){
-      cx.globalAlpha=opp.hitFlash*0.3;
-      cx.fillStyle='#fff';
-      cx.fillRect(oppX,oppY,oppW,oppH);
-      cx.globalAlpha=1;
-    }
 
 
     cx.restore();
