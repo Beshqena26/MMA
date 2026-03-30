@@ -158,10 +158,12 @@ canvas{position:fixed;top:0;left:0;z-index:1}
 .menu-item:active{background:rgba(255,255,255,.05)}
 .menu-item .mi-icon{width:20px;text-align:center;font-size:16px;opacity:.6}
 .menu-item .mi-label{flex:1}
-.menu-toggle{width:36px;height:20px;background:var(--panel2);border-radius:10px;position:relative;flex-shrink:0;transition:.2s}
-.menu-toggle.on{background:rgba(76,175,80,.3)}
-.menu-toggle::after{content:'';position:absolute;top:3px;left:3px;width:14px;height:14px;background:var(--dim);border-radius:50%;transition:.2s}
-.menu-toggle.on::after{left:19px;background:var(--acc)}
+.mi-hint{display:block;font-size:9px;color:var(--dim);opacity:0.6;margin-top:1px}
+.menu-item{flex-wrap:wrap}
+.menu-toggle{width:40px;height:22px;background:rgba(255,255,255,.08);border-radius:11px;position:relative;flex-shrink:0;transition:.2s;cursor:pointer;margin-left:auto}
+.menu-toggle.on{background:rgba(76,175,80,.35)}
+.menu-toggle::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;background:var(--dim);border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,0.3)}
+.menu-toggle.on::after{left:21px;background:var(--acc);box-shadow:0 0 6px rgba(76,175,80,0.4)}
 .menu-divider{height:1px;background:rgba(255,255,255,.04);margin:4px 16px}
 .menu-footer{padding:16px;text-align:center;margin-top:auto;border-top:1px solid rgba(255,255,255,.04)}
 .menu-footer-logo{font-family:'Oxanium',sans-serif;font-weight:800;font-size:14px;letter-spacing:2px;background:linear-gradient(135deg,#4caf50,#00e5ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}

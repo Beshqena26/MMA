@@ -316,7 +316,7 @@ var SYNC={
 
 // ======================== SFX ENGINE ========================
 var SND={
-  _sounds:{},_bgMusic:null,_bgPlaying:false,soundOn:true,musicOn:true,_ctx:null,
+  _sounds:{},_bgMusic:null,_bgPlaying:false,soundOn:true,sfxOn:true,gameSndOn:true,musicOn:true,_ctx:null,
   _load:function(key,src){var a=new Audio(src);a.preload='auto';this._sounds[key]=a},
   _getCtx:function(){if(!this._ctx){try{this._ctx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}return this._ctx},
   init:function(){
@@ -335,7 +335,7 @@ var SND={
   },
   // Procedural UI sounds via Web Audio API
   playTone:function(freq,dur,vol,type){
-    if(!this.soundOn)return;
+    if(!this.sfxOn)return;
     var c=this._getCtx();if(!c)return;
     try{
       var n=c.currentTime;
@@ -348,22 +348,29 @@ var SND={
     }catch(e){}
   },
   // ── UI Sound Effects ──
+  // ── UI Sounds (sfxOn) ──
   playBet:function(){
-    // Satisfying "chip place" sound: quick ascending tone
+    if(!this.sfxOn)return;
     this.playTone(400,0.08,0.2,'sine');
     var self=this;setTimeout(function(){self.playTone(600,0.06,0.15,'sine')},50);
     setTimeout(function(){self.playTone(800,0.1,0.12,'sine')},90);
   },
   playCashout:function(){
-    // Happy "cash register" sound: bright ascending chime
-    this.playTone(523,0.1,0.2,'sine'); // C5
-    var self=this;setTimeout(function(){self.playTone(659,0.1,0.18,'sine')},80); // E5
-    setTimeout(function(){self.playTone(784,0.15,0.2,'sine')},160); // G5
-    setTimeout(function(){self.playTone(1047,0.2,0.15,'sine')},250); // C6
+    if(!this.sfxOn)return;
+    this.playTone(523,0.1,0.2,'sine');
+    var self=this;setTimeout(function(){self.playTone(659,0.1,0.18,'sine')},80);
+    setTimeout(function(){self.playTone(784,0.15,0.2,'sine')},160);
+    setTimeout(function(){self.playTone(1047,0.2,0.15,'sine')},250);
   },
   playClick:function(){
-    // Subtle button click
+    if(!this.sfxOn)return;
     this.playTone(800,0.04,0.1,'square');
+  },
+  // ── Game Sounds (gameSndOn) ──
+  playGame:function(key,vol){
+    if(!this.gameSndOn)return;
+    var s=this._sounds[key];if(!s)return;
+    try{var c=s.cloneNode();c.volume=vol||0.5;var p=c.play();if(p&&p.catch)p.catch(function(){});this._playing[key]=c}catch(e){}
   },
   stop:function(key){
     var c=this._playing[key];if(!c)return;
@@ -387,8 +394,10 @@ var SND={
     if(!this._bgMusic)return;
     try{this._bgMusic.pause();this._bgMusic.currentTime=0;this._bgPlaying=false}catch(e){}
   },
-  toggleSound:function(){this.soundOn=!this.soundOn;return this.soundOn},
-  toggleMusic:function(){this.musicOn=!this.musicOn;if(this.musicOn)this.startBG();else this.stopBG();return this.musicOn}
+  toggleSfx:function(){this.sfxOn=!this.sfxOn;return this.sfxOn},
+  toggleGameSnd:function(){this.gameSndOn=!this.gameSndOn;return this.gameSndOn},
+  toggleMusic:function(){this.musicOn=!this.musicOn;if(this.musicOn)this.startBG();else this.stopBG();return this.musicOn},
+  toggleSound:function(){this.soundOn=!this.soundOn;return this.soundOn}
 };
 SND.init();
 // Start audio on first interaction
@@ -846,7 +855,7 @@ function startExplodePhase(){
   try{lockPanels(true);setSt('FIGHTERS READY','s2');hideCine();G.camera.zoomTarget=1.6}catch(e){}
   try{$('roundBanner').style.display='none'}catch(e){}
   // FIGHT voice at round start
-  SND.play('fight',0.6);
+  SND.playGame('fight',0.6);
 }
 
 function startFreefallPhase(){
@@ -1712,8 +1721,13 @@ var _burgerBtn=document.getElementById('burgerBtn');if(_burgerBtn)_burgerBtn.onc
 var _menuClose=document.getElementById('menuClose');if(_menuClose)_menuClose.onclick=closeMenu;
 if(menuOverlay)menuOverlay.onclick=closeMenu;
 // Sound toggle in menu
-document.getElementById('menuSound').onclick=()=>{const on=sfx.toggleSound();document.getElementById('soundToggle').classList.toggle('on',on)};
-document.getElementById('menuMusic').onclick=()=>{const on=sfx.toggleMusic();document.getElementById('musicToggle').classList.toggle('on',on)};
+// Sound controls
+var _sfxToggle=document.getElementById('sfxToggle');
+var _gameSndToggle=document.getElementById('gameSndToggle');
+var _musicToggle=document.getElementById('musicToggle');
+document.getElementById('menuSfx').onclick=function(){var on=SND.toggleSfx();if(_sfxToggle)_sfxToggle.classList.toggle('on',on)};
+document.getElementById('menuGameSnd').onclick=function(){var on=SND.toggleGameSnd();if(_gameSndToggle)_gameSndToggle.classList.toggle('on',on)};
+document.getElementById('menuMusic').onclick=function(){var on=SND.toggleMusic();if(_musicToggle)_musicToggle.classList.toggle('on',on)};
 // Menu items open modals
 document.getElementById('menuHowToPlay').onclick=()=>{closeMenu();document.getElementById('infoModal').classList.add('open')};
 document.getElementById('menuGameRules').onclick=()=>{closeMenu();document.getElementById('rulesModal').classList.add('open')};
