@@ -22,7 +22,7 @@ canvas{position:fixed;top:0;left:0;z-index:1}
 .hc.g{background:rgba(76,175,80,.12);color:var(--acc);border:1px solid rgba(76,175,80,.15);box-shadow:0 0 8px rgba(76,175,80,.08)}
 .hc.y{background:rgba(255,170,0,.1);color:var(--wrn);border:1px solid rgba(255,170,0,.12);box-shadow:0 0 8px rgba(255,170,0,.06)}
 .hc.r{background:rgba(255,34,85,.1);color:var(--dng);border:1px solid rgba(255,34,85,.12);box-shadow:0 0 8px rgba(255,34,85,.06)}
-.mid{flex:0 0 auto;height:55vh;height:55dvh;position:relative;pointer-events:none}
+.mid{flex:1;min-height:0;position:relative;pointer-events:none;background:transparent}
 .cine{position:absolute;top:12%;left:50%;transform:translate(-50%,-50%) scale(.92);text-align:center;pointer-events:none;opacity:0;transition:opacity .5s,transform .5s cubic-bezier(.23,1,.32,1)}.cine.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
 .cine .c1{font-family:'Oxanium',sans-serif;font-size:56px;font-weight:800;line-height:1;color:var(--acc);text-shadow:0 0 60px rgba(76,175,80,.25),0 2px 20px rgba(0,0,0,.3);transition:color .5s,text-shadow .5s;letter-spacing:-1px}
 .cine .c2{font-size:10px;font-weight:600;color:var(--dim);letter-spacing:4px;margin-top:6px;text-shadow:0 1px 4px rgba(0,0,0,.3)}
@@ -103,7 +103,7 @@ canvas{position:fixed;top:0;left:0;z-index:1}
 .bp-auto-input::placeholder{color:var(--dim)}
 .bp-auto-x{margin-left:-3px;font-weight:700;color:var(--dim);font-size:10px}
 .main-row{flex:1;display:flex;flex-direction:column;min-height:0}
-.game-area{flex:1;display:flex;flex-direction:column;min-height:0}
+.game-area{flex:1;display:flex;flex-direction:column;min-height:0;background:transparent}
 .sidebar{display:none;flex-direction:column;background:var(--panel);overflow:hidden}
 .sb-tabs{display:flex;background:var(--panel2);border-radius:8px;margin:6px;overflow:hidden}
 .sb-tab{flex:1;text-align:center;padding:6px 0;font-family:'Oxanium',sans-serif;font-size:11px;font-weight:700;color:var(--dim);cursor:pointer;border-radius:7px;transition:.2s}.sb-tab.active{background:rgba(255,255,255,.08);color:var(--txt)}
