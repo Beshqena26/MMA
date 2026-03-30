@@ -264,8 +264,8 @@ function render(){
     // Health fill
     var hp=Math.max(0,Math.min(1,opp.health||1));
     var hpG=cx.createLinearGradient(bX,0,bX+bW*hp,0);
-    hpG.addColorStop(0,hp>0.5?'#22aa44':hp>0.25?'#cc8800':'#cc2222');
-    hpG.addColorStop(1,hp>0.5?'#44dd66':hp>0.25?'#ffaa00':'#ff4444');
+    hpG.addColorStop(0,hp>0.5?'#c62828':hp>0.25?'#e65100':'#b71c1c');
+    hpG.addColorStop(1,hp>0.5?'#e53935':hp>0.25?'#ff9800':'#d32f2f');
     cx.fillStyle=hpG;
     cx.fillRect(bX+1,bY+1,(bW-2)*hp,bH-2);
     // Border
