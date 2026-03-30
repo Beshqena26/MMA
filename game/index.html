@@ -72,39 +72,46 @@
       </div>
       <div class="bp" id="betPanel">
         <div class="bet-panel" id="panel1">
-          <div class="bp-body">
-            <div class="bp-left">
-              <div class="bp-amtrow"><button class="bp-btn" onclick="adj(1,-1)">−</button><div class="bp-amt" id="a1">1.00</div><button class="bp-btn" onclick="adj(1,1)">+</button></div>
-              <div class="bp-quicks"><button class="bp-q" onclick="sa(1,1)">1</button><button class="bp-q" onclick="sa(1,2)">2</button><button class="bp-q" onclick="sa(1,5)">5</button><button class="bp-q" onclick="sa(1,10)">10</button></div>
-            </div>
-            <div class="bp-right"><button class="bp-betbtn" id="btn1" onclick="betAction(1)"><span class="bb-label">Bet</span><span class="bb-amount" id="btn1amt">1.00 USD</span></button></div>
+          <div class="bp-amtrow">
+            <button class="bp-btn" onclick="adj(1,-1)">−</button>
+            <div class="bp-amt" id="a1">5.00</div>
+            <button class="bp-btn" onclick="adj(1,1)">+</button>
           </div>
-          <div class="bp-auto-row">
-            <span>Auto Bet</span>
-            <button class="bp-auto-toggle" id="autoBet1" onclick="toggleAuto(1,'bet')"><div class="dot"></div></button>
-            <span style="margin-left:auto">Cash Out</span>
-            <button class="bp-auto-toggle" id="autoCash1" onclick="toggleAuto(1,'cash')"><div class="dot"></div></button>
-            <input class="bp-auto-input" id="au1" placeholder="2.00" value="" inputmode="decimal">
-            <span class="bp-auto-x">×</span>
-            <button class="bp-add-btn" id="addPanel2" onclick="showPanel2()" style="display:none">＋</button>
+          <div class="bp-quicks">
+            <button class="bp-q" onclick="sa(1,2)">2.00</button>
+            <button class="bp-q" onclick="sa(1,5)">5.00</button>
+            <button class="bp-q" onclick="sa(1,10)">10.00</button>
+            <button class="bp-q" onclick="sa(1,G.balance)">Max</button>
           </div>
+          <div class="bp-actions">
+            <button class="bp-side-btn" id="autoBet1" onclick="toggleAuto(1,'bet')"><span class="bp-side-icon">↻</span></button>
+            <button class="bp-betbtn" id="btn1" onclick="betAction(1)"><span class="bb-label">BET</span><span class="bb-amount" id="btn1amt">5.00 USD</span></button>
+            <button class="bp-side-btn" onclick="sa(1,G.bets[0].amount*2)"><span class="bp-side-icon">x2</span></button>
+          </div>
+          <input class="bp-auto-input" id="au1" placeholder="Auto cashout" value="" inputmode="decimal" style="display:none">
+          <button class="bp-add-btn" id="addPanel2" onclick="showPanel2()" style="display:none">＋</button>
+          <div id="autoCash1" style="display:none"></div>
         </div>
         <div class="bet-panel" id="panel2">
-          <div class="bp-body">
-            <div class="bp-left">
-              <div class="bp-amtrow"><button class="bp-btn" onclick="adj(2,-1)">−</button><div class="bp-amt" id="a2">1.00</div><button class="bp-btn" onclick="adj(2,1)">+</button></div>
-              <div class="bp-quicks"><button class="bp-q" onclick="sa(2,1)">1</button><button class="bp-q" onclick="sa(2,2)">2</button><button class="bp-q" onclick="sa(2,5)">5</button><button class="bp-q" onclick="sa(2,10)">10</button></div>
-            </div>
-            <div class="bp-right"><button class="bp-betbtn" id="btn2" onclick="betAction(2)"><span class="bb-label">Bet</span><span class="bb-amount" id="btn2amt">1.00 USD</span></button></div>
+          <div class="bp-amtrow">
+            <button class="bp-btn" onclick="adj(2,-1)">−</button>
+            <div class="bp-amt" id="a2">5.00</div>
+            <button class="bp-btn" onclick="adj(2,1)">+</button>
           </div>
-          <div class="bp-auto-row">
-            <span>Auto Bet</span>
-            <button class="bp-auto-toggle" id="autoBet2" onclick="toggleAuto(2,'bet')"><div class="dot"></div></button>
-            <span style="margin-left:auto">Cash Out</span>
-            <button class="bp-auto-toggle" id="autoCash2" onclick="toggleAuto(2,'cash')"><div class="dot"></div></button>
-            <input class="bp-auto-input" id="au2" placeholder="2.00" value="" inputmode="decimal">
-            <span class="bp-auto-x">×</span>
-            <button class="bp-remove-btn" onclick="hidePanel2()">✕</button>
+          <div class="bp-quicks">
+            <button class="bp-q" onclick="sa(2,2)">2.00</button>
+            <button class="bp-q" onclick="sa(2,5)">5.00</button>
+            <button class="bp-q" onclick="sa(2,10)">10.00</button>
+            <button class="bp-q" onclick="sa(2,G.balance)">Max</button>
+          </div>
+          <div class="bp-actions">
+            <button class="bp-side-btn" id="autoBet2" onclick="toggleAuto(2,'bet')"><span class="bp-side-icon">↻</span></button>
+            <button class="bp-betbtn" id="btn2" onclick="betAction(2)"><span class="bb-label">BET</span><span class="bb-amount" id="btn2amt">5.00 USD</span></button>
+            <button class="bp-side-btn" onclick="sa(2,G.bets[1].amount*2)"><span class="bp-side-icon">x2</span></button>
+          </div>
+          <input class="bp-auto-input" id="au2" placeholder="Auto cashout" value="" inputmode="decimal" style="display:none">
+          <div id="autoCash2" style="display:none"></div>
+          <button class="bp-remove-btn" onclick="hidePanel2()" style="display:none">✕</button>
           </div>
         </div>
       </div>
