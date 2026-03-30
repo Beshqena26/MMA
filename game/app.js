@@ -367,7 +367,15 @@ var SND={
   },
   stop:function(key){
     var c=this._playing[key];if(!c)return;
-    try{c.pause();c.currentTime=0}catch(e){}
+    try{
+      // Fade out quickly then pause
+      var fadeInterval=setInterval(function(){
+        if(c.volume>0.05){c.volume=Math.max(0,c.volume-0.1)}
+        else{c.pause();c.currentTime=0;clearInterval(fadeInterval)}
+      },30);
+      // Force stop after 300ms regardless
+      setTimeout(function(){try{c.pause();c.currentTime=0;clearInterval(fadeInterval)}catch(e2){}},300);
+    }catch(e){}
     this._playing[key]=null;
   },
   stopAll:function(){for(var k in this._playing){if(this._playing[k])this.stop(k)}},
