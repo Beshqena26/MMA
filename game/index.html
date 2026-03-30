@@ -72,13 +72,8 @@
       </div>
       <div class="bp" id="betPanel">
         <div class="bet-panel" id="panel1">
-          <div class="bp-autocash-row">
-            <span class="bp-ac-label">Auto Cashout</span>
-            <button class="bp-ac-toggle" id="autoCash1" onclick="toggleAuto(1,'cash')"><div class="dot"></div></button>
-            <button class="bp-ac-btn" onclick="var v=parseFloat($('au1').value)||1.01;$('au1').value=Math.max(1.01,v-0.1).toFixed(2)">−</button>
-            <input class="bp-ac-input" id="au1" placeholder="1.01x" value="1.50" inputmode="decimal">
-            <button class="bp-ac-btn" onclick="var v=parseFloat($('au1').value)||1.01;$('au1').value=(v+0.1).toFixed(2)">+</button>
-          </div>
+          <input id="au1" value="1.50" style="display:none">
+          <div id="autoCash1" style="display:none"></div>
           <div class="bp-amtrow">
             <button class="bp-btn" onclick="adj(1,-1)">−</button>
             <div class="bp-amt" id="a1">5.00</div>
@@ -98,13 +93,8 @@
           <button class="bp-add-btn" id="addPanel2" onclick="showPanel2()" style="display:none">＋</button>
         </div>
         <div class="bet-panel" id="panel2">
-          <div class="bp-autocash-row">
-            <span class="bp-ac-label">Auto Cashout</span>
-            <button class="bp-ac-toggle" id="autoCash2" onclick="toggleAuto(2,'cash')"><div class="dot"></div></button>
-            <button class="bp-ac-btn" onclick="var v=parseFloat($('au2').value)||1.01;$('au2').value=Math.max(1.01,v-0.1).toFixed(2)">−</button>
-            <input class="bp-ac-input" id="au2" placeholder="1.01x" value="1.50" inputmode="decimal">
-            <button class="bp-ac-btn" onclick="var v=parseFloat($('au2').value)||1.01;$('au2').value=(v+0.1).toFixed(2)">+</button>
-          </div>
+          <input id="au2" value="1.50" style="display:none">
+          <div id="autoCash2" style="display:none"></div>
           <div class="bp-amtrow">
             <button class="bp-btn" onclick="adj(2,-1)">−</button>
             <div class="bp-amt" id="a2">5.00</div>
