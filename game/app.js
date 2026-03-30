@@ -789,11 +789,9 @@ function setAutoRounds(slot,count,btnEl){
     if(panel)panel.style.display='none';
     return;
   }
-  // Set new count
+  // Set new count — panel stays open
   window._autoRounds[idx]=count;
   if(badge){badge.textContent=count;badge.style.display=''}
-  if(panel)panel.style.display='none';
-  if(autoBtn)autoBtn.classList.remove('active');
   // Update button states
   roundBtns.forEach(function(b){b.classList.remove('active');var p=b.querySelector('.bp-rb-play');if(p)p.textContent='▶'});
   if(btnEl){btnEl.classList.add('active');var pi=btnEl.querySelector('.bp-rb-play');if(pi)pi.textContent='■'}
