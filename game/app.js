@@ -316,8 +316,9 @@ var SYNC={
 
 // ======================== SFX ENGINE ========================
 var SND={
-  _sounds:{},_bgMusic:null,_bgPlaying:false,soundOn:true,musicOn:true,
+  _sounds:{},_bgMusic:null,_bgPlaying:false,soundOn:true,musicOn:true,_ctx:null,
   _load:function(key,src){var a=new Audio(src);a.preload='auto';this._sounds[key]=a},
+  _getCtx:function(){if(!this._ctx){try{this._ctx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}return this._ctx},
   init:function(){
     this._load('punch','assets/sounds/punch.mp3');
     this._load('victory','assets/sounds/crowd-victory.wav');
@@ -329,8 +330,40 @@ var SND={
   _playing:{},
   play:function(key,vol){
     if(!this.soundOn)return;
-    var s=this._sounds[key];if(!s){console.warn('SND: no sound for key',key);return}
-    try{var c=s.cloneNode();c.volume=vol||0.5;var p=c.play();if(p&&p.catch)p.catch(function(){});this._playing[key]=c}catch(e){console.warn('SND play error:',e)}
+    var s=this._sounds[key];if(!s)return;
+    try{var c=s.cloneNode();c.volume=vol||0.5;var p=c.play();if(p&&p.catch)p.catch(function(){});this._playing[key]=c}catch(e){}
+  },
+  // Procedural UI sounds via Web Audio API
+  playTone:function(freq,dur,vol,type){
+    if(!this.soundOn)return;
+    var c=this._getCtx();if(!c)return;
+    try{
+      var n=c.currentTime;
+      var osc=c.createOscillator();var gain=c.createGain();
+      osc.connect(gain);gain.connect(c.destination);
+      osc.type=type||'sine';osc.frequency.setValueAtTime(freq,n);
+      gain.gain.setValueAtTime(vol||0.15,n);
+      gain.gain.exponentialRampToValueAtTime(0.001,n+dur);
+      osc.start(n);osc.stop(n+dur);
+    }catch(e){}
+  },
+  // ── UI Sound Effects ──
+  playBet:function(){
+    // Satisfying "chip place" sound: quick ascending tone
+    this.playTone(400,0.08,0.2,'sine');
+    var self=this;setTimeout(function(){self.playTone(600,0.06,0.15,'sine')},50);
+    setTimeout(function(){self.playTone(800,0.1,0.12,'sine')},90);
+  },
+  playCashout:function(){
+    // Happy "cash register" sound: bright ascending chime
+    this.playTone(523,0.1,0.2,'sine'); // C5
+    var self=this;setTimeout(function(){self.playTone(659,0.1,0.18,'sine')},80); // E5
+    setTimeout(function(){self.playTone(784,0.15,0.2,'sine')},160); // G5
+    setTimeout(function(){self.playTone(1047,0.2,0.15,'sine')},250); // C6
+  },
+  playClick:function(){
+    // Subtle button click
+    this.playTone(800,0.04,0.1,'square');
   },
   stop:function(key){
     var c=this._playing[key];if(!c)return;
@@ -351,14 +384,16 @@ var SND={
 };
 SND.init();
 // Start audio on first interaction
-function _startAudio(){SND.startBG();document.removeEventListener('click',_startAudio);document.removeEventListener('touchstart',_startAudio)}
+function _startAudio(){SND._getCtx();SND.startBG();document.removeEventListener('click',_startAudio);document.removeEventListener('touchstart',_startAudio)}
+// Click sound on all buttons
+document.addEventListener('click',function(e){var t=e.target;if(t&&(t.tagName==='BUTTON'||t.closest('button')||t.classList.contains('bp-q')||t.classList.contains('bp-btn')||t.classList.contains('hc')||t.classList.contains('sb-tab'))){SND.playClick()}});
 document.addEventListener('click',_startAudio);
 document.addEventListener('touchstart',_startAudio);
 // Compat: old sfx calls still work
 var sfx={
   ctx:null,soundOn:true,musicOn:true,_ready:true,bgOn:false,
   init:function(){},res:function(){},
-  play:function(t){if(t==='bet')SND.play('punch',0.3);else if(t==='cashout')SND.play('victory',0.4)},
+  play:function(t){if(t==='bet')SND.playBet();else if(t==='cashout')SND.playCashout()},
   startBG:function(){SND.startBG()},stopFreefall:function(){},startFreefall:function(){},
   setMood:function(){},toggle:function(){},
   toggleSound:function(){return SND.toggleSound()},
