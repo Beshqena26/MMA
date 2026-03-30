@@ -780,13 +780,11 @@ function setAutoRounds(slot,count,btnEl){
   var badge=$('autoBadge'+slot);
   var autoBtn=$('autoBet'+slot);
   var roundBtns=panel?panel.querySelectorAll('.bp-round-btn'):[];
-  // If same button clicked again (already active) — cancel
+  // If same button clicked again (already active) — cancel auto-bet, panel stays open
   if(btnEl&&btnEl.classList.contains('active')){
     window._autoRounds[idx]=0;
     if(badge){badge.style.display='none'}
-    if(autoBtn)autoBtn.classList.remove('active');
     roundBtns.forEach(function(b){b.classList.remove('active');var p=b.querySelector('.bp-rb-play');if(p)p.textContent='▶'});
-    if(panel)panel.style.display='none';
     return;
   }
   // Set new count — panel stays open
