@@ -72,6 +72,13 @@
       </div>
       <div class="bp" id="betPanel">
         <div class="bet-panel" id="panel1">
+          <div class="bp-autocash-row">
+            <span class="bp-ac-label">Auto Cashout</span>
+            <button class="bp-ac-toggle" id="autoCash1" onclick="toggleAuto(1,'cash')"><div class="dot"></div></button>
+            <button class="bp-ac-btn" onclick="var v=parseFloat($('au1').value)||1.01;$('au1').value=Math.max(1.01,v-0.1).toFixed(2)">−</button>
+            <input class="bp-ac-input" id="au1" placeholder="1.01x" value="1.50" inputmode="decimal">
+            <button class="bp-ac-btn" onclick="var v=parseFloat($('au1').value)||1.01;$('au1').value=(v+0.1).toFixed(2)">+</button>
+          </div>
           <div class="bp-amtrow">
             <button class="bp-btn" onclick="adj(1,-1)">−</button>
             <div class="bp-amt" id="a1">5.00</div>
@@ -88,11 +95,16 @@
             <button class="bp-betbtn" id="btn1" onclick="betAction(1)"><span class="bb-label">BET</span><span class="bb-amount" id="btn1amt">5.00 USD</span></button>
             <button class="bp-side-btn" onclick="sa(1,G.bets[0].amount*2)"><span class="bp-side-icon">x2</span></button>
           </div>
-          <input class="bp-auto-input" id="au1" placeholder="Auto cashout" value="" inputmode="decimal" style="display:none">
           <button class="bp-add-btn" id="addPanel2" onclick="showPanel2()" style="display:none">＋</button>
-          <div id="autoCash1" style="display:none"></div>
         </div>
         <div class="bet-panel" id="panel2">
+          <div class="bp-autocash-row">
+            <span class="bp-ac-label">Auto Cashout</span>
+            <button class="bp-ac-toggle" id="autoCash2" onclick="toggleAuto(2,'cash')"><div class="dot"></div></button>
+            <button class="bp-ac-btn" onclick="var v=parseFloat($('au2').value)||1.01;$('au2').value=Math.max(1.01,v-0.1).toFixed(2)">−</button>
+            <input class="bp-ac-input" id="au2" placeholder="1.01x" value="1.50" inputmode="decimal">
+            <button class="bp-ac-btn" onclick="var v=parseFloat($('au2').value)||1.01;$('au2').value=(v+0.1).toFixed(2)">+</button>
+          </div>
           <div class="bp-amtrow">
             <button class="bp-btn" onclick="adj(2,-1)">−</button>
             <div class="bp-amt" id="a2">5.00</div>
@@ -109,8 +121,6 @@
             <button class="bp-betbtn" id="btn2" onclick="betAction(2)"><span class="bb-label">BET</span><span class="bb-amount" id="btn2amt">5.00 USD</span></button>
             <button class="bp-side-btn" onclick="sa(2,G.bets[1].amount*2)"><span class="bp-side-icon">x2</span></button>
           </div>
-          <input class="bp-auto-input" id="au2" placeholder="Auto cashout" value="" inputmode="decimal" style="display:none">
-          <div id="autoCash2" style="display:none"></div>
           <button class="bp-remove-btn" onclick="hidePanel2()" style="display:none">✕</button>
           </div>
         </div>
