@@ -224,8 +224,8 @@ function render(){
   if(oppImg&&oppImg.naturalWidth){
     cx.save();
     var isMob=W<600,isTab=W>=600&&W<900;
-    var oppMaxW=isMob?0.6:isTab?0.5:0.45;
-    var oppMaxH=isMob?0.65:isTab?0.7:0.75;
+    var oppMaxW=isMob?0.45:isTab?0.5:0.45;
+    var oppMaxH=isMob?0.5:isTab?0.7:0.75;
     var oppScale=Math.min(W*oppMaxW/oppImg.naturalWidth,H*oppMaxH/oppImg.naturalHeight);
     var oppW=oppImg.naturalWidth*oppScale;
     var oppH=oppImg.naturalHeight*oppScale;
@@ -281,7 +281,7 @@ function render(){
   if(koFade<1){
     if(koFade>0)cx.globalAlpha=1-koFade;
     // Fixed fist size as % of screen
-    var fistW2=W<600?W*0.5:W<900?W*0.4:W*0.358;
+    var fistW2=W<600?W*0.32:W<900?W*0.4:W*0.358;
     var fistH2=fistW2*0.56; // aspect ratio ~1536/2752 ≈ 0.56
 
     var idleBobL=Math.sin(time*2)*(W<600?3:5);
