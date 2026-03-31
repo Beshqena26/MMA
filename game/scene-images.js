@@ -224,29 +224,34 @@ function render(){
   if(oppImg&&oppImg.naturalWidth){
     cx.save();
     var isMob=W<600,isTab=W>=600&&W<900;
-    // On mobile, use visible area (55vh) not full canvas height
-    var visH=isMob?H:H;
-    var oppMaxW=isMob?0.79:isTab?0.5:0.45;
-    var oppMaxH=isMob?0.79:isTab?0.7:0.75;
-    // Always use idle image dimensions for consistent sizing
-    var refW=IMG.idle&&IMG.idle.naturalWidth?IMG.idle.naturalWidth:oppImg.naturalWidth;
-    var refH=IMG.idle&&IMG.idle.naturalHeight?IMG.idle.naturalHeight:oppImg.naturalHeight;
-    var oppScale=Math.min(W*oppMaxW/refW,visH*oppMaxH/refH);
-    var oppW=refW*oppScale;
-    var oppH=refH*oppScale;
-    var oppX=W*0.5-oppW/2+(isMob?0:(opp.staggerX||0)+(opp.shakeX||0));
-    var oppBottom=isMob?56:0;
-    var oppY=visH-oppH-oppBottom+(isMob?0:(opp.staggerY||0)+(opp.shakeY||0)+Math.sin(opp.breathCycle||0)*2);
+    var oppW,oppH,oppX,oppY;
 
-    // Desktop: lean + flinch animations. Mobile: fixed
-    if(!isMob){
+    if(isMob){
+      // ── MOBILE: fixed position, idle-based sizing, no animations ──
+      var refW=IMG.idle&&IMG.idle.naturalWidth?IMG.idle.naturalWidth:oppImg.naturalWidth;
+      var refH=IMG.idle&&IMG.idle.naturalHeight?IMG.idle.naturalHeight:oppImg.naturalHeight;
+      var mScale=Math.min(W*0.79/refW,H*0.79/refH);
+      oppW=refW*mScale;
+      oppH=refH*mScale;
+      oppX=W*0.5-oppW/2;
+      oppY=H-oppH-56;
+    }else{
+      // ── DESKTOP: original behavior — per-image sizing + full animations ──
+      var dMaxW=isTab?0.5:0.45;
+      var dMaxH=isTab?0.7:0.75;
+      var dScale=Math.min(W*dMaxW/oppImg.naturalWidth,H*dMaxH/oppImg.naturalHeight);
+      oppW=oppImg.naturalWidth*dScale;
+      oppH=oppImg.naturalHeight*dScale;
+      oppX=W*0.5-oppW/2+(opp.staggerX||0)+(opp.shakeX||0);
+      oppY=H-oppH+(opp.staggerY||0)+(opp.shakeY||0)+Math.sin(opp.breathCycle||0)*2;
+
+      // Lean from hits
       if(opp.leanAngle){cx.translate(W*0.5,H*0.45);cx.rotate(opp.leanAngle);cx.translate(-W*0.5,-H*0.45)}
+      // Flinch offset
       var flinch=opp.flinchTimer||0;
       if(flinch>0){oppY+=flinch*10;oppX+=(Math.random()-0.5)*flinch*6}
     }
 
-    // Draw opponent — scale by height to keep fighter body same size
-    // All images: same center position, same box size
     cx.drawImage(oppImg,oppX,oppY,oppW,oppH);
 
 
