@@ -245,7 +245,8 @@ function render(){
       oppW=oppImg.naturalWidth*dScale;
       oppH=oppImg.naturalHeight*dScale;
       oppX=W*0.5-oppW/2+(opp.staggerX||0)+(opp.shakeX||0);
-      oppY=H-oppH+(opp.staggerY||0)+(opp.shakeY||0)+Math.sin(opp.breathCycle||0)*2;
+      var dBottom=isTab?56:0;
+      oppY=H-oppH-dBottom+(opp.staggerY||0)+(opp.shakeY||0)+Math.sin(opp.breathCycle||0)*2;
 
       // Lean from hits
       if(opp.leanAngle){cx.translate(W*0.5,H*0.45);cx.rotate(opp.leanAngle);cx.translate(-W*0.5,-H*0.45)}
@@ -301,7 +302,7 @@ function render(){
 
     // Base positions — tighter to center, bottom -30px
     var visHF=H;
-    var fistBottomOffset=W<600?124:30;
+    var fistBottomOffset=W<600?124:W<900?124:30;
     var lBaseX=W*0.5-fistW2*0.8;
     var lBaseY=visHF-fistH2-fistBottomOffset+idleBobL;
     var rBaseX=W*0.5-fistW2*0.2;
