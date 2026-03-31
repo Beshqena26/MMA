@@ -247,8 +247,13 @@ function render(){
     var flinch=opp.flinchTimer||0;
     if(flinch>0){oppY+=flinch*10;oppX+=(Math.random()-0.5)*flinch*6}
 
-    // Draw opponent
-    cx.drawImage(oppImg,oppX,oppY,oppW,oppH);
+    // Draw opponent — maintain each image's aspect ratio within the consistent box
+    var imgW=oppImg.naturalWidth,imgH=oppImg.naturalHeight;
+    var imgScale=Math.min(oppW/imgW,oppH/imgH);
+    var drawW=imgW*imgScale,drawH=imgH*imgScale;
+    var drawX=oppX+(oppW-drawW)/2;
+    var drawY=oppY+(oppH-drawH);
+    cx.drawImage(oppImg,drawX,drawY,drawW,drawH);
 
 
 
