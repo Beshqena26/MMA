@@ -227,14 +227,18 @@ function render(){
     var oppW,oppH,oppX,oppY;
 
     if(isMob){
-      // ── MOBILE: fixed position, idle-based sizing, no animations ──
-      var refW=IMG.idle&&IMG.idle.naturalWidth?IMG.idle.naturalWidth:oppImg.naturalWidth;
-      var refH=IMG.idle&&IMG.idle.naturalHeight?IMG.idle.naturalHeight:oppImg.naturalHeight;
+      // ── MOBILE: fixed position, aspect-ratio preserved, no animations ──
+      var refW=IMG.idle&&IMG.idle.naturalWidth?IMG.idle.naturalWidth:982;
+      var refH=IMG.idle&&IMG.idle.naturalHeight?IMG.idle.naturalHeight:1536;
       var mScale=Math.min(W*0.79/refW,H*0.79/refH);
-      oppW=refW*mScale;
-      oppH=refH*mScale;
+      // Base box from idle
+      var boxW=refW*mScale,boxH=refH*mScale;
+      // Actual image: fit inside box keeping its own aspect ratio
+      var imgAR=oppImg.naturalWidth/oppImg.naturalHeight;
+      var boxAR=boxW/boxH;
+      if(imgAR>boxAR){oppW=boxW;oppH=boxW/imgAR}else{oppH=boxH;oppW=boxH*imgAR}
       oppX=W*0.5-oppW/2;
-      oppY=H-oppH-56;
+      oppY=H-boxH-56+(boxH-oppH); // bottom-align within box
     }else{
       // ── DESKTOP: original behavior — per-image sizing + full animations ──
       var dMaxW=isTab?0.5:0.45;
