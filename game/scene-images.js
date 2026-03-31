@@ -228,9 +228,12 @@ function render(){
     var visH=isMob?H:H;
     var oppMaxW=isMob?0.79:isTab?0.5:0.45;
     var oppMaxH=isMob?0.79:isTab?0.7:0.75;
-    var oppScale=Math.min(W*oppMaxW/oppImg.naturalWidth,visH*oppMaxH/oppImg.naturalHeight);
-    var oppW=oppImg.naturalWidth*oppScale;
-    var oppH=oppImg.naturalHeight*oppScale;
+    // Always use idle image dimensions for consistent sizing
+    var refW=IMG.idle&&IMG.idle.naturalWidth?IMG.idle.naturalWidth:oppImg.naturalWidth;
+    var refH=IMG.idle&&IMG.idle.naturalHeight?IMG.idle.naturalHeight:oppImg.naturalHeight;
+    var oppScale=Math.min(W*oppMaxW/refW,visH*oppMaxH/refH);
+    var oppW=refW*oppScale;
+    var oppH=refH*oppScale;
     var oppX=W*0.5-oppW/2+(opp.staggerX||0)+(opp.shakeX||0);
     var oppBottom=isMob?56:0;
     var oppY=visH-oppH-oppBottom+(opp.staggerY||0)+(opp.shakeY||0)+Math.sin(opp.breathCycle||0)*2;
