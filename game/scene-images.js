@@ -234,18 +234,11 @@ function render(){
     var oppScale=Math.min(W*oppMaxW/refW,visH*oppMaxH/refH);
     var oppW=refW*oppScale;
     var oppH=refH*oppScale;
-    var oppX=W*0.5-oppW/2+(opp.staggerX||0)+(opp.shakeX||0);
+    var oppX=W*0.5-oppW/2;
     var oppBottom=isMob?56:0;
-    var oppY=visH-oppH-oppBottom+(opp.staggerY||0)+(opp.shakeY||0)+Math.sin(opp.breathCycle||0)*2;
+    var oppY=visH-oppH-oppBottom;
 
-    // Lean from hits
-    if(opp.leanAngle){
-      cx.translate(W*0.5,H*0.45);cx.rotate(opp.leanAngle);cx.translate(-W*0.5,-H*0.45);
-    }
-
-    // Flinch offset
-    var flinch=opp.flinchTimer||0;
-    if(flinch>0){oppY+=flinch*10;oppX+=(Math.random()-0.5)*flinch*6}
+    // Fighter stays fixed in place — no movement on hits
 
     // Draw opponent — scale by height to keep fighter body same size
     var imgW=oppImg.naturalWidth,imgH=oppImg.naturalHeight;
