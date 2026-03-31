@@ -258,7 +258,7 @@ canvas{position:fixed;top:0;left:0;z-index:1}
   .round-banner{width:270px}
   .rb-title{font-size:17px}
   .cine .c1{font-size:56px}
-  .bp{gap:4px}
+  .bp{flex-direction:row;gap:8px;padding:8px;justify-content:center}
   .bet-panel{max-width:340px}
 }
 
