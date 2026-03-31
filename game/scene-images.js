@@ -11,16 +11,18 @@ function _lerp(a,b,t){return a+(b-a)*t}
 
 // ── Image loader ──
 var IMG={};
+var _isMobile=window.innerWidth<600;
+var _assetDir=_isMobile?'assets/mobile/':'assets/';
 var _imgList=[
-  {key:'bg',src:'assets/bg.png'},
-  {key:'idle',src:'assets/Fighter-Idle.png'},
-  {key:'hook',src:'assets/Fighter-hook.png'},
-  {key:'kick',src:'assets/Fighter-kick.png'},
-  {key:'victory',src:'assets/fighter-Victory.png'},
-  {key:'hitL',src:'assets/fighter-hit-left.png'},
-  {key:'hitR',src:'assets/fighter-hit-right.png'},
-  {key:'fistL',src:'assets/hand-Left.png'},
-  {key:'fistR',src:'assets/hand-Right.png'}
+  {key:'bg',src:_assetDir+'bg.png'},
+  {key:'idle',src:_assetDir+'Fighter-Idle.png'},
+  {key:'hook',src:_assetDir+'Fighter-hook.png'},
+  {key:'kick',src:_assetDir+'Fighter-kick.png'},
+  {key:'victory',src:_assetDir+'fighter-Victory.png'},
+  {key:'hitL',src:_assetDir+'fighter-hit-left.png'},
+  {key:'hitR',src:_assetDir+'fighter-hit-right.png'},
+  {key:'fistL',src:_assetDir+'hand-Left.png'},
+  {key:'fistR',src:_assetDir+'hand-Right.png'}
 ];
 var _imgsLoaded=0;
 function _loadImages(){
