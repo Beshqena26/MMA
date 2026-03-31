@@ -238,7 +238,7 @@ function render(){
       var boxAR=boxW/boxH;
       if(imgAR>boxAR){oppW=boxW;oppH=boxW/imgAR}else{oppH=boxH;oppW=boxH*imgAR}
       oppX=W*0.5-oppW/2;
-      oppY=H-boxH-56+(boxH-oppH); // bottom-align within box
+      oppY=H-boxH-56+(boxH-oppH)/2; // center vertically within box
     }else{
       // ── DESKTOP: original behavior — per-image sizing + full animations ──
       var dMaxW=isTab?0.5:0.45;
