@@ -247,12 +247,25 @@ function render(){
     var flinch=opp.flinchTimer||0;
     if(flinch>0){oppY+=flinch*10;oppX+=(Math.random()-0.5)*flinch*6}
 
-    // Draw opponent — maintain each image's aspect ratio within the consistent box
+    // Draw opponent — scale by height to keep fighter body same size
     var imgW=oppImg.naturalWidth,imgH=oppImg.naturalHeight;
-    var imgScale=Math.min(oppW/imgW,oppH/imgH);
-    var drawW=imgW*imgScale,drawH=imgH*imgScale;
-    var drawX=oppX+(oppW-drawW)/2;
-    var drawY=oppY+(oppH-drawH);
+    var isHalfHeight=imgH<refH*0.7; // hit images are ~768px vs 1536px
+    var drawW,drawH,drawX,drawY;
+    if(isHalfHeight){
+      // Hit images: scale to match upper body portion of idle
+      var hitScale=oppH*0.55/imgH; // fill ~55% of idle height (upper body)
+      drawW=imgW*hitScale;
+      drawH=imgH*hitScale;
+      drawX=oppX+(oppW-drawW)/2;
+      drawY=oppY+oppH*0.05; // aligned to top area (face/torso hit)
+    }else{
+      // Normal images: fit within box, bottom-aligned
+      var fitScale=Math.min(oppW/imgW,oppH/imgH);
+      drawW=imgW*fitScale;
+      drawH=imgH*fitScale;
+      drawX=oppX+(oppW-drawW)/2;
+      drawY=oppY+(oppH-drawH);
+    }
     cx.drawImage(oppImg,drawX,drawY,drawW,drawH);
 
 
