@@ -1712,9 +1712,12 @@ function closeMenu(){if(menuOverlay)menuOverlay.classList.remove('open');if(menu
 var _burgerBtn=document.getElementById('burgerBtn');if(_burgerBtn)_burgerBtn.onclick=openMenu;
 var _menuClose=document.getElementById('menuClose');if(_menuClose)_menuClose.onclick=closeMenu;
 if(menuOverlay)menuOverlay.onclick=closeMenu;
-// Sound toggle in menu
-document.getElementById('menuSound').onclick=()=>{const on=sfx.toggleSound();document.getElementById('soundToggle').classList.toggle('on',on)};
-document.getElementById('menuMusic').onclick=()=>{const on=sfx.toggleMusic();document.getElementById('musicToggle').classList.toggle('on',on)};
+// Sound toggles in menu
+try{
+  document.getElementById('menuSfx').onclick=function(){var on=SND.toggleSfx();document.getElementById('sfxToggle').classList.toggle('on',on)};
+  document.getElementById('menuGameSnd').onclick=function(){var on=SND.toggleGameSnd();document.getElementById('gameSndToggle').classList.toggle('on',on)};
+  document.getElementById('menuMusic').onclick=function(){var on=SND.toggleMusic();document.getElementById('musicToggle').classList.toggle('on',on)};
+}catch(e){}
 // Menu items open modals
 document.getElementById('menuHowToPlay').onclick=()=>{closeMenu();document.getElementById('infoModal').classList.add('open')};
 document.getElementById('menuGameRules').onclick=()=>{closeMenu();document.getElementById('rulesModal').classList.add('open')};

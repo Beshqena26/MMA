@@ -194,28 +194,48 @@
 <div class="menu-overlay" id="menuOverlay"></div>
 <div class="menu-panel" id="menuPanel">
   <div class="menu-head">
-    <div class="menu-avatar" id="menuAvatarBtn" style="cursor:default">🥊</div>
     <div class="menu-user">
-      <div class="menu-user-name" id="menuUserName">Player</div>
-      <div class="menu-user-id">MMA</div>
+      <div class="menu-user-name">MMA Fight</div>
+      <div class="menu-user-id">Arena</div>
     </div>
     <button class="menu-close" id="menuClose">✕</button>
   </div>
-  <div style="display:none">
-    <div id="menuSound"></div><div id="soundToggle"></div>
-    <div id="menuMusic"></div><div id="musicToggle"></div>
-  </div>
+
   <div class="menu-section">
+    <div class="menu-section-title">Sound</div>
+    <div class="menu-item" id="menuSfx">
+      <span class="mi-icon">🔊</span>
+      <span class="mi-label">SFX</span>
+      <div class="menu-toggle on" id="sfxToggle"></div>
+    </div>
+    <div class="menu-item" id="menuGameSnd">
+      <span class="mi-icon">🥊</span>
+      <span class="mi-label">Fight</span>
+      <div class="menu-toggle on" id="gameSndToggle"></div>
+    </div>
+    <div class="menu-item" id="menuMusic">
+      <span class="mi-icon">🎵</span>
+      <span class="mi-label">Music</span>
+      <div class="menu-toggle on" id="musicToggle"></div>
+    </div>
+  </div>
+
+  <div class="menu-divider"></div>
+
+  <div class="menu-section">
+    <div class="menu-section-title">Info</div>
     <div class="menu-item" id="menuHowToPlay"><span class="mi-icon">❓</span><span class="mi-label">How To Play</span></div>
     <div class="menu-item" id="menuGameRules"><span class="mi-icon">📋</span><span class="mi-label">Game Rules</span></div>
-    <div class="menu-item" id="menuBetHistory"><span class="mi-icon">📊</span><span class="mi-label">My Bet History</span></div>
+    <div class="menu-item" id="menuBetHistory"><span class="mi-icon">📊</span><span class="mi-label">Bet History</span></div>
     <div class="menu-item" id="menuGameLimits"><span class="mi-icon">⚙️</span><span class="mi-label">Game Limits</span></div>
-    <div class="menu-item" id="menuTerms"><span class="mi-icon">📄</span><span class="mi-label">Terms & Conditions</span></div>
+    <div class="menu-item" id="menuTerms"><span class="mi-icon">📄</span><span class="mi-label">Terms</span></div>
   </div>
+
   <div class="menu-footer">
-    <div class="menu-footer-logo">SKY<span style="background:linear-gradient(135deg,#ff3366,#ff6644);-webkit-background-clip:text;-webkit-text-fill-color:transparent">DROP</span> II</div>
-    <div class="menu-footer-ver">v2.0 • Prototype</div>
+    <div class="menu-footer-logo">MMA <span style="color:var(--dng)">Fight</span> Arena</div>
+    <div class="menu-footer-ver">v1.0</div>
   </div>
+  <div style="display:none"><div id="menuSound"></div><div id="soundToggle"></div></div>
 </div>
 
 <!-- MODALS -->
@@ -235,7 +255,7 @@
         <span style="background:linear-gradient(135deg,#ff9800,#ffb74d);color:#fff;font-weight:800;font-size:13px;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center">2</span>
         <span style="font-weight:700;font-size:14px;color:var(--txt)">FIGHT BEGINS — MULTIPLIER STARTS</span>
       </div>
-      <p style="color:var(--dim);font-size:12px;line-height:1.6;margin:0">Bets close and the <b style="color:var(--wrn)">masked fighter</b> attacks. The <b style="color:var(--txt)">multiplier starts at 1.00x</b> and increases as the fight intensifies. The longer you wait, the higher the multiplier — but the risk grows.</p>
+      <p style="color:var(--dim);font-size:12px;line-height:1.6;margin:0">Bets close and the <b style="color:var(--wrn)">fight begins</b>. The <b style="color:var(--txt)">multiplier starts at 1.00x</b> and increases as the fight intensifies. Your opponent attacks you while you fight back for bonus multipliers.</p>
     </div>
     <div class="ms" style="margin-top:10px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
@@ -249,14 +269,14 @@
         <span style="background:linear-gradient(135deg,#f44336,#ef5350);color:#fff;font-weight:800;font-size:13px;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center">4</span>
         <span style="font-weight:700;font-size:14px;color:var(--txt)">KNOCKOUT = ROUND OVER</span>
       </div>
-      <p style="color:var(--dim);font-size:12px;line-height:1.6;margin:0">At a random point, the masked fighter delivers a <b style="color:var(--dng)">knockout blow</b> and the round ends. If you haven't cashed out yet — <b style="color:var(--dng)">you lose your bet</b>. Every round has a different crash point.</p>
+      <p style="color:var(--dim);font-size:12px;line-height:1.6;margin:0">At a random point, a <b style="color:var(--dng)">knockout blow</b> ends the round. If you haven't cashed out yet — <b style="color:var(--dng)">you lose your bet</b>. Every round has a different crash point.</p>
     </div>
     <div style="margin-top:16px;padding:12px;background:rgba(76,175,80,.06);border:1px solid rgba(76,175,80,.15);border-radius:8px">
       <div style="font-weight:700;font-size:12px;color:var(--acc);margin-bottom:6px">TIPS</div>
       <p style="color:var(--dim);font-size:11px;line-height:1.7;margin:0">
         <b style="color:var(--txt)">Auto Cash Out</b> — Set a target multiplier. Your bet automatically cashes out when reached.<br>
         <b style="color:var(--txt)">Two Bets</b> — Use one bet for safe low multiplier (1.5x) and another for risky high multiplier.<br>
-        <b style="color:var(--txt)">Power Moves</b> — Collect floating tokens during the fight for bonus multiplier boosts.
+        <b style="color:var(--txt)">Fight Back</b> — When you land a hit on the opponent, you earn bonus multiplier points.
       </p>
     </div>
   </div>
