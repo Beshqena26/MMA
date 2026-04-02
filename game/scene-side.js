@@ -154,8 +154,8 @@ function renderSideView(){
   // Target: 70% of screen height, width from aspect ratio
   var targetH=Math.round(H*0.7);
   var targetW=Math.round(targetH/AR);
-  // On landscape: clamp width to 55%. On portrait: allow overflow for 70% height
-  if(W>H){if(targetW>W*0.55){targetW=Math.round(W*0.55);targetH=Math.round(targetW*AR)}}
+  // On landscape: clamp width to 70%. On portrait: allow overflow for 70% height
+  if(W>H){if(targetW>W*0.7){targetW=Math.round(W*0.7);targetH=Math.round(targetW*AR)}}
   fW=targetW;fH=targetH;
 
   // ── Pro (left, you) ──
