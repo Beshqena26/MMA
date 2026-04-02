@@ -154,8 +154,10 @@ function renderSideView(){
   // Target: 70% of screen height, width from aspect ratio
   var targetH=Math.round(H*0.7);
   var targetW=Math.round(targetH/AR);
-  // On landscape: clamp width to 70%. On portrait: allow overflow for 70% height
-  if(W>H){if(targetW>W*0.7){targetW=Math.round(W*0.7);targetH=Math.round(targetW*AR)}}
+  // Clamp so two fighters fit side by side
+  // Each fighter max 48% width (96% total with gap)
+  var maxW=W*0.48;
+  if(targetW>maxW){targetW=Math.round(maxW);targetH=Math.round(targetW*AR)}
   fW=targetW;fH=targetH;
 
   // ── Pro (left, you) ──
@@ -168,7 +170,7 @@ function renderSideView(){
   else if(pro.pose==='victory'&&S.proVictory&&S.proVictory.complete)proImg=S.proVictory;
 
   if(proImg&&proImg.complete){
-    var overlap=fW*0.4; // fighters close together, face-to-face
+    var overlap=fW*0.3; // compensate empty space in frames
     var proX=W*0.5-fW+overlap;
     var proY=H-fH-(isMob?56:20);
     cx.drawImage(proImg,proX,proY,fW,fH);
@@ -183,7 +185,7 @@ function renderSideView(){
   else if(am.pose==='ko'&&S.amKO&&S.amKO.complete)amImg=S.amKO;
 
   if(amImg&&amImg.complete){
-    var amOverlap=fW*0.4;
+    var amOverlap=fW*0.3;
     var amX=W*0.5-amOverlap;
     var amY=H-fH-(isMob?56:20);
     // KO: amateur falls down
