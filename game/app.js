@@ -1011,9 +1011,16 @@ function update(ts){
 
     // MMA: update tension + fighters
     if(typeof getTension==='function')G.tension=getTension(G.mult);
-    if(typeof updateFighters==='function')updateFighters();
+    if(typeof GAME_VIEW!=='undefined'&&GAME_VIEW==='side'){
+      if(typeof updateSideView==='function')updateSideView();
+    }else{
+      if(typeof updateFighters==='function')updateFighters();
+    }
   }catch(e){console.error('Update:',e)}
-  try{render()}catch(re){console.error('RENDER ERROR:',re.message,re.stack)}
+  try{
+    if(typeof GAME_VIEW!=='undefined'&&GAME_VIEW==='side'&&typeof renderSideView==='function'){renderSideView()}
+    else{render()}
+  }catch(re){console.error('RENDER ERROR:',re.message,re.stack)}
   requestAnimationFrame(update);
 }
 
