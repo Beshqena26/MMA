@@ -148,17 +148,12 @@ function renderSideView(){
   // ═══ L2: FIGHTERS ═══
   var pro=SIDE.pro,am=SIDE.am;
   var isMob=W<600;
-  // Scale fighters — proportional (AR 1536/2752 = 0.558)
+  // Fighter size — 50% width default, bigger on large desktop
   var AR=1536/2752;
-  var fW,fH;
-  // Target: 70% of screen height, width from aspect ratio
-  var targetH=Math.round(H*0.7);
-  var targetW=Math.round(targetH/AR);
-  // Clamp so two fighters fit side by side
-  // Each fighter max 48% width (96% total with gap)
-  var maxW=W*0.48;
-  if(targetW>maxW){targetW=Math.round(maxW);targetH=Math.round(targetW*AR)}
-  fW=targetW;fH=targetH;
+  var fW;
+  if(W>=1012&&W<=1920){fW=Math.round(W*0.6)}  // 1012-1920: 60% width (bigger)
+  else{fW=Math.round(W*0.5)}                    // everything else: 50% width
+  var fH=Math.round(fW*AR);
 
   // ── Pro (left, you) ──
   var proImg=S.proIdle;
@@ -170,7 +165,7 @@ function renderSideView(){
   else if(pro.pose==='victory'&&S.proVictory&&S.proVictory.complete)proImg=S.proVictory;
 
   if(proImg&&proImg.complete){
-    var overlap=fW*0.3; // compensate empty space in frames
+    var overlap=fW*0.4; // fighters close together, face-to-face
     var proX=W*0.5-fW+overlap;
     var proY=H-fH-(isMob?56:20);
     cx.drawImage(proImg,proX,proY,fW,fH);
@@ -185,7 +180,7 @@ function renderSideView(){
   else if(am.pose==='ko'&&S.amKO&&S.amKO.complete)amImg=S.amKO;
 
   if(amImg&&amImg.complete){
-    var amOverlap=fW*0.3;
+    var amOverlap=fW*0.4;
     var amX=W*0.5-amOverlap;
     var amY=H-fH-(isMob?56:20);
     // KO: amateur falls down
