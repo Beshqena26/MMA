@@ -162,7 +162,8 @@ function renderSideView(){
   else if(pro.pose==='victory'&&S.proVictory&&S.proVictory.complete)proImg=S.proVictory;
 
   if(proImg&&proImg.complete){
-    var proX=0;
+    var overlap=fW*0.25; // fighters overlap 25% to stand face-to-face
+    var proX=W*0.5-fW+overlap;
     var proY=H-fH-(isMob?56:20);
     cx.drawImage(proImg,proX,proY,fW,fH);
   }
@@ -176,7 +177,8 @@ function renderSideView(){
   else if(am.pose==='ko'&&S.amKO&&S.amKO.complete)amImg=S.amKO;
 
   if(amImg&&amImg.complete){
-    var amX=W*0.5;
+    var amOverlap=fW*0.25;
+    var amX=W*0.5-amOverlap;
     var amY=H-fH-(isMob?56:20);
     // KO: amateur falls down
     if(am.pose==='ko'&&SIDE._koTimer){
