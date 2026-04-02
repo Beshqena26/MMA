@@ -181,7 +181,7 @@ function renderSideView(){
     // KO: amateur falls down
     if(am.pose==='ko'&&SIDE._koTimer){
       var fallProg=Math.min(1,(SIDE._koTimer-0.3)/0.5);
-      if(fallProg>0)amY+=fallProg*30;
+      if(fallProg>0)amY+=fallProg*88;
     }
     cx.drawImage(amImg,amX,amY,fW,fH);
   }
