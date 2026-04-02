@@ -148,14 +148,15 @@ function renderSideView(){
   // ═══ L2: FIGHTERS ═══
   var pro=SIDE.pro,am=SIDE.am;
   var isMob=W<600;
-  // Scale fighters — width based on screen, height keeps aspect ratio (1536/2752)
-  var AR=1536/2752; // 0.558
-  var fW;
-  if(W>=1920)fW=1024;
-  else if(W>=1024)fW=Math.round(W*0.53);
-  else if(W>=600)fW=Math.round(W*0.55);
-  else fW=Math.round(W*0.5+200);
-  var fH=Math.round(fW*AR);
+  // Scale fighters — proportional (AR 1536/2752 = 0.558)
+  var AR=1536/2752;
+  var fW,fH;
+  // Target: 70% of screen height, width from aspect ratio
+  var targetH=Math.round(H*0.7);
+  var targetW=Math.round(targetH/AR);
+  // On landscape: clamp width to 55%. On portrait: allow overflow for 70% height
+  if(W>H){if(targetW>W*0.55){targetW=Math.round(W*0.55);targetH=Math.round(targetW*AR)}}
+  fW=targetW;fH=targetH;
 
   // ── Pro (left, you) ──
   var proImg=S.proIdle;
