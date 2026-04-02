@@ -178,12 +178,20 @@ function renderSideView(){
     var amOverlap=(fW-200)/2;
     var amX=W*0.5-amOverlap;
     var amY=H-fH-(isMob?56:20);
-    // KO: amateur falls down
+    // KO: amateur falls down + rotates
     if(am.pose==='ko'&&SIDE._koTimer){
       var fallProg=Math.min(1,(SIDE._koTimer-0.3)/0.5);
-      if(fallProg>0)amY+=fallProg*88;
+      if(fallProg>0){
+        amY+=fallProg*88;
+        cx.save();
+        cx.translate(amX+fW*0.5,amY+fH*0.5);
+        cx.rotate(fallProg*0.3); // slight rotation
+        cx.drawImage(amImg,-fW*0.5,-fH*0.5,fW,fH);
+        cx.restore();
+        amImg=null; // skip normal draw
+      }
     }
-    cx.drawImage(amImg,amX,amY,fW,fH);
+    if(amImg)cx.drawImage(amImg,amX,amY,fW,fH);
   }
 
   // ═══ L3: HEALTH BARS (both fighters) ═══
