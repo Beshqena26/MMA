@@ -182,7 +182,7 @@ function renderSideView(){
     if(am.pose==='ko'&&SIDE._koTimer){
       var fallProg=Math.min(1,(SIDE._koTimer-0.3)/0.5);
       if(fallProg>0){
-        amY+=fallProg*88;
+        amY+=fallProg*(isMob?88:148);
         cx.save();
         cx.translate(amX+fW*0.5,amY+fH*0.5);
         cx.rotate(fallProg*0.3); // slight rotation
