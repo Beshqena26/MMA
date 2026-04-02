@@ -148,9 +148,13 @@ function renderSideView(){
   // ═══ L2: FIGHTERS ═══
   var pro=SIDE.pro,am=SIDE.am;
   var isMob=W<600;
-  var fScale=isMob?0.4:0.75;
-  var fW=Math.round(2752*fScale*0.5);
-  var fH=Math.round(1536*fScale*0.5);
+  // Size fighters as % of screen — max 40% width each, maintain aspect ratio
+  var maxFW=isMob?W*0.48:W*0.38;
+  var maxFH=isMob?H*0.35:H*0.7;
+  var imgAR=2752/1536; // original aspect ratio
+  var fW,fH;
+  if(maxFW/imgAR<maxFH){fW=Math.round(maxFW);fH=Math.round(maxFW/imgAR)}
+  else{fH=Math.round(maxFH);fW=Math.round(maxFH*imgAR)}
 
   // ── Pro (left, you) ──
   var proImg=S.proIdle;
@@ -162,7 +166,8 @@ function renderSideView(){
   else if(pro.pose==='victory'&&S.proVictory&&S.proVictory.complete)proImg=S.proVictory;
 
   if(proImg&&proImg.complete){
-    var proX=isMob?W*0.05:W*0.15;
+    var gap=isMob?W*0.02:W*0.03; // gap between fighters
+    var proX=W*0.5-fW-gap/2;
     var proY=H-fH-(isMob?56:20);
     cx.drawImage(proImg,proX,proY,fW,fH);
   }
@@ -176,7 +181,8 @@ function renderSideView(){
   else if(am.pose==='ko'&&S.amKO&&S.amKO.complete)amImg=S.amKO;
 
   if(amImg&&amImg.complete){
-    var amX=isMob?W-fW-W*0.05:W-fW-W*0.15;
+    var amGap=isMob?W*0.02:W*0.03;
+    var amX=W*0.5+amGap/2;
     var amY=H-fH-(isMob?56:20);
     // KO: amateur falls down
     if(am.pose==='ko'&&SIDE._koTimer){
