@@ -105,16 +105,14 @@ function updateSideView(){
   else if(G.phase==='CRASH'){
     if(!SIDE._koTimer)SIDE._koTimer=0;
     SIDE._koTimer+=dt;
-    if(SIDE._koTimer<0.1){
+    if(SIDE._koTimer<0.05){
       pro.pose='leg';pro.poseTimer=1.5;
+      am.pose='ko';am.poseTimer=99; // instant KO on kick
       G.arenaShake=Math.max(G.arenaShake||0,12);
       G.crowdRoar=1;
       if(typeof SND!=='undefined'){SND.play('punch',0.7);SND.play('cheer',0.4)}
     }
-    if(SIDE._koTimer>0.4){
-      am.pose='ko';am.poseTimer=99;
-    }
-    if(SIDE._koTimer>1.2){
+    if(SIDE._koTimer>0.8){
       pro.pose='victory';pro.poseTimer=99;
     }
   }
