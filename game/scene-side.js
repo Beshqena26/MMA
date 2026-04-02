@@ -148,12 +148,9 @@ function renderSideView(){
   // ═══ L2: FIGHTERS ═══
   var pro=SIDE.pro,am=SIDE.am;
   var isMob=W<600;
-  // Fighter size — 50% width default, bigger on large desktop
-  var AR=1536/2752;
-  var fW;
-  if(W>=1012&&W<=1920){fW=Math.round(W*0.6)}  // 1012-1920: 60% width (bigger)
-  else{fW=Math.round(W*0.5)}                    // everything else: 50% width
-  var fH=Math.round(fW*AR);
+  // Each fighter = exactly half screen width, height by aspect ratio
+  var fW=Math.round(W*0.5);
+  var fH=Math.round(fW*(1536/2752));
 
   // ── Pro (left, you) ──
   var proImg=S.proIdle;
