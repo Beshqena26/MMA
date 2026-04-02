@@ -148,13 +148,14 @@ function renderSideView(){
   // ═══ L2: FIGHTERS ═══
   var pro=SIDE.pro,am=SIDE.am;
   var isMob=W<600;
-  // Scale fighters based on screen size
-  var fW,fH;
-  if(W>=1920){fW=1024;fH=536}
-  else if(W>=1440){fW=Math.round(W*0.53);fH=Math.round(fW*0.52)}
-  else if(W>=1024){fW=Math.round(W*0.53);fH=Math.round(fW*0.52)}
-  else if(W>=600){fW=Math.round(W*0.55);fH=Math.round(fW*0.55)}
-  else{fW=Math.round(W*0.5+200);fH=Math.round((W*0.5*(1536/2752))+200)}
+  // Scale fighters — width based on screen, height keeps aspect ratio (1536/2752)
+  var AR=1536/2752; // 0.558
+  var fW;
+  if(W>=1920)fW=1024;
+  else if(W>=1024)fW=Math.round(W*0.53);
+  else if(W>=600)fW=Math.round(W*0.55);
+  else fW=Math.round(W*0.5+200);
+  var fH=Math.round(fW*AR);
 
   // ── Pro (left, you) ──
   var proImg=S.proIdle;
