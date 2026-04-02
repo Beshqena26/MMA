@@ -148,9 +148,9 @@ function renderSideView(){
   // ═══ L2: FIGHTERS ═══
   var pro=SIDE.pro,am=SIDE.am;
   var isMob=W<600;
-  // Each fighter = exactly half screen width, height by aspect ratio
-  var fW=Math.round(W*0.5);
-  var fH=Math.round(fW*(1536/2752));
+  // Always 70% screen height, width from aspect ratio
+  var fH=Math.round(H*0.7);
+  var fW=Math.round(fH*(2752/1536));
 
   // ── Pro (left, you) ──
   var proImg=S.proIdle;
