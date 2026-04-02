@@ -1709,6 +1709,20 @@ function _render_skydrop_DISABLED(){
 var menuOverlay=document.getElementById('menuOverlay'),menuPanel=document.getElementById('menuPanel');
 function openMenu(){if(menuOverlay)menuOverlay.classList.add('open');if(menuPanel)menuPanel.classList.add('open')}
 function closeMenu(){if(menuOverlay)menuOverlay.classList.remove('open');if(menuPanel)menuPanel.classList.remove('open')}
+
+// ── Game View Switcher ──
+var GAME_VIEW=localStorage.getItem('mma_view')||'pov'; // 'pov' or 'side'
+function toggleGameView(){
+  GAME_VIEW=GAME_VIEW==='pov'?'side':'pov';
+  localStorage.setItem('mma_view',GAME_VIEW);
+  var btn=document.getElementById('viewSwitch');
+  if(btn)btn.textContent=GAME_VIEW==='pov'?'👁':'🥊';
+  // Reload images for new view
+  if(typeof IMG!=='undefined')IMG._ready=false;
+  if(typeof SCENE!=='undefined')SCENE.ready=false;
+}
+// Set initial button state
+try{var _vsBtn=document.getElementById('viewSwitch');if(_vsBtn)_vsBtn.textContent=GAME_VIEW==='pov'?'👁':'🥊'}catch(e){}
 var _burgerBtn=document.getElementById('burgerBtn');if(_burgerBtn)_burgerBtn.onclick=openMenu;
 var _menuClose=document.getElementById('menuClose');if(_menuClose)_menuClose.onclick=closeMenu;
 if(menuOverlay)menuOverlay.onclick=closeMenu;
