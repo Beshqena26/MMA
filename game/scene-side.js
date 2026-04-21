@@ -187,7 +187,14 @@ function updateSideView(){
           else{PRO_ANIM.frame=0;PRO_ANIM.frameTimer=0;}
           G.arenaShake=Math.max(G.arenaShake||0,1.5);
           G.crowdRoar=Math.min(1,(G.crowdRoar||0)+0.1);
-          if(typeof SND!=='undefined')SND.play('punch',0.5);
+          // Different sound per move type
+          if(typeof SND!=='undefined'){
+            var move=atk._combo[atk._comboIdx||0];
+            if(move==='punchL')SND.play('punch',0.5);
+            else if(move==='punchR')SND.play('punch',0.7);
+            else if(move==='leg')SND.play('punch',0.9);
+            else SND.play('punch',0.4);
+          }
           if(atkSide==='pro'){
             var bonus=+(0.05+Math.random()*0.2+t*0.15).toFixed(2);
             if(G.bonusPopups)G.bonusPopups.push({x:cv.width*0.55+(Math.random()-0.5)*30,y:cv.height*0.35,val:bonus,life:1.2});
@@ -266,15 +273,17 @@ function updateSideView(){
       am.pose='hit';am._poseTime=0;
       G.arenaShake=Math.max(G.arenaShake||0,12);
       G.crowdRoar=1;
-      if(typeof SND!=='undefined'){SND.play('punch',0.7);SND.play('cheer',0.4)}
+      if(typeof SND!=='undefined'){SND.play('punch',0.9);SND.play('cheer',0.4)}
     }
     // Phase 2: Amateur falls KO after getting hit
     if(ct>1.0&&am.pose==='hit'){
       am.pose='ko';am._poseTime=0;
+      if(typeof SND!=='undefined')SND.play('punch',0.6);
     }
     // Phase 3: Pro victory
     if(ct>2.0&&pro.pose!=='victory'){
       pro.pose='victory';pro._poseTime=0;
+      if(typeof SND!=='undefined')SND.play('victory',0.5);
     }
   }
 
@@ -330,7 +339,7 @@ function renderSideView(){
 
   // Fixed positions using stable box — scale overlap for mobile
   var isTab=W>=600&&W<=1024;
-  var overlap=isMob?Math.round(baseW*0.40):isTab?Math.round(baseW*0.35):Math.round(baseW*0.40);
+  var overlap=isMob?Math.round(baseW*0.30):isTab?Math.round(baseW*0.35):Math.round(baseW*0.40);
   var proBoxX=W*0.5-baseW+overlap;
   var proBoxY=floorY-baseH;
   var amBoxX=W*0.5-overlap;
