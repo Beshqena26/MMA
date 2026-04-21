@@ -4,7 +4,7 @@
 // Round loop: BETTING(6s) → EXPLODE(2.2s) → FREEFALL → CRASH(3s) → repeat
 // =====================================================================
 
-var BET_TIME=6, EXPLODE_TIME=2.2, CRASH_WAIT=3;
+var BET_TIME=6, EXPLODE_TIME=2.2, CRASH_WAIT=7;
 function _esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 
 // ======================== ADMIN CONFIG ========================
