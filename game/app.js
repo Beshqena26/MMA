@@ -392,8 +392,15 @@ var SND={
   toggleMusic:function(){this.musicOn=!this.musicOn;if(this.musicOn)this.startBG();else this.stopBG();return this.musicOn}
 };
 SND.init();
+// Wake Lock — keep screen on while game is open
+var _wakeLock=null;
+async function _requestWakeLock(){
+  try{if('wakeLock' in navigator){_wakeLock=await navigator.wakeLock.request('screen')}}catch(e){}
+}
+_requestWakeLock();
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')_requestWakeLock()});
 // Start audio on first interaction
-function _startAudio(){SND._getCtx();SND.startBG();document.removeEventListener('click',_startAudio);document.removeEventListener('touchstart',_startAudio)}
+function _startAudio(){SND._getCtx();SND.startBG();_requestWakeLock();document.removeEventListener('click',_startAudio);document.removeEventListener('touchstart',_startAudio)}
 // Click sound on all buttons
 document.addEventListener('click',function(e){var t=e.target;if(t&&(t.tagName==='BUTTON'||t.closest('button')||t.classList.contains('bp-q')||t.classList.contains('bp-btn')||t.classList.contains('hc')||t.classList.contains('sb-tab'))){SND.playClick()}});
 document.addEventListener('click',_startAudio);
