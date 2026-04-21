@@ -339,7 +339,7 @@ function renderSideView(){
 
   // Fixed positions using stable box — scale overlap for mobile
   var isTab=W>=600&&W<=1024;
-  var overlap=isMob?Math.round(baseW*0.30):isTab?Math.round(baseW*0.35):Math.round(baseW*0.40);
+  var overlap=isMob?Math.round(baseW*0.35):isTab?Math.round(baseW*0.35):Math.round(baseW*0.40);
   var proBoxX=W*0.5-baseW+overlap;
   var proBoxY=floorY-baseH;
   var amBoxX=W*0.5-overlap;
