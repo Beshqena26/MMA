@@ -16,7 +16,7 @@
     </div>
     <div class="hdr">
       <div class="bbox"><div class="bicon">$</div><div class="bval" id="bal">1,000.00</div></div>
-      <button class="ibtn view-switch" id="viewSwitch" onclick="toggleGameView()" title="Switch View">👁</button>
+      <button class="ibtn view-switch" id="viewSwitch" onclick="toggleGameView()" title="Switch camera: face-off / first-person">👁</button>
       <button class="ibtn chat-hdr-btn" id="chatToggleBtn" onclick="toggleMobileChat()">💬</button>
       <button class="ibtn" id="burgerBtn" aria-label="Open menu">☰</button>
     </div>
@@ -85,7 +85,7 @@
             <button class="bp-auto-toggle" id="autoBet1" onclick="toggleAuto(1,'bet')"><div class="dot"></div></button>
             <span style="margin-left:auto">Cash Out</span>
             <button class="bp-auto-toggle" id="autoCash1" onclick="toggleAuto(1,'cash')"><div class="dot"></div></button>
-            <input class="bp-auto-input" id="au1" placeholder="2.00" value="" inputmode="decimal">
+            <input class="bp-auto-input" id="au1" placeholder="2.00" value="" inputmode="decimal" oninput="valAutoCash(1)">
             <span class="bp-auto-x">×</span>
             <button class="bp-add-btn" id="addPanel2" onclick="showPanel2()" style="display:none">＋</button>
           </div>
@@ -103,7 +103,7 @@
             <button class="bp-auto-toggle" id="autoBet2" onclick="toggleAuto(2,'bet')"><div class="dot"></div></button>
             <span style="margin-left:auto">Cash Out</span>
             <button class="bp-auto-toggle" id="autoCash2" onclick="toggleAuto(2,'cash')"><div class="dot"></div></button>
-            <input class="bp-auto-input" id="au2" placeholder="2.00" value="" inputmode="decimal">
+            <input class="bp-auto-input" id="au2" placeholder="2.00" value="" inputmode="decimal" oninput="valAutoCash(2)">
             <span class="bp-auto-x">×</span>
             <button class="bp-remove-btn" onclick="hidePanel2()">✕</button>
           </div>

@@ -300,3 +300,6 @@ canvas{position:fixed;top:0;left:0;z-index:1}
   .chat-panel{display:flex;flex-direction:column;width:0;min-width:0;background:var(--panel);border-left:1px solid var(--border);overflow:hidden;transition:width .3s cubic-bezier(.4,0,.2,1),min-width .3s cubic-bezier(.4,0,.2,1)}
   .chat-panel.open{width:280px;min-width:280px}
 }
+
+/* Auto cash-out target below 1.01x would fire instantly — flag it */
+.bp-auto-input.invalid{border-color:#f44336;color:#ef5350}

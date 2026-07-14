@@ -246,6 +246,11 @@ function updateSideView(){
   if(am.pose==='idle')_setAmAnim('idle');
   else if(am.pose==='hit')_setAmAnim('gettinghit');
   else if(am.pose==='ko')_setAmAnim('ko');
+
+  // KO -> standing crossfade: when the next round snaps him back to idle, fade the
+  // body off the mat instead of an instant pop (render draws the overlay).
+  if(SIDE._lastAmPose==='ko'&&am.pose!=='ko')SIDE._koFade=0.35;
+  SIDE._lastAmPose=am.pose;
 }
 
 // ── Side View Render ──
@@ -353,6 +358,24 @@ function renderSideView(){
     cx.scale(-1,1);
     cx.drawImage(amFrame,-aDrawW*0.5,0,aDrawW,aDrawH);
     cx.restore();
+  }
+
+  // KO body fading off the mat while the standing idle takes over (see updateSideView)
+  if(SIDE._koFade>0){
+    SIDE._koFade-=dt;
+    var koAnim=PRO_ANIM.anims.ko;
+    var koImg=koAnim&&koAnim.length?koAnim[koAnim.length-1]:null;
+    if(koImg&&koImg.complete&&koImg.naturalWidth>0){
+      var kAspect=koImg.naturalWidth/koImg.naturalHeight;
+      var kW=Math.round(baseH*kAspect),kH=baseH;
+      var kY=amBoxY+Math.round(baseH*0.15);   // same mat offset as the held ko pose
+      cx.save();
+      cx.globalAlpha=Math.max(0,SIDE._koFade/0.35);
+      cx.translate(amBoxX+baseW*0.5,kY);
+      cx.scale(-1,1);
+      cx.drawImage(koImg,-kW*0.5,0,kW,kH);
+      cx.restore();
+    }
   }
 
   cx.restore(); // ═══ end CAMERA — HUD below is not zoomed or shaken ═══

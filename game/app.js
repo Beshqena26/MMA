@@ -815,7 +815,20 @@ function betAction(s){
   }catch(e){}
 }
 
-function toggleAuto(s,type){try{if(type==='bet'){G.autoBet[s-1]=!G.autoBet[s-1];$('autoBet'+s).classList.toggle('on',G.autoBet[s-1])}else{G.autoCash[s-1]=!G.autoCash[s-1];$('autoCash'+s).classList.toggle('on',G.autoCash[s-1])}}catch(e){}}
+function toggleAuto(s,type){try{if(type==='bet'){G.autoBet[s-1]=!G.autoBet[s-1];$('autoBet'+s).classList.toggle('on',G.autoBet[s-1])}else{G.autoCash[s-1]=!G.autoCash[s-1];$('autoCash'+s).classList.toggle('on',G.autoCash[s-1]);valAutoCash(s)}}catch(e){}}
+
+// Auto cash-out target must be a number above 1.00x — anything else would cash out
+// instantly (multiplier starts at 1.00) or never. Marks the field, doesn't block typing.
+function valAutoCash(s){
+  try{
+    var el=$('au'+s);if(!el)return;
+    el.value=el.value.replace(/[^0-9.]/g,'').replace(/(\..*)\./g,'$1');
+    var v=parseFloat(el.value);
+    var bad=el.value!==''&&(!isFinite(v)||v<1.01);
+    el.classList.toggle('invalid',bad&&G.autoCash[s-1]);
+    el.title=bad?'Enter a multiplier above 1.00':'';
+  }catch(e){}
+}
 
 function switchTab(s,tab){
   try{
@@ -888,6 +901,9 @@ function startBettingPhase(){
   try{$('rInfo').textContent='ROUND #'+G.roundNum}catch(e){}
   try{$('timerBar').style.width='100%';$('timerBar').classList.remove('urgent')}catch(e){}
   try{setSt('PLACE YOUR BETS — '+Math.ceil(G.phaseTimer)+'s','s1')}catch(e){}
+  // Close any open info modal so the bet panel is never silently covered while
+  // the betting window ticks down (modals reopen from the menu anytime).
+  try{document.querySelectorAll('.mo.open').forEach(function(m){m.classList.remove('open')})}catch(e){}
   try{populateSidebar()}catch(e){}
   try{sfx.stopFreefall();sfx.play('launch')}catch(e){}
   // Auto bet
@@ -917,6 +933,7 @@ function startCrashPhase(){
   if(!G.pilot.ejected){G.pilot.ejected=true;G.pilot.x=G.rocket.x||0;G.pilot.y=G.rocket.y||0;G.pilot.vx=0;G.pilot.vy=0;G.pilot.spin=0;G.pilot._phase='freefall'}
   G.pilot.chuteOpen=true;G.pilot.vy=Math.min(G.pilot.vy||0,20);
   G.camera.shake=2;G.camera.zoomTarget=1.05;
+  try{$('roundBanner').style.display='none'}catch(e){}
   // Record losses
   for(var i=0;i<2;i++){if(G.bets[i].placed&&!G.bets[i].out){G.totP-=G.bets[i].amount;G.betHistory.unshift({round:G.roundNum,bet:G.bets[i].amount,mult:G.crashPt,win:0,time:new Date()});if(G.betHistory.length>200)G.betHistory.pop()}}
   // Fake loss feed
@@ -942,7 +959,7 @@ function _updateMultAndUI(){
   // Update bet button amounts
   try{for(var i=0;i<2;i++){if(G.bets[i].placed&&!G.bets[i].out){$('btn'+(i+1)).querySelector('.bb-amount').textContent=(G.bets[i].amount*G.mult).toFixed(2)+' USD'}}}catch(e){}
   // Auto cashout
-  try{for(var j=0;j<2;j++){if(G.autoCash[j]&&G.bets[j].placed&&!G.bets[j].out){var ac=parseFloat($('au'+(j+1)).value);if(ac>0&&G.mult>=ac)betAction(j+1)}}}catch(e){}
+  try{for(var j=0;j<2;j++){if(G.autoCash[j]&&G.bets[j].placed&&!G.bets[j].out){var ac=parseFloat($('au'+(j+1)).value);if(isFinite(ac)&&ac>=1.01&&G.mult>=ac)betAction(j+1)}}}catch(e){}
 }
 function _updateBlackHoles(){}
 
@@ -1037,8 +1054,8 @@ function update(ts){
     else if(G.phase==='CRASH'){
       G.phaseTimer+=G.dt;
       G.camera.zoomTarget=1.1;
-      var rem=Math.max(0,Math.ceil(CRASH_WAIT-G.phaseTimer));
-      if(G.phaseTimer>1.5)setSt('NEXT ROUND IN '+rem+'s','s5');
+      // Status stays on KNOCKOUT through the crash — the betting banner that follows
+      // is the single authoritative countdown (was a duplicate corner countdown here).
       if(G.phaseTimer>=CRASH_WAIT){
         if(SYNC.enabled){
           SYNC.onCrashWaitEnd();
