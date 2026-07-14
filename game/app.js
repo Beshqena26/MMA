@@ -1809,6 +1809,57 @@ try{var _vsBtn=document.getElementById('viewSwitch');if(_vsBtn)_vsBtn.textConten
 var _burgerBtn=document.getElementById('burgerBtn');if(_burgerBtn)_burgerBtn.onclick=openMenu;
 var _menuClose=document.getElementById('menuClose');if(_menuClose)_menuClose.onclick=closeMenu;
 if(menuOverlay)menuOverlay.onclick=closeMenu;
+
+// ══ MODAL BEHAVIOUR ══════════════════════════════════════════════
+// Backdrop click closes; ESC closes topmost layer (modal > menu > chat);
+// on mobile the sheet can be swiped down to dismiss from its top region.
+(function(){
+  document.querySelectorAll('.mo').forEach(function(mo){
+    var mx=mo.querySelector('.mx');
+    if(mx){mx.setAttribute('role','dialog');mx.setAttribute('aria-modal','true')}
+    mo.addEventListener('click',function(e){if(e.target===mo)mo.classList.remove('open')});
+  });
+  document.addEventListener('keydown',function(e){
+    if(e.key!=='Escape')return;
+    var mo=document.querySelector('.mo.open');
+    if(mo){mo.classList.remove('open');return}
+    var mp=document.getElementById('menuPanel');
+    if(mp&&mp.classList.contains('open')){closeMenu();return}
+    var mc=document.getElementById('mobileChatOverlay');
+    if(mc&&mc.classList.contains('open'))toggleMobileChat();
+  });
+  // Swipe-down to dismiss (mobile sheet). Only engages when the sheet's own
+  // scroll is at the top, so in-sheet scrolling still works.
+  document.querySelectorAll('.mo .mx').forEach(function(mx){
+    var startY=0,dy=0,active=false;
+    mx.addEventListener('touchstart',function(e){
+      if(window.innerWidth>=600)return;
+      if(mx.scrollTop>2)return;
+      startY=e.touches[0].clientY;dy=0;active=true;
+      mx.classList.remove('settling');
+    },{passive:true});
+    mx.addEventListener('touchmove',function(e){
+      if(!active)return;
+      dy=e.touches[0].clientY-startY;
+      if(dy<0)dy=0;
+      if(dy>4){mx.classList.add('dragging');mx.style.transform='translateY('+dy+'px)'}
+    },{passive:true});
+    mx.addEventListener('touchend',function(){
+      if(!active)return;active=false;
+      mx.classList.remove('dragging');
+      if(dy>110){
+        mx.classList.add('settling');mx.style.transform='translateY(105%)';
+        setTimeout(function(){
+          var mo=mx.closest('.mo');if(mo)mo.classList.remove('open');
+          mx.classList.remove('settling');mx.style.transform='';
+        },210);
+      }else{
+        mx.classList.add('settling');mx.style.transform='';
+        setTimeout(function(){mx.classList.remove('settling')},240);
+      }
+    });
+  });
+})();
 // Sound toggles in menu
 try{
   document.getElementById('menuSfx').onclick=function(){var on=SND.toggleSfx();document.getElementById('sfxToggle').classList.toggle('on',on)};

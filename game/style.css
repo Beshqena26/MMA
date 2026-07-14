@@ -301,5 +301,42 @@ canvas{position:fixed;top:0;left:0;z-index:1}
   .chat-panel.open{width:280px;min-width:280px}
 }
 
-/* Auto cash-out target below 1.01x would fire instantly — flag it */
-.bp-auto-input.invalid{border-color:#f44336;color:#ef5350}
+
+/* ══════════════════════════════════════════════════════════════════
+   MODAL SYSTEM v2 — desktop: centered dialog; mobile: bottom sheet
+   ══════════════════════════════════════════════════════════════════ */
+.mo{animation:moFade .22s ease}
+@keyframes moFade{from{background:rgba(0,0,0,0)}to{background:rgba(0,0,0,.7)}}
+.mx{animation:mxIn .26s cubic-bezier(.32,.72,.33,1)}
+@keyframes mxIn{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:none}}
+
+@media(max-width:599px){
+  /* Bottom drawer: full-width sheet, rounded top, safe-area padding, drag handle */
+  .mo{align-items:flex-end;justify-content:stretch}
+  .mx{width:100%;max-width:100%;border-radius:18px 18px 0 0;max-height:88dvh;
+      border:none;border-top:1px solid rgba(76,175,80,.25);
+      padding:10px 16px calc(18px + var(--sab));
+      animation:sheetUp .32s cubic-bezier(.32,.72,.33,1);will-change:transform}
+  .mx::before{content:'';display:block;width:40px;height:4px;border-radius:2px;
+      background:rgba(255,255,255,.18);margin:2px auto 14px}
+  .mx.has-footer .modal-footer{padding:12px 16px calc(16px + var(--sab))}
+  .mx.dragging{animation:none;transition:none}
+  .mx.settling{transition:transform .22s cubic-bezier(.32,.72,.33,1)}
+  .mc{top:6px;right:6px}
+}
+@keyframes sheetUp{from{transform:translateY(100%)}to{transform:none}}
+
+/* ── Keyboard focus — visible ring on every interactive control ── */
+button:focus-visible,.bp-auto-input:focus-visible,.chat-input:focus-visible,
+.picker-search-input:focus-visible,.sb-tab:focus-visible,.menu-item:focus-visible{
+  outline:2px solid var(--acc);outline-offset:2px;border-radius:6px}
+button:focus:not(:focus-visible){outline:none}
+
+/* ── State-color consistency ── */
+.bp-auto-input.invalid{border-color:var(--dng);color:var(--dng)}   /* was off-brand #f44336 */
+.bp-betbtn:disabled,.bp-btn:disabled{opacity:.45;cursor:default}
+
+/* ── Motion preferences ── */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
