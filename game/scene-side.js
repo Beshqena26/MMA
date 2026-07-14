@@ -323,6 +323,26 @@ function renderSideView(){
 
   // ═══ L2: FIGHTERS ═══
 
+  // First visit on a slow connection. The idle frames load first, so the moment they
+  // decode the fighters stand there and the remaining frames stream invisibly — the
+  // indicator is only needed while the arena is truly empty, and it stands where the
+  // fighters will (they can't cover it: they aren't drawable yet).
+  var _idleA=PRO_ANIM.anims.idle,_idleReady=!!(_idleA&&_idleA.length);
+  if(_idleReady)for(var _ii=0;_ii<_idleA.length;_ii++){
+    if(!(_idleA[_ii].complete&&_idleA[_ii].naturalWidth>0)){_idleReady=false;break}
+  }
+  if(!_idleReady&&PRO_ANIM._totalFrames>0){
+    var lp=Math.min(1,PRO_ANIM._loadCount/PRO_ANIM._totalFrames);
+    var lw=Math.min(220,W*0.4),lx=W*0.5-lw/2,ly=floorY-baseH*0.45;
+    cx.save();
+    cx.font='600 11px "JetBrains Mono",monospace';cx.textAlign='center';cx.textBaseline='bottom';
+    cx.fillStyle='rgba(255,255,255,0.55)';
+    cx.fillText('LOADING FIGHTERS — '+Math.round(lp*100)+'%',W*0.5,ly-9);
+    cx.fillStyle='rgba(255,255,255,0.12)';cx.fillRect(lx,ly,lw,3);
+    cx.fillStyle='#4caf50';cx.fillRect(lx,ly,Math.round(lw*lp),3);
+    cx.restore();
+  }
+
   // Fixed positions using stable box — scale overlap for mobile
   var isTab=W>=600&&W<=1024;
   var overlap=isMob?Math.round(baseW*0.35):isTab?Math.round(baseW*0.35):Math.round(baseW*0.40);
@@ -332,7 +352,10 @@ function renderSideView(){
   var amBoxY=floorY-baseH;
 
   // ── Pro (left, you) — frame animation ──
-  var proFrame=_getProFrame(dt);
+  // Fighters wait for the FULL idle set before appearing: drawing per-frame while it
+  // streams makes them flicker as the ping-pong hits undecoded indices, and they'd
+  // stand on top of the loading line. One clean reveal instead.
+  var proFrame=_idleReady?_getProFrame(dt):null;
 
   if(proFrame){
     var pNW=proFrame.naturalWidth||1936,pNH=proFrame.naturalHeight||1072;
@@ -344,8 +367,8 @@ function renderSideView(){
     cx.drawImage(proFrame,drawX,drawY,drawW,drawH);
   }
 
-  // ── Amateur (right, opponent) �� same frames as Pro, flipped ──
-  var amFrame=_getAmFrame(dt);
+  // ── Amateur (right, opponent) — same frames as Pro, flipped ──
+  var amFrame=_idleReady?_getAmFrame(dt):null;
 
   if(amFrame){
     var aNW=amFrame.naturalWidth||1936,aNH=amFrame.naturalHeight||1072;

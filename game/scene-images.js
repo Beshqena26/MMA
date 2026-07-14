@@ -222,9 +222,12 @@ function render(){
   else if(isKO&&IMG.kick&&IMG.kick.complete){oppImg=IMG.kick}
   // My attack — hook pose
   else if(atkPose!=='idle'&&IMG.hook&&IMG.hook.complete){oppImg=IMG.hook}
-  // Getting hit — show hit-left or hit-right based on which fist hit
-  else if(hitPose==='face'&&IMG.hitL&&IMG.hitL.complete){oppImg=IMG.hitL}
-  else if(hitPose==='body'&&IMG.hitR&&IMG.hitR.complete){oppImg=IMG.hitR}
+  // Getting hit — show hit-left or hit-right based on which fist hit.
+  // `complete` is true even for FAILED images (naturalWidth 0), and desktop has no
+  // fighter-hit-left asset — without the naturalWidth check + hitR fallback the
+  // opponent vanished for 0.25s on every face hit.
+  else if(hitPose==='face'&&IMG.hitL&&IMG.hitL.naturalWidth){oppImg=IMG.hitL}
+  else if(hitPose!=='idle'&&IMG.hitR&&IMG.hitR.naturalWidth){oppImg=IMG.hitR}
   // Default idle
   else{oppImg=IMG.idle&&IMG.idle.complete?IMG.idle:null}
   if(oppImg&&oppImg.naturalWidth){
