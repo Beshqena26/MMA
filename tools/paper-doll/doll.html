@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>body{margin:0;background:#223}</style></head>
+<body>
+<canvas id="c" width="900" height="1000"></canvas>
+<script>
+// Paper-doll rig. Each part: img, pivot (px on the part = its joint),
+// parent + anchor (px on the PARENT part where this pivot attaches),
+// rot (degrees), scale, z. World root = hips.
+const RIG = {
+  hips:      {src:'parts/hips.png',      pivot:[165,120], parent:null, anchor:[450,470], rot:0,  z:30},
+  torso:     {src:'parts/torso.png',     pivot:[190,460], parent:'hips', anchor:[165,55],  rot:0,  z:40},
+  head:      {src:'parts/head.png',      pivot:[125,290], parent:'torso', anchor:[172,55], rot:0,  z:45},
+  // native art: both arms hang straight down; +rot swings the limb toward viewer-left.
+  // far (right) arm: elbow is at the part's bottom-RIGHT (185,265)
+  upperarm_R:{src:'parts/upperarm_R.png',pivot:[85,70],   parent:'torso', anchor:[318,110],rot:5,   z:38},
+  forearm_R: {src:'parts/forearm_R.png', pivot:[110,55],  parent:'upperarm_R', anchor:[185,265], rot:140, z:55},
+  // lead (left) arm forward, fist raised
+  upperarm_L:{src:'parts/upperarm_L.png',pivot:[115,45],  parent:'torso', anchor:[52,115], rot:50,  z:50},
+  forearm_L: {src:'parts/forearm_L.png', pivot:[120,50],  parent:'upperarm_L', anchor:[105,285], rot:105, z:51},
+  thigh_R:   {src:'parts/thigh_R.png',   pivot:[178,158], parent:'hips', anchor:[220,112], rot:-6, z:25},
+  shin_R:    {src:'parts/shin_R.png',    pivot:[399,62],  parent:'thigh_R', anchor:[445,440], rot:2, z:24},
+  thigh_L:   {src:'parts/thigh_L.png',   pivot:[150,120], parent:'hips', anchor:[125,142], rot:8, z:20},
+  shin_L:    {src:'parts/shin_L.png',    pivot:[395,62],  parent:'thigh_L', anchor:[445,440], rot:-10, z:19},
+};
+const SCALE = 0.5;
+
+const cv=document.getElementById('c'), cx=cv.getContext('2d');
+const imgs={}; let left=Object.keys(RIG).length;
+for(const k in RIG){
+  const im=new Image(); im.onload=()=>{if(--left===0)draw()};
+  im.src=RIG[k].src; imgs[k]=im;
+}
+
+function worldTransform(name){
+  const p=RIG[name];
+  let m = p.parent ? worldTransform(p.parent) : new DOMMatrix().translate(p.anchor[0],p.anchor[1]);
+  if(p.parent){
+    m = m.multiply(new DOMMatrix()
+        .translate(p.anchor[0]*SCALE*0,0));           // anchor applied below in parent's local px
+  }
+  return m;
+}
+
+// simpler: compute recursively with explicit math
+function draw(){
+  cx.clearRect(0,0,cv.width,cv.height);
+  cx.fillStyle='#223'; cx.fillRect(0,0,cv.width,cv.height);
+  const order=Object.keys(RIG).sort((a,b)=>RIG[a].z-RIG[b].z);
+  const world={};
+  function mat(name){
+    if(world[name])return world[name];
+    const p=RIG[name];
+    let m;
+    if(!p.parent){
+      m=new DOMMatrix().translate(p.anchor[0],p.anchor[1]).scale(SCALE)
+        .rotate(p.rot).translate(-p.pivot[0],-p.pivot[1]);
+    }else{
+      const pm=mat(p.parent);
+      m=pm.multiply(new DOMMatrix().translate(p.anchor[0],p.anchor[1])
+        .rotate(p.rot).translate(-p.pivot[0],-p.pivot[1]));
+    }
+    world[name]=m; return m;
+  }
+  for(const k of order){
+    const m=mat(k);
+    cx.setTransform(m);
+    cx.drawImage(imgs[k],0,0);
+  }
+  cx.setTransform(1,0,0,1,0,0);
+  // joint markers for tuning
+  if(location.search.includes('debug')){
+    for(const k of order){
+      const m=mat(k), pt=m.transformPoint(new DOMPoint(RIG[k].pivot[0],RIG[k].pivot[1]));
+      cx.fillStyle='#0f0';cx.beginPath();cx.arc(pt.x,pt.y,4,0,7);cx.fill();
+      cx.fillStyle='#fff';cx.font='10px monospace';cx.fillText(k,pt.x+6,pt.y);
+    }
+  }
+  document.title='DOLL READY';
+}
+window.RIG=RIG; window.redraw=draw;
+// ── POSE LIBRARY: each pose = joint-angle overrides (+optional per-part dx,dy on root) ──
+const BASE = {}; for(const k in RIG) BASE[k]=RIG[k].rot;
+window.POSES = {
+  guard:   {},
+  jab:     {upperarm_L:92, forearm_L:4, torso:-6, head:4, upperarm_R:14, forearm_R:148},
+  cross:   {upperarm_R:96, forearm_R:-2, torso:-14, hips:-8, head:6,
+            upperarm_L:16, forearm_L:132},
+  block:   {upperarm_L:62, forearm_L:128, upperarm_R:20, forearm_R:155, head:6, torso:2},
+  legkick: {thigh_R:78, shin_R:64, torso:-14, hips:-10, upperarm_L:30, forearm_L:120,
+            upperarm_R:-18, forearm_R:150, thigh_L:16, shin_L:-4},
+  hit:     {torso:14, head:22, upperarm_L:35, forearm_L:130, upperarm_R:-6, forearm_R:150, hips:4},
+  victory: {upperarm_L:168, forearm_L:12, upperarm_R:-148, forearm_R:-12, head:-8},
+};
+function applyPose(name){
+  const p=POSES[name]||{};
+  for(const k in RIG) RIG[k].rot = (k in p)? p[k] : BASE[k];
+}
+const q=new URLSearchParams(location.search);
+if(q.get('pose')){ applyPose(q.get('pose')); }
+if(q.has('sheet')){
+  // contact sheet: render every pose side by side
+  const names=Object.keys(POSES);
+  cv.width=460*names.length; cv.height=1000;
+  const origDraw=draw;
+  window.drawSheet=function(){
+    cx.setTransform(1,0,0,1,0,0);
+    cx.fillStyle='#223';cx.fillRect(0,0,cv.width,cv.height);
+    names.forEach((nm,i)=>{
+      applyPose(nm);
+      const world={};
+      const order=Object.keys(RIG).sort((a,b)=>RIG[a].z-RIG[b].z);
+      function mat(name){
+        if(world[name])return world[name];
+        const p=RIG[name];let m;
+        if(!p.parent){m=new DOMMatrix().translate(p.anchor[0]-450+230+460*i,p.anchor[1]).scale(SCALE)
+          .rotate(p.rot).translate(-p.pivot[0],-p.pivot[1]);}
+        else{const pm=mat(p.parent);
+          m=pm.multiply(new DOMMatrix().translate(p.anchor[0],p.anchor[1])
+            .rotate(p.rot).translate(-p.pivot[0],-p.pivot[1]));}
+        world[name]=m;return m;
+      }
+      for(const k of order){cx.setTransform(mat(k));cx.drawImage(imgs[k],0,0);}
+      cx.setTransform(1,0,0,1,0,0);
+      cx.fillStyle='#8f8';cx.font='bold 22px monospace';
+      cx.fillText(nm.toUpperCase(),460*i+40,60);
+    });
+    document.title='DOLL READY';
+  };
+  // re-route the loader callback
+  let n=Object.keys(RIG).length; // images may already be loading; hook after
+  const t=setInterval(()=>{ if(Object.values(imgs).every(im=>im.complete)){clearInterval(t);drawSheet();} },100);
+}
+
+</script>
+</body></html>
