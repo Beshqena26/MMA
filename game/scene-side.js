@@ -3,10 +3,15 @@
 // Pro (left, you) vs Amateur (right, opponent)
 // =====================================================================
 
+// Mobile gets the 720px-tall frame set — same frames, ~2.2x fewer pixels to
+// decode and hold in memory. Read once at load, same convention as the POV scene.
+var _sideMobile=window.innerWidth<600;
+var _sideFrameDir=_sideMobile?'assets/side/pro-frames-sm/':'assets/side/pro-frames/';
+
 var SIDE={
   ready:false,img:{},_loaded:0,
   _list:[
-    {key:'bg',src:'assets/side/BG.webp'}
+    {key:'bg',src:_sideMobile?'assets/side/BG-sm.webp':'assets/side/BG.webp'}
   ],
   // Fight state for side view
   pro:{pose:'idle',poseTimer:0,punchArm:0},
@@ -42,21 +47,21 @@ function _loadProFrames(){
   if(PRO_ANIM._started)return;
   PRO_ANIM._started=true;
   // Only the frames the face-off actually reaches. The full sequences are 507 frames / 162MB
-  // and every one was loaded eagerly at startup; ambient attacks and the KO/victory
-  // follow-through are gone, so leftpunch/legkick/victory/ko are unreachable.
+  // and every one was loaded eagerly at startup; ambient attacks and the victory
+  // follow-through are gone, so leftpunch/legkick/victory are unreachable.
   var sets=[
     // Idle: a quiet slice at the top of the bounce, ping-ponged (see _getProFrame).
     // The full 37-67 range contains a deep crouch, a weight shift and a step — all baked
     // into the art. 48-54 holds the guard with feet planted. Tune by eye.
-    {name:'idle',       path:'assets/side/pro-frames/idle/',       prefix:'Idle_',         start:48,  end:54,  skip:1},
+    {name:'idle',       path:_sideFrameDir+'idle/',       prefix:'Idle_',         start:48,  end:54,  skip:1},
     // Right cross, wind-up trimmed: index 0 = source frame 66, contact lands at index 6
     // (source frame 72 = full extension). The 1.1s retract past 78 is never seen — we cut to black.
-    {name:'rightpunch', path:'assets/side/pro-frames/rightpunch/', prefix:'Right_Punch_',  start:66,  end:78,  skip:1},
+    {name:'rightpunch', path:_sideFrameDir+'rightpunch/', prefix:'Right_Punch_',  start:66,  end:78,  skip:1},
     // Amateur's reaction — only ~4 frames are visible before the blackout.
-    {name:'gettinghit', path:'assets/side/pro-frames/gettinghit/', prefix:'Getting_Hit_',  start:51,  end:62,  skip:1},
+    {name:'gettinghit', path:_sideFrameDir+'gettinghit/', prefix:'Getting_Hit_',  start:51,  end:62,  skip:1},
     // KO — the TAIL only: he's already flat on the mat and settled by 112, so this is a
     // held reveal pose, not the 90-frame fall (which happens unseen behind the blackout).
-    {name:'ko',         path:'assets/side/pro-frames/ko/',         prefix:'KOO_',          start:112, end:120, skip:1}
+    {name:'ko',         path:_sideFrameDir+'ko/',         prefix:'KOO_',          start:112, end:120, skip:1}
   ];
   sets.forEach(function(s){
     PRO_ANIM.anims[s.name]=[];
