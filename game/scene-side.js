@@ -13,9 +13,10 @@ var _sideFrameDir=_sideMobile?'assets/side/pro-frames-sm/':'assets/side/pro-fram
 // otherwise the stored choice; otherwise the current look. Nothing replaced.
 var SKIN=(function(){
   try{
-    var m=(location.search||'').match(/[?&]skin=(real|cartoon)/);
+    var m=(location.search||'').match(/[?&]skin=(real3d|cartoon|real)/);
     if(m){localStorage.setItem('mma_skin',m[1]);return m[1]}
-    return localStorage.getItem('mma_skin')==='cartoon'?'cartoon':'real';
+    var st=localStorage.getItem('mma_skin');
+    return (st==='cartoon'||st==='real3d')?st:'real';
   }catch(e){return 'real'}
 })();
 
@@ -27,6 +28,12 @@ var SKINCFG=SKIN==='cartoon'?{
   overlap:0.16, overlapMob:0.16,   // fraction of baseW; small = gloves nearly touch
   koYOff:0.02,                     // ko art already lies at the frame bottom
   drawArena:true                   // code-drawn cartoon arena instead of BG image
+}:SKIN==='real3d'?{
+  // Blender-rendered fighters (MPFB + Mixamo anim), 1280x720 frames, fighter centered
+  aspect:1280/720, baseH:0.66, baseHMob:0.58,
+  overlap:0.34, overlapMob:0.30,
+  koYOff:0,                        // placeholder KO is a standing pose for now
+  drawArena:false                  // same photoreal cage as the current art
 }:{
   aspect:1936/1072, baseH:0.62, baseHMob:0.55,
   overlap:0.40, overlapMob:0.35,
@@ -102,6 +109,17 @@ function _loadSet(target,s){
 function _loadProFrames(){
   if(PRO_ANIM._started)return;
   PRO_ANIM._started=true;
+  if(SKIN==='real3d'){
+    // Blender/MPFB renders. blue 'hurt' and 'ko' are boxing-segment placeholders
+    // until the real reaction animations are rendered (drop-in replacement).
+    var R='assets/side/real3d/';
+    _loadSet(PRO_ANIM.anims,{name:'idle',      path:R+'red/idle/',  prefix:'F_',start:0,end:13,pad:3});
+    _loadSet(PRO_ANIM.anims,{name:'rightpunch',path:R+'red/punch/', prefix:'F_',start:0,end:12,pad:3});
+    _loadSet(AM_FRAMES.anims,{name:'idle',      path:R+'blue/idle/',prefix:'F_',start:0,end:13,pad:3});
+    _loadSet(AM_FRAMES.anims,{name:'gettinghit',path:R+'blue/hurt/',prefix:'F_',start:0,end:8, pad:3});
+    _loadSet(AM_FRAMES.anims,{name:'ko',        path:R+'blue/ko/',  prefix:'F_',start:0,end:12,pad:3});
+    return;
+  }
   if(SKIN==='cartoon'){
     // CC0 "Mini Boxing" by Segel (opengameart.org/content/mini-boxing-character).
     // Red corner = pro; blue corner = amateur with its OWN art — no mirror-clone.
@@ -134,7 +152,8 @@ function _loadProFrames(){
 }
 
 // The amateur's frame source: own blue art on the cartoon skin, shared red/real otherwise
-function _amAnims(){return SKIN==='cartoon'?AM_FRAMES.anims:PRO_ANIM.anims}
+var AM_OWN=(SKIN==='cartoon'||SKIN==='real3d');
+function _amAnims(){return AM_OWN?AM_FRAMES.anims:PRO_ANIM.anims}
 
 // Set pro animation — switch instantly
 function _setProAnim(name){
@@ -456,7 +475,7 @@ function renderSideView(){
     for(var i=0;i<a.length;i++){if(!(a[i].complete&&a[i].naturalWidth>0))return false}
     return true;
   }
-  var _idleReady=_setReady(PRO_ANIM.anims.idle)&&(SKIN!=='cartoon'||_setReady(AM_FRAMES.anims.idle));
+  var _idleReady=_setReady(PRO_ANIM.anims.idle)&&(!AM_OWN||_setReady(AM_FRAMES.anims.idle));
   if(!_idleReady&&PRO_ANIM._totalFrames>0){
     var lp=Math.min(1,PRO_ANIM._loadCount/PRO_ANIM._totalFrames);
     var lw=Math.min(220,W*0.4),lx=W*0.5-lw/2,ly=floorY-baseH*0.45;
