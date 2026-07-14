@@ -35,6 +35,62 @@ function _loadImages(){
     img.src=item.src;
     IMG[item.key]=img;
   });
+  _loadAnims();
+}
+
+// ── Frame-sequence fighter animations ──
+// Each set is a folder of numbered PNGs (frame 00..count-1). New move sets drop
+// in here as they're produced; anything without frames yet falls back to the
+// static IMG poses in the render switch below.
+var _animDefs={
+  idle:{dir:'assets/anim/idle/',prefix:'idle_',count:16,fps:12,loop:true},
+  kick:{dir:'assets/anim/kick/',prefix:'kick_left_',count:16,fps:24,loop:false}
+};
+var ANIM={name:'idle',frame:0,timer:0,done:false,seqs:{}};
+function _loadAnims(){
+  if(ANIM._started)return;
+  ANIM._started=true;
+  Object.keys(_animDefs).forEach(function(key){
+    var def=_animDefs[key],seq={imgs:[],loaded:0,ready:false};
+    ANIM.seqs[key]=seq;
+    for(var i=0;i<def.count;i++){
+      (function(idx){
+        var img=new Image();
+        var pad=idx<10?'0'+idx:''+idx;
+        img.onload=function(){seq.loaded++;if(seq.loaded>=def.count)seq.ready=true};
+        img.onerror=function(){seq.loaded++;console.warn('Failed to load:',def.dir+def.prefix+pad+'.png')};
+        img.src=def.dir+def.prefix+pad+'.png';
+        seq.imgs[idx]=img;
+      })(i);
+    }
+  });
+}
+// Switch animation. A playing one-shot (kick) blocks the return to idle until
+// it finishes — otherwise the 0.35s atkPose timer would cut it off mid-swing.
+function _animSet(name){
+  if(ANIM.name===name)return;
+  if(!_animDefs[name]||!ANIM.seqs[name]||!ANIM.seqs[name].ready)return;
+  var cur=_animDefs[ANIM.name];
+  if(cur&&!cur.loop&&!ANIM.done&&name==='idle')return;
+  ANIM.name=name;ANIM.frame=0;ANIM.timer=0;ANIM.done=false;
+}
+// Advance the clock and return the current frame image (null → caller falls
+// back to static poses).
+function _animFrame(dt){
+  var def=_animDefs[ANIM.name],seq=ANIM.seqs[ANIM.name];
+  if(!def||!seq||!seq.ready)return null;
+  ANIM.timer+=dt;
+  var step=1/def.fps;
+  while(ANIM.timer>=step){
+    ANIM.timer-=step;
+    ANIM.frame++;
+    if(ANIM.frame>=def.count){
+      if(def.loop){ANIM.frame=0}
+      else{ANIM.done=true;ANIM.name='idle';ANIM.frame=0;ANIM.timer=0;def=_animDefs.idle;seq=ANIM.seqs.idle;if(!seq||!seq.ready)return null}
+    }
+  }
+  var img=seq.imgs[ANIM.frame];
+  return img&&img.complete&&img.naturalWidth?img:null;
 }
 // Load only if this scene is the active view; toggleGameView() lazy-loads it otherwise.
 // Same key + default as GAME_VIEW in app.js (which loads after this file).
@@ -216,39 +272,53 @@ function render(){
   var koT=G.koTimer||0;
   var hitPose=opp.hitPose||'idle';
   var atkPose=opp.atkPose||'idle';
-  var oppImg;
-  // KO: first show kick pose, then victory
+  var oppImg,_dtA=G.dt||0.016,_fromAnim=false;
+  // KO: kick animation, then victory
   if(isKO&&koT>1.0&&IMG.victory&&IMG.victory.complete){oppImg=IMG.victory}
-  else if(isKO&&IMG.kick&&IMG.kick.complete){oppImg=IMG.kick}
-  // My attack — hook pose
-  else if(atkPose!=='idle'&&IMG.hook&&IMG.hook.complete){oppImg=IMG.hook}
-  // Getting hit — show hit-left or hit-right based on which fist hit.
-  // `complete` is true even for FAILED images (naturalWidth 0), and desktop has no
-  // fighter-hit-left asset — without the naturalWidth check + hitR fallback the
-  // opponent vanished for 0.25s on every face hit.
-  else if(hitPose==='face'&&IMG.hitL&&IMG.hitL.naturalWidth){oppImg=IMG.hitL}
-  else if(hitPose!=='idle'&&IMG.hitR&&IMG.hitR.naturalWidth){oppImg=IMG.hitR}
-  // Default idle
-  else{oppImg=IMG.idle&&IMG.idle.complete?IMG.idle:null}
+  else if(isKO){_animSet('kick');oppImg=_animFrame(_dtA);_fromAnim=!!oppImg;if(!oppImg)oppImg=IMG.kick&&IMG.kick.complete?IMG.kick:null}
+  else{
+    // Frame animations: kick plays for any attack (punch frames pending),
+    // everything else rides the idle loop — hit feedback comes from the
+    // stagger/shake/flash effects until hit-reaction frames arrive.
+    if(atkPose!=='idle')_animSet('kick');else _animSet('idle');
+    oppImg=_animFrame(_dtA);
+    _fromAnim=!!oppImg;
+    if(!oppImg){
+      // Static-pose fallbacks while frames are still loading
+      if(atkPose!=='idle'&&IMG.hook&&IMG.hook.complete){oppImg=IMG.hook}
+      // Getting hit — show hit-left or hit-right based on which fist hit.
+      // `complete` is true even for FAILED images (naturalWidth 0), and desktop has no
+      // fighter-hit-left asset — without the naturalWidth check + hitR fallback the
+      // opponent vanished for 0.25s on every face hit.
+      else if(hitPose==='face'&&IMG.hitL&&IMG.hitL.naturalWidth){oppImg=IMG.hitL}
+      else if(hitPose!=='idle'&&IMG.hitR&&IMG.hitR.naturalWidth){oppImg=IMG.hitR}
+      else{oppImg=IMG.idle&&IMG.idle.complete?IMG.idle:null}
+    }
+  }
   if(oppImg&&oppImg.naturalWidth){
     cx.save();
     var isMob=W<600,isTab=W>=600&&W<900;
     var oppW,oppH,oppX,oppY;
 
     if(isMob){
-      // ── MOBILE: fixed box, fixed position, no movement ──
-      var refW=IMG.idle&&IMG.idle.naturalWidth?IMG.idle.naturalWidth:982;
-      var refH=IMG.idle&&IMG.idle.naturalHeight?IMG.idle.naturalHeight:1536;
+      // ── MOBILE: fixed height + position; width follows each frame's own
+      // aspect so animation sets with different frame widths don't stretch ──
+      var refImg=(_fromAnim&&ANIM.seqs.idle&&ANIM.seqs.idle.ready)?ANIM.seqs.idle.imgs[0]:IMG.idle;
+      var refW=refImg&&refImg.naturalWidth?refImg.naturalWidth:982;
+      var refH=refImg&&refImg.naturalHeight?refImg.naturalHeight:1536;
       var mScale=Math.min(W*0.79/refW,H*0.79/refH);
-      oppW=refW*mScale;
       oppH=refH*mScale;
+      oppW=oppImg.naturalWidth*(oppH/oppImg.naturalHeight);
       oppX=W*0.5-oppW/2;
       oppY=H-oppH-56;
     }else{
-      // ── DESKTOP: original behavior — per-image sizing + full animations ──
+      // ── DESKTOP: height anchored to the idle frame so switching to wider
+      // animation sets (kick) doesn't rescale the fighter mid-move ──
       var dMaxW=isTab?0.5:0.45;
       var dMaxH=isTab?0.7:0.75;
-      var dScale=Math.min(W*dMaxW/oppImg.naturalWidth,H*dMaxH/oppImg.naturalHeight);
+      var dRef=(_fromAnim&&ANIM.seqs.idle&&ANIM.seqs.idle.ready)?ANIM.seqs.idle.imgs[0]:oppImg;
+      if(!dRef||!dRef.naturalWidth)dRef=oppImg;
+      var dScale=Math.min(W*dMaxW/dRef.naturalWidth,H*dMaxH/dRef.naturalHeight);
       oppW=oppImg.naturalWidth*dScale;
       oppH=oppImg.naturalHeight*dScale;
       oppX=W*0.5-oppW/2+(opp.staggerX||0)+(opp.shakeX||0);
