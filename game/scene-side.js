@@ -375,6 +375,47 @@ function renderSideView(){
     cx.fillText('AMATEUR',W*0.9-bW/2,bY-3);
   }
 
+  // ═══ L3.5: CASH-OUT MOMENT — gold rings + multiplier stamp ═══
+  // Player-layer celebration: the fighters hold their face-off (you escaped the
+  // fight, they didn't), so the win reads as yours, not theirs. Drawn outside the
+  // camera transform so the push-in doesn't move it.
+  if(G.cashoutFx){
+    var cf=G.cashoutFx;              // aged + expired by the update loop in app.js
+    var cfDur=1.1,cp=cf.t/cfDur;
+    if(cp<1){
+      var cfX=W*0.5,cfY=H*0.40;
+      var easeOut=1-Math.pow(1-Math.min(1,cp),3);
+      cx.save();
+      // two expanding rings, the second trailing
+      for(var ri=0;ri<2;ri++){
+        var rp=Math.min(1,Math.max(0,(cp-ri*0.15)/(1-ri*0.15)));
+        if(rp<=0)continue;
+        var re=1-Math.pow(1-rp,3);
+        cx.beginPath();
+        cx.arc(cfX,cfY,H*(0.04+0.40*re),0,Math.PI*2);
+        cx.strokeStyle='rgba(255,215,0,'+((1-rp)*(ri?0.35:0.7)).toFixed(3)+')';
+        cx.lineWidth=(ri?2:3)+5*(1-rp);
+        cx.shadowColor='#ffd700';cx.shadowBlur=18*(1-rp);
+        cx.stroke();
+      }
+      // multiplier stamp: quick pop, hold, fade
+      var sp=Math.min(1,cp/0.12);                       // pop in over first 12%
+      var scale=1.35-0.35*(1-Math.pow(1-sp,3));
+      var fade=cp<0.65?1:1-(cp-0.65)/0.35;
+      cx.globalAlpha=Math.max(0,fade);
+      cx.translate(cfX,cfY-easeOut*H*0.06);
+      cx.scale(scale,scale);
+      cx.font='800 46px sans-serif';cx.textAlign='center';cx.textBaseline='middle';
+      cx.shadowColor='#ffd700';cx.shadowBlur=24;
+      cx.fillStyle='#ffd700';
+      cx.fillText(cf.mult.toFixed(2)+'×',0,0);
+      cx.font='700 18px sans-serif';cx.shadowBlur=10;
+      cx.fillStyle='rgba(255,255,255,0.92)';
+      cx.fillText('+$'+cf.win.toFixed(2),0,38);
+      cx.restore();
+    }
+  }
+
   // ═══ L4: BONUS POPUPS ═══
   if(G.bonusPopups&&G.bonusPopups.length>0){
     for(var bi=0;bi<G.bonusPopups.length;bi++){

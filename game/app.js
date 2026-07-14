@@ -803,6 +803,11 @@ function betAction(s){
     updBal();sfx.play('cashout');
     try{$('winAmt').textContent='+$'+w.toFixed(2)}catch(e){}
     spawnParticles(cv.width/2,cv.height/2,'gold',30);
+    // Scene-level cash-out moment: gold rings + multiplier stamp (drawn by the
+    // active renderer), a small camera pop, and the crowd reacting to the escape.
+    G.cashoutFx={t:0,mult:G.mult,win:w};
+    G.camera.shake=Math.max(G.camera.shake||0,2.5);
+    try{SND.play('cheer',0.35)}catch(e){}
     updPanelBtn(s);fakeFeed(G.mult,true);
     // Update bet in Firebase with cashout
     if(SYNC.enabled){try{FB.writeBet(G.roundNum,{name:_selectedName||'Player',avatar:_selectedAvatar||'🧑‍✈️',bet:b.amount,slot:s,cashMult:G.mult,win:w})}catch(e){}}
@@ -1059,6 +1064,7 @@ function update(ts){
     // MMA: update tension + fighters
     if(typeof getTension==='function')G.tension=getTension(G.mult);
     try{SND.tickAmbience(G.phase,G.tension||0)}catch(e){}
+    if(G.cashoutFx){G.cashoutFx.t+=G.dt;if(G.cashoutFx.t>=1.1)G.cashoutFx=null}
     if(typeof GAME_VIEW!=='undefined'&&GAME_VIEW==='side'){
       if(typeof updateSideView==='function')updateSideView();
     }else{
