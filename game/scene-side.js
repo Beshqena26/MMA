@@ -68,15 +68,23 @@ function _loadProFrames(){
     for(var i=s.start;i<=s.end;i+=s.skip){
       PRO_ANIM._totalFrames++;
       var img=new Image();
-      (function(){
+      (function(img,src){
         img.onload=function(){
           PRO_ANIM._loadCount++;
           if(PRO_ANIM._loadCount>=PRO_ANIM._totalFrames)PRO_ANIM.loaded=true;
         };
-        img.onerror=function(){PRO_ANIM._loadCount++};
-      })();
-      var num=('00000'+i).slice(-5);
-      img.src=s.path+s.prefix+num+'.webp';
+        // One dropped frame would strand the loading state forever (fighters never
+        // appear if an idle frame is missing) — retry once with a cache-buster.
+        img.onerror=function(){
+          if(!img._retried){
+            img._retried=true;
+            setTimeout(function(){img.src=src+'?r=1'},1500);
+          }else{
+            PRO_ANIM._loadCount++;
+          }
+        };
+        img.src=src;
+      })(img,s.path+s.prefix+('00000'+i).slice(-5)+'.webp');
       PRO_ANIM.anims[s.name].push(img);
     }
   });
@@ -408,20 +416,23 @@ function renderSideView(){
 
   cx.restore(); // ═══ end CAMERA — HUD below is not zoomed or shaken ═══
 
-  // ═══ L3: HEALTH BARS (both fighters) ═══
+  // ═══ L3: TENSION METERS ═══
+  // These were health bars, but with the ambient attack loop gone they were two frozen
+  // props (PRO hardcoded full; AMATEUR only ever written by the POV scene). Repurposed:
+  // both fill with the round's tension — the game's core signal gets a readout, and the
+  // colour walks green → amber → red as the punch gets closer.
   if(G.phase!=='BETTING'&&G.phase!=='WAITING'&&G.phase!=='INIT'){
     var bW=Math.min(150,W*0.2),bH=8,bY=H*0.04;
-    // Pro health (left)
+    var tCol=t<0.4?'#4caf50':t<0.75?'#ffaa00':'#ff2255';
+    var tW=Math.round(bW*t);
+    // Pro (left) — fills left-to-right
     cx.fillStyle='rgba(0,0,0,0.5)';cx.fillRect(W*0.1,bY,bW,bH);
-    cx.fillStyle='#4caf50';cx.fillRect(W*0.1,bY,bW,bH);
+    cx.fillStyle=tCol;cx.fillRect(W*0.1,bY,tW,bH);
     cx.fillStyle='#fff';cx.font='bold 9px sans-serif';cx.textAlign='center';
     cx.fillText('PRO',W*0.1+bW/2,bY-3);
-
-    // Amateur health
-    var amHP=Math.max(0,G.opp?G.opp.health:1);
+    // Amateur (right) — mirrored, fills right-to-left toward the centre
     cx.fillStyle='rgba(0,0,0,0.5)';cx.fillRect(W*0.9-bW,bY,bW,bH);
-    var hpCol=amHP>0.5?'#ef5350':amHP>0.25?'#ff9800':'#f44336';
-    cx.fillStyle=hpCol;cx.fillRect(W*0.9-bW,bY,bW*amHP,bH);
+    cx.fillStyle=tCol;cx.fillRect(W*0.9-tW,bY,tW,bH);
     cx.fillStyle='#fff';cx.textAlign='center';
     cx.fillText('AMATEUR',W*0.9-bW/2,bY-3);
   }
@@ -495,10 +506,19 @@ function renderSideView(){
   });
 
   // ═══ L6: VIGNETTE ═══
+  // One cached gradient per canvas size; tension applied via globalAlpha instead of
+  // baking it into the colour stops (which forced a new gradient object every frame).
   var vS=0.2+t*0.3;
-  var vG=cx.createRadialGradient(W/2,H*0.4,H*0.2,W/2,H/2,H*0.85);
-  vG.addColorStop(0,'transparent');vG.addColorStop(0.5,'rgba(0,0,0,'+vS*0.15+')');vG.addColorStop(1,'rgba(0,0,0,'+vS+')');
-  cx.fillStyle=vG;cx.fillRect(0,0,W,H);
+  if(!SIDE._vig||SIDE._vigKey!==W+'x'+H){
+    SIDE._vigKey=W+'x'+H;
+    SIDE._vig=cx.createRadialGradient(W/2,H*0.4,H*0.2,W/2,H/2,H*0.85);
+    SIDE._vig.addColorStop(0,'rgba(0,0,0,0)');
+    SIDE._vig.addColorStop(0.5,'rgba(0,0,0,0.15)');
+    SIDE._vig.addColorStop(1,'rgba(0,0,0,1)');
+  }
+  cx.save();cx.globalAlpha=vS;
+  cx.fillStyle=SIDE._vig;cx.fillRect(0,0,W,H);
+  cx.restore();
 
   // ═══ L7: KO REVEAL FADE — the tail of the blackout lifting off the scene ═══
   if(blackA>0){
