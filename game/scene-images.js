@@ -44,7 +44,9 @@ function _loadImages(){
 // static IMG poses in the render switch below.
 var _animDefs={
   idle:{dir:'assets/anim/idle/',prefix:'idle_',count:16,fps:12,loop:true},
-  kick:{dir:'assets/anim/kick/',prefix:'kick_left_',count:16,fps:24,loop:false}
+  kick:{dir:'assets/anim/kick/',prefix:'kick_left_',count:16,fps:24,loop:false},
+  punch:{dir:'assets/anim/punch/',prefix:'punch_combo_',count:16,fps:24,loop:false},
+  hit:{dir:'assets/anim/hit/',prefix:'hit_',count:16,fps:30,loop:false}
 };
 var ANIM={name:'idle',frame:0,timer:0,done:false,seqs:{}};
 function _loadAnims(){
@@ -277,10 +279,12 @@ function render(){
   if(isKO&&koT>1.0&&IMG.victory&&IMG.victory.complete){oppImg=IMG.victory}
   else if(isKO){_animSet('kick');oppImg=_animFrame(_dtA);_fromAnim=!!oppImg;if(!oppImg)oppImg=IMG.kick&&IMG.kick.complete?IMG.kick:null}
   else{
-    // Frame animations: kick plays for any attack (punch frames pending),
-    // everything else rides the idle loop — hit feedback comes from the
-    // stagger/shake/flash effects until hit-reaction frames arrive.
-    if(atkPose!=='idle')_animSet('kick');else _animSet('idle');
+    // Frame animations: attacks play their move set, getting hit plays the
+    // hit reaction, everything else rides the idle loop.
+    if(atkPose==='kick')_animSet('kick');
+    else if(atkPose!=='idle')_animSet('punch');
+    else if(hitPose!=='idle')_animSet('hit');
+    else _animSet('idle');
     oppImg=_animFrame(_dtA);
     _fromAnim=!!oppImg;
     if(!oppImg){
