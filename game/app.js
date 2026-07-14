@@ -1867,6 +1867,18 @@ try{
   document.getElementById('menuMusic').onclick=function(){var on=SND.toggleMusic();document.getElementById('musicToggle').classList.toggle('on',on)};
 }catch(e){}
 // Menu items open modals
+// Skin trial toggle — switches between the current realistic art and the CC0
+// cartoon skin (red vs blue). Assets differ per skin, so switching reloads.
+try{
+  var _skTog=document.getElementById('skinToggle');
+  if(_skTog&&localStorage.getItem('mma_skin')==='cartoon')_skTog.classList.add('on');
+  var _skItem=document.getElementById('menuSkin');
+  if(_skItem)_skItem.onclick=function(){
+    var toCartoon=localStorage.getItem('mma_skin')!=='cartoon';
+    localStorage.setItem('mma_skin',toCartoon?'cartoon':'real');
+    location.reload();
+  };
+}catch(e){}
 document.getElementById('menuHowToPlay').onclick=()=>{closeMenu();document.getElementById('infoModal').classList.add('open')};
 document.getElementById('menuGameRules').onclick=()=>{closeMenu();document.getElementById('rulesModal').classList.add('open')};
 document.getElementById('menuGameLimits').onclick=()=>{closeMenu();document.getElementById('limitsModal').classList.add('open')};
