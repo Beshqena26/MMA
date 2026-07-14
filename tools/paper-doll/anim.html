@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>body{margin:0;background:#223}</style></head>
+<body><canvas id="c" width="900" height="1000"></canvas>
+<script src="rig.js"></script>
+<script>
+// keyframed animations: [ [poseName, durationSeconds], ... ]  (hold = same pose twice)
+const ONESHOT={koDrop:1,victory:1};
+const ANIMS = {
+  idle:   [['guard',0.9],['guardIn',0.9]],            // breathing loop
+  jab:    [['guard',0.10],['jab',0.10],['jab',0.06],['guard',0.22]],
+  cross:  [['guard',0.08],['cross',0.10],['cross',0.08],['guard',0.26]],
+  legkick:[['guard',0.10],['legkick',0.14],['legkick',0.08],['guard',0.30]],
+  hit:    [['guard',0.04],['hit',0.10],['hit',0.10],['guard',0.30]],
+  koDrop: [['guard',0.05],['hit',0.12],['ko',0.30],['ko',0.5]],
+  victory:[['guard',0.2],['victory',0.3],['victory',0.5]],
+};
+// synthetic breathing pose: guard with a subtle inhale
+POSES.guardIn = {upperarm_L:BASEPOSE.upperarm_L-4, upperarm_R:BASEPOSE.upperarm_R+3,
+                 torso:-2, head:2, forearm_L:BASEPOSE.forearm_L+3, forearm_R:BASEPOSE.forearm_R-2};
+
+const cv=document.getElementById('c'), cx=cv.getContext('2d');
+const imgs={}; let left=Object.keys(RIG).length;
+for(const k in RIG){const im=new Image();im.onload=()=>{if(--left===0)start()};im.src=RIG[k].src;imgs[k]=im;}
+
+const q=new URLSearchParams(location.search);
+const animName=q.get('anim')||'idle';
+function sample(anim, t, oneshot){
+  const total=anim.reduce((a,s)=>a+s[1],0);
+  if(oneshot){ if(t>=total) return poseAngles(anim[anim.length-1][0]); }
+  else t=t%total;
+  let acc=0;
+  for(let i=0;i<anim.length;i++){
+    const [pose,dur]=anim[i];
+    if(t<acc+dur){
+      const last=(i===anim.length-1);
+      const next=(oneshot&&last)?pose:anim[(i+1)%anim.length][0];
+      return lerpPose(poseAngles(pose), poseAngles(next), (t-acc)/dur);
+    }
+    acc+=dur;
+  }
+  return poseAngles(anim[anim.length-1][0]);
+}
+function start(){
+  const anim=ANIMS[animName];
+  if(q.has('strip')){
+    // film strip: 10 samples across the animation, drawn side by side
+    const N=10,total=anim.reduce((a,s)=>a+s[1],0);
+    cv.width=430*N; cv.height=980;
+    cx.fillStyle='#223';cx.fillRect(0,0,cv.width,cv.height);
+    for(let i=0;i<N;i++){
+      const t=total*i/N;
+      drawDoll(cx,imgs,sample(anim,t,ONESHOT[animName]),430*i-450+215,0,SCALE);
+      cx.fillStyle='#8f8';cx.font='16px monospace';cx.fillText(t.toFixed(2)+'s',430*i+12,30);
+    }
+    document.title='STRIP READY';
+    return;
+  }
+  let t0=performance.now();
+  (function loop(){
+    const t=(performance.now()-t0)/1000;
+    cx.fillStyle='#223';cx.fillRect(0,0,cv.width,cv.height);
+    drawDoll(cx,imgs,sample(anim,t,ONESHOT[animName]),0,0,SCALE);
+    requestAnimationFrame(loop);
+  })();
+}
+</script></body></html>
