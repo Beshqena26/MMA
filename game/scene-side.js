@@ -3,16 +3,14 @@
 // Pro (left, you) vs Amateur (right, opponent)
 // =====================================================================
 
-// Mobile gets the 720px-tall frame set — same frames, ~2.2x fewer pixels to
-// decode and hold in memory. Read once at load, same convention as the POV scene.
 var _sideMobile=window.innerWidth<600;
-var _sideFrameDir=_sideMobile?'assets/side/pro-frames-sm/':'assets/side/pro-frames/';
 
-// Layout constants for the pre-rendered fighter frames (1936x1072)
+// Layout constants for the fighter sprite sets (tight portrait crops, 1024px tall,
+// character fills the frame and faces LEFT in the source art).
 var SKINCFG={
-  aspect:1936/1072, baseH:0.62, baseHMob:0.55,
-  overlap:0.40, overlapMob:0.35,
-  koYOff:0.15
+  baseH:0.62, baseHMob:0.55,        // fighter height as fraction of canvas
+  centerOff:0.36, centerOffMob:0.31, // fighter center distance from screen center, ×baseH
+  koYOff:0.22
 };
 
 var SIDE={
@@ -29,16 +27,17 @@ var SIDE={
 // The fighters are pre-rendered flat PNGs — there is no rig, so motion is controlled by
 // WHICH frames play and HOW FAST, not by amplitude. Tension rides on rate, not size.
 var FACEOFF={
-  idleFPS:8, idleFPSRamp:6,   // idle playback: 8fps calm -> 14fps at full tension
-  punchFPS:45,                // crash punch: explosive
-  contactAt:0.13,             // s from CRASH start to impact
-  blackoutAt:0.23,            // s from CRASH start to hard cut to black
-  koAt:0.30,                  // s: amateur drops + pro resets to guard (hidden by the black)
-  fadeUpAt:0.85,              // s: start revealing the KO
-  fadeUpDur:0.35,             // s: reveal fade length (fully up at ~1.20s)
+  idleFPS:10, idleFPSRamp:4,  // idle playback: 10fps calm -> 14fps at full tension
+  punchFPS:24,                // crash punch — full extension is source frame 10
+  hitFPS:18,                  // reaction playback
+  contactAt:10/24,            // s from CRASH start to impact (= extension frame at punchFPS)
+  blackoutAt:10/24+0.10,      // s from CRASH start to hard cut to black
+  koAt:10/24+0.17,            // s: amateur drops + pro resets to guard (hidden by the black)
+  fadeUpAt:1.05,              // s: start revealing the KO
+  fadeUpDur:0.35,             // s: reveal fade length (fully up at ~1.40s)
   impactShake:8,              // px, decays via app.js camera.shake *= 0.94
   pushIn:0.06,                // max zoom-in at full tension
-  amPhase:3, amRate:0.93      // amateur desync so the two don't breathe in lockstep
+  amPhase:5, amRate:0.93      // amateur desync so the two don't breathe in lockstep
 };
 
 // ── Pro frame-by-frame animation system ──
@@ -71,7 +70,7 @@ function _loadSet(target,s){
         }
       };
       img.src=src;
-    })(img,s.path+s.prefix+('00000'+i).slice(-(s.pad||5))+'.webp');
+    })(img,s.path+s.prefix+('00000'+i).slice(-(s.pad||5))+(s.ext||'.webp'));
     target[s.name].push(img);
   }
 }
@@ -79,22 +78,17 @@ function _loadSet(target,s){
 function _loadProFrames(){
   if(PRO_ANIM._started)return;
   PRO_ANIM._started=true;
-  // Only the frames the face-off actually reaches. The full sequences are 507 frames / 162MB
-  // and every one was loaded eagerly at startup; ambient attacks and the victory
-  // follow-through are gone, so leftpunch/legkick/victory are unreachable.
+  // The comic fighter sprite sets: 16 tight-cropped PNG frames each, numbered 00-15.
   var sets=[
-    // Idle: a quiet slice at the top of the bounce, ping-ponged (see _getProFrame).
-    // The full 37-67 range contains a deep crouch, a weight shift and a step — all baked
-    // into the art. 48-54 holds the guard with feet planted. Tune by eye.
-    {name:'idle',       path:_sideFrameDir+'idle/',       prefix:'Idle_',         start:48,  end:54},
-    // Right cross, wind-up trimmed: index 0 = source frame 66, contact lands at index 6
-    // (source frame 72 = full extension). The 1.1s retract past 78 is never seen — we cut to black.
-    {name:'rightpunch', path:_sideFrameDir+'rightpunch/', prefix:'Right_Punch_',  start:66,  end:78},
-    // Amateur's reaction — only ~4 frames are visible before the blackout.
-    {name:'gettinghit', path:_sideFrameDir+'gettinghit/', prefix:'Getting_Hit_',  start:51,  end:62},
-    // KO — the TAIL only: he's already flat on the mat and settled by 112, so this is a
-    // held reveal pose, not the 90-frame fall (which happens unseen behind the blackout).
-    {name:'ko',         path:_sideFrameDir+'ko/',         prefix:'KOO_',          start:112, end:120}
+    // Full breathing/bounce cycle, played as a forward loop.
+    {name:'idle',       path:'assets/anim/idle/',  prefix:'idle_',        start:0, end:15, pad:2, ext:'.png'},
+    // Punch combo — full extension lands at source frame 10 (= FACEOFF.contactAt at punchFPS).
+    {name:'rightpunch', path:'assets/anim/punch/', prefix:'punch_combo_', start:0, end:15, pad:2, ext:'.png'},
+    // Amateur's reaction — only the first few frames are visible before the blackout.
+    {name:'gettinghit', path:'assets/anim/hit/',   prefix:'hit_',         start:0, end:15, pad:2, ext:'.png'},
+    // KO reveal pose — no downed set in this skin yet, so hold the doubled-over
+    // moment of the hit reaction, pushed toward the mat by SKINCFG.koYOff.
+    {name:'ko',         path:'assets/anim/hit/',   prefix:'hit_',         start:8, end:8,  pad:2, ext:'.png'}
   ];
   sets.forEach(function(s){_loadSet(PRO_ANIM.anims,s)});
 }
@@ -115,16 +109,7 @@ function _setProAnim(name){
 function _animFPS(name){
   if(name==='idle')return FACEOFF.idleFPS+(G.tension||0)*FACEOFF.idleFPSRamp;
   if(name==='rightpunch')return FACEOFF.punchFPS;
-  return 30;
-}
-
-// Ping-pong index for the idle slice. The span is a monotonic slice of the bounce, so a plain
-// loop would snap 54->48 every cycle; bouncing it turns the slice into a rise-and-settle — breathing.
-function _pingPong(frame,len){
-  if(len<2)return 0;
-  var period=(len-1)*2;
-  var p=frame%period;
-  return (p<len)?p:period-p;
+  return FACEOFF.hitFPS;
 }
 
 // Get current pro frame image
@@ -140,12 +125,10 @@ function _getProFrame(dt){
     PRO_ANIM.frame++;
   }
 
-  // Idle ping-pongs forever; others play once then hold last frame
+  // Idle is a designed cycle — loop it forward; others play once then hold last frame
   var idx;
   if(PRO_ANIM.current==='idle'){
-    var period=Math.max(1,(anim.length-1)*2);
-    PRO_ANIM.frame=PRO_ANIM.frame%period;
-    idx=_pingPong(PRO_ANIM.frame,anim.length);
+    idx=PRO_ANIM.frame=PRO_ANIM.frame%anim.length;
   }else{
     if(PRO_ANIM.frame>=anim.length)PRO_ANIM.frame=anim.length-1;
     idx=PRO_ANIM.frame;
@@ -187,9 +170,7 @@ function _getAmFrame(dt){
 
   var idx;
   if(AM_ANIM.current==='idle'){
-    var period=Math.max(1,(anim.length-1)*2);
-    AM_ANIM.frame=AM_ANIM.frame%period;
-    idx=_pingPong(AM_ANIM.frame,anim.length);
+    idx=AM_ANIM.frame=AM_ANIM.frame%anim.length;
   }else{
     if(AM_ANIM.frame>=anim.length)AM_ANIM.frame=anim.length-1;
     idx=AM_ANIM.frame;
@@ -312,10 +293,11 @@ function renderSideView(){
   var pro=SIDE.pro,am=SIDE.am;
   var isMob=W<600;
 
-  // Base height for fighters — fixed box size so position never jumps (per skin)
+  // Base height for fighters — fixed height + center anchors so position never jumps
   var baseH=Math.round(H*(isMob?SKINCFG.baseHMob:SKINCFG.baseH));
-  var baseAspect=SKINCFG.aspect;
-  var baseW=Math.round(baseH*baseAspect);
+  var centerOff=Math.round(baseH*(isMob?SKINCFG.centerOffMob:SKINCFG.centerOff));
+  var proCX=W*0.5-centerOff;  // pro (you) stands left of center
+  var amCX=W*0.5+centerOff;   // amateur right of center
   var floorY=H*0.82;
 
   // ═══ CAMERA (wraps background + fighters; HUD below stays fixed) ═══
@@ -327,7 +309,7 @@ function renderSideView(){
   var zoom=(G.phase==='FREEFALL'||G.phase==='CRASH')?(1+t*FACEOFF.pushIn):1;
   if(zoom!==1){
     // Origin biased toward the Pro so the push-in converges past the player
-    var zx=W*0.5-baseW*0.12,zy=floorY-baseH*0.45;
+    var zx=W*0.5-baseH*0.2,zy=floorY-baseH*0.45;
     cx.translate(zx,zy);cx.scale(zoom,zoom);cx.translate(-zx,-zy);
   }
 
@@ -365,48 +347,35 @@ function renderSideView(){
     cx.restore();
   }
 
-  // Fixed positions using stable box — scale overlap for mobile
-  var overlap=Math.round(baseW*(isMob?SKINCFG.overlapMob:SKINCFG.overlap));
-  var proBoxX=W*0.5-baseW+overlap;
-  var proBoxY=floorY-baseH;
-  var amBoxX=W*0.5-overlap;
-  var amBoxY=floorY-baseH;
+  // The source art faces LEFT: the pro (left side) is mirrored to face his opponent,
+  // the amateur draws as-is. Each frame keeps its own aspect at the shared height,
+  // anchored center-bottom so differing set widths (punch reach) don't shift the body.
+  var fightersY=floorY-baseH;
 
-  // ── Pro (left, you) — frame animation ──
+  // ── Pro (left, you) — frame animation, flipped to face right ──
   // Fighters wait for the FULL idle set before appearing: drawing per-frame while it
-  // streams makes them flicker as the ping-pong hits undecoded indices, and they'd
+  // streams makes them flicker as the loop hits undecoded indices, and they'd
   // stand on top of the loading line. One clean reveal instead.
   var proFrame=_idleReady?_getProFrame(dt):null;
 
   if(proFrame){
-    var pNW=proFrame.naturalWidth||1936,pNH=proFrame.naturalHeight||1072;
-    var pAspect=pNW/pNH;
-    var drawW=Math.round(baseH*pAspect);
-    var drawH=baseH;
-    var drawX=proBoxX+Math.round((baseW-drawW)*0.5);
-    var drawY=proBoxY;
-    cx.drawImage(proFrame,drawX,drawY,drawW,drawH);
+    var drawW=Math.round(baseH*(proFrame.naturalWidth/proFrame.naturalHeight));
+    cx.save();
+    cx.translate(proCX,fightersY);
+    cx.scale(-1,1);
+    cx.drawImage(proFrame,-Math.round(drawW*0.5),0,drawW,baseH);
+    cx.restore();
   }
 
-  // ── Amateur (right, opponent) — same frames as Pro, flipped ──
+  // ── Amateur (right, opponent) — same frames as Pro, unflipped (faces left) ──
   var amFrame=_idleReady?_getAmFrame(dt):null;
 
   if(amFrame){
-    var aNW=amFrame.naturalWidth||1936,aNH=amFrame.naturalHeight||1072;
-    var aAspect=aNW/aNH;
-    var aDrawW=Math.round(baseH*aAspect);
-    var aDrawH=baseH;
-    var aDrawX=amBoxX+Math.round((baseW-aDrawW)*0.5);
-    var aDrawY=amBoxY;
-    // KO frames sit differently in-frame than the standing poses — per-skin push down
+    var aDrawW=Math.round(baseH*(amFrame.naturalWidth/amFrame.naturalHeight));
+    var aDrawY=fightersY;
+    // KO pose sits toward the mat — per-skin push down
     if(am.pose==='ko')aDrawY+=Math.round(baseH*SKINCFG.koYOff);
-
-    // Normal draw — flipped horizontally, centered in fixed box
-    cx.save();
-    cx.translate(amBoxX+baseW*0.5,aDrawY);
-    cx.scale(-1,1);
-    cx.drawImage(amFrame,-aDrawW*0.5,0,aDrawW,aDrawH);
-    cx.restore();
+    cx.drawImage(amFrame,amCX-Math.round(aDrawW*0.5),aDrawY,aDrawW,baseH);
   }
 
   // KO body fading off the mat while the standing idle takes over (see updateSideView)
@@ -415,14 +384,11 @@ function renderSideView(){
     var koAnim=_amAnims().ko;
     var koImg=koAnim&&koAnim.length?koAnim[koAnim.length-1]:null;
     if(koImg&&koImg.complete&&koImg.naturalWidth>0){
-      var kAspect=koImg.naturalWidth/koImg.naturalHeight;
-      var kW=Math.round(baseH*kAspect),kH=baseH;
-      var kY=amBoxY+Math.round(baseH*SKINCFG.koYOff);   // same mat offset as the held ko pose
+      var kW=Math.round(baseH*(koImg.naturalWidth/koImg.naturalHeight));
+      var kY=fightersY+Math.round(baseH*SKINCFG.koYOff);   // same mat offset as the held ko pose
       cx.save();
       cx.globalAlpha=Math.max(0,SIDE._koFade/0.35);
-      cx.translate(amBoxX+baseW*0.5,kY);
-      cx.scale(-1,1);
-      cx.drawImage(koImg,-kW*0.5,0,kW,kH);
+      cx.drawImage(koImg,amCX-Math.round(kW*0.5),kY,kW,baseH);
       cx.restore();
     }
   }
