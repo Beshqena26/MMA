@@ -8,37 +8,11 @@
 var _sideMobile=window.innerWidth<600;
 var _sideFrameDir=_sideMobile?'assets/side/pro-frames-sm/':'assets/side/pro-frames/';
 
-// ── SKIN: 'real' (current renders, default) | 'cartoon' (CC0 Mini Boxing, red vs blue) ──
-// Trial system — the boss decides. ?skin=cartoon in the URL wins and persists;
-// otherwise the stored choice; otherwise the current look. Nothing replaced.
-var SKIN=(function(){
-  try{
-    var m=(location.search||'').match(/[?&]skin=(real3d|cartoon|real)/);
-    if(m){localStorage.setItem('mma_skin',m[1]);return m[1]}
-    var st=localStorage.getItem('mma_skin');
-    return (st==='cartoon'||st==='real3d')?st:'real';
-  }catch(e){return 'real'}
-})();
-
-// Per-skin layout: the two art sets have wildly different proportions.
-// real: wide 1936x1072 renders, fighters overlap heavily. cartoon: square-ish
-// 499x489 chibis that should stand toe to toe with a small gap.
-var SKINCFG=SKIN==='cartoon'?{
-  aspect:499/489, baseH:0.50, baseHMob:0.44,
-  overlap:0.16, overlapMob:0.16,   // fraction of baseW; small = gloves nearly touch
-  koYOff:0.02,                     // ko art already lies at the frame bottom
-  drawArena:true                   // code-drawn cartoon arena instead of BG image
-}:SKIN==='real3d'?{
-  // Blender-rendered fighters (MPFB + Mixamo anim), 1280x720 frames, fighter centered
-  aspect:1280/720, baseH:0.66, baseHMob:0.58,
-  overlap:0.34, overlapMob:0.30,
-  koYOff:0,                        // placeholder KO is a standing pose for now
-  drawArena:false                  // same photoreal cage as the current art
-}:{
+// Layout constants for the pre-rendered fighter frames (1936x1072)
+var SKINCFG={
   aspect:1936/1072, baseH:0.62, baseHMob:0.55,
   overlap:0.40, overlapMob:0.35,
-  koYOff:0.15,
-  drawArena:false
+  koYOff:0.15
 };
 
 var SIDE={
@@ -76,10 +50,6 @@ var PRO_ANIM={
   frameTimer:0
 };
 
-// Blue-corner frames — only used by the cartoon skin (the real skin's amateur
-// reuses the pro's frames mirrored, because that art only exists in one colour).
-var AM_FRAMES={anims:{}};
-
 function _loadSet(target,s){
   target[s.name]=[];
   for(var i=s.start;i<=s.end;i++){
@@ -109,28 +79,6 @@ function _loadSet(target,s){
 function _loadProFrames(){
   if(PRO_ANIM._started)return;
   PRO_ANIM._started=true;
-  if(SKIN==='real3d'){
-    // Blender/MPFB renders. blue 'hurt' and 'ko' are boxing-segment placeholders
-    // until the real reaction animations are rendered (drop-in replacement).
-    var R='assets/side/real3d/';
-    _loadSet(PRO_ANIM.anims,{name:'idle',      path:R+'red/idle/',  prefix:'F_',start:0,end:13,pad:3});
-    _loadSet(PRO_ANIM.anims,{name:'rightpunch',path:R+'red/punch/', prefix:'F_',start:0,end:12,pad:3});
-    _loadSet(AM_FRAMES.anims,{name:'idle',      path:R+'blue/idle/',prefix:'F_',start:0,end:13,pad:3});
-    _loadSet(AM_FRAMES.anims,{name:'gettinghit',path:R+'blue/hurt/',prefix:'F_',start:0,end:8, pad:3});
-    _loadSet(AM_FRAMES.anims,{name:'ko',        path:R+'blue/ko/',  prefix:'F_',start:0,end:12,pad:3});
-    return;
-  }
-  if(SKIN==='cartoon'){
-    // CC0 "Mini Boxing" by Segel (opengameart.org/content/mini-boxing-character).
-    // Red corner = pro; blue corner = amateur with its OWN art — no mirror-clone.
-    var C='assets/side/cartoon/';
-    _loadSet(PRO_ANIM.anims,{name:'idle',      path:C+'red/idle/',  prefix:'__Boxing04_Idle_',      start:0,end:9,pad:3});
-    _loadSet(PRO_ANIM.anims,{name:'rightpunch',path:C+'red/punch/', prefix:'__Boxing04_PunchRight_',start:0,end:5,pad:3});
-    _loadSet(AM_FRAMES.anims,{name:'idle',      path:C+'blue/idle/',prefix:'__Boxing04_Idle_',      start:0,end:9,pad:3});
-    _loadSet(AM_FRAMES.anims,{name:'gettinghit',path:C+'blue/hurt/',prefix:'__Boxing04_Hurt_',      start:0,end:7,pad:3});
-    _loadSet(AM_FRAMES.anims,{name:'ko',        path:C+'blue/ko/',  prefix:'__Boxing04_KO_',        start:0,end:9,pad:3});
-    return;
-  }
   // Only the frames the face-off actually reaches. The full sequences are 507 frames / 162MB
   // and every one was loaded eagerly at startup; ambient attacks and the victory
   // follow-through are gone, so leftpunch/legkick/victory are unreachable.
@@ -151,9 +99,8 @@ function _loadProFrames(){
   sets.forEach(function(s){_loadSet(PRO_ANIM.anims,s)});
 }
 
-// The amateur's frame source: own blue art on the cartoon skin, shared red/real otherwise
-var AM_OWN=(SKIN==='cartoon'||SKIN==='real3d');
-function _amAnims(){return AM_OWN?AM_FRAMES.anims:PRO_ANIM.anims}
+// The amateur reuses the pro's frames, mirrored at draw time
+function _amAnims(){return PRO_ANIM.anims}
 
 // Set pro animation — switch instantly
 function _setProAnim(name){
@@ -255,7 +202,6 @@ function _getAmFrame(dt){
 function _loadSideImages(){
   if(SIDE._started)return;
   SIDE._started=true;
-  if(SKINCFG.drawArena){SIDE.ready=true;return}   // cartoon arena is drawn, not downloaded
   SIDE._list.forEach(function(item){
     var img=new Image();
     img.onload=function(){SIDE._loaded++;if(SIDE._loaded>=SIDE._list.length)SIDE.ready=true};
@@ -332,71 +278,6 @@ function updateSideView(){
   SIDE._lastAmPose=am.pose;
 }
 
-// ── Cartoon arena — drawn once per canvas size, cached ──
-// Authored for this game (license-free): hall gradient, spotlight cones, crowd
-// silhouettes with glow-stick glints, blue mat, ropes and corner posts. Geometry is
-// tied to the fighters' floor line (H*0.82) so they stand mid-ring.
-function _cartoonArena(W,H){
-  if(SIDE._arena&&SIDE._arenaKey===W+'x'+H)return SIDE._arena;
-  var c=document.createElement('canvas');c.width=W;c.height=H;
-  var g=c.getContext('2d');
-  var matTop=H*0.56;
-  // hall
-  var hall=g.createLinearGradient(0,0,0,H);
-  hall.addColorStop(0,'#141a2e');hall.addColorStop(0.55,'#1c2440');hall.addColorStop(1,'#0d1120');
-  g.fillStyle=hall;g.fillRect(0,0,W,H);
-  // spotlight cones
-  [[W*0.3,150,0.10],[W*0.7,150,0.10],[W*0.5,190,0.13]].forEach(function(s){
-    var lg=g.createLinearGradient(s[0],0,s[0],H*0.7);
-    lg.addColorStop(0,'rgba(255,240,200,'+s[2]+')');lg.addColorStop(1,'rgba(255,240,200,0)');
-    g.fillStyle=lg;g.beginPath();
-    g.moveTo(s[0]-14,0);g.lineTo(s[0]+14,0);g.lineTo(s[0]+s[1],H*0.68);g.lineTo(s[0]-s[1],H*0.68);
-    g.closePath();g.fill();
-  });
-  // crowd rows (deterministic wobble — no Math.random so the cache is stable)
-  [[H*0.14,9,'#232c49',46],[H*0.20,11,'#1e2740',40],[H*0.27,13,'#1a2136',34],[H*0.35,15,'#151b2c',30]]
-  .forEach(function(row){
-    g.fillStyle=row[2];
-    for(var i=0;i<row[3];i++){
-      var x=(i+0.5)*(W/row[3])+Math.sin(i*7.3+row[0])*6;
-      var y=row[0]+Math.sin(i*3.1)*4,r=row[1];
-      g.beginPath();g.arc(x,y,r,0,Math.PI*2);g.fill();
-      g.beginPath();g.arc(x,y+r*1.6,r*1.25,0,Math.PI,true);g.fill();
-    }
-  });
-  // glow sticks
-  var cols=['#ffd75e','#ff5e7a','#5ec8ff','#7dff8a'];
-  for(var i=0;i<28;i++){
-    g.fillStyle=cols[i%4];g.globalAlpha=0.5;
-    g.fillRect(((i*97)%W),H*(0.12+((i*53)%24)/100),3,3);
-    g.globalAlpha=1;
-  }
-  // mat
-  var mat=g.createLinearGradient(0,matTop,0,H);
-  mat.addColorStop(0,'#3f74d6');mat.addColorStop(1,'#2a4f97');
-  g.fillStyle=mat;g.beginPath();
-  g.moveTo(W*0.06,matTop);g.lineTo(W*0.94,matTop);g.lineTo(W*1.04,H);g.lineTo(-W*0.04,H);
-  g.closePath();g.fill();
-  g.fillStyle='rgba(255,255,255,0.06)';
-  g.beginPath();g.ellipse(W*0.5,H*0.88,W*0.34,H*0.09,0,0,Math.PI*2);g.fill();
-  g.strokeStyle='rgba(255,255,255,0.3)';g.lineWidth=4;
-  g.beginPath();g.ellipse(W*0.5,H*0.87,W*0.12,H*0.04,0,0,Math.PI*2);g.stroke();
-  g.font='800 '+Math.round(H*0.045)+'px "Arial Black",sans-serif';
-  g.textAlign='center';g.textBaseline='middle';
-  g.fillStyle='rgba(255,255,255,0.4)';g.fillText('MMA',W*0.5,H*0.87);
-  // ropes — full-bleed, no corner posts: on desktop the sidebar covers the canvas's
-  // left edge, so posts read asymmetric; edge-to-edge ropes read as a ringside camera
-  // on a ring wider than the frame.
-  [[matTop-118,'#e63946'],[matTop-78,'#f1f1f6'],[matTop-38,'#3d6fd0']].forEach(function(r){
-    g.strokeStyle=r[1];g.lineWidth=6;
-    g.beginPath();g.moveTo(-10,r[0]);g.quadraticCurveTo(W*0.5,r[0]+9,W+10,r[0]);g.stroke();
-    g.strokeStyle='rgba(0,0,0,0.25)';g.lineWidth=2;
-    g.beginPath();g.moveTo(-10,r[0]+3);g.quadraticCurveTo(W*0.5,r[0]+12,W+10,r[0]+3);g.stroke();
-  });
-  SIDE._arena=c;SIDE._arenaKey=W+'x'+H;
-  return c;
-}
-
 // ── Side View Render ──
 function renderSideView(){
   try{
@@ -451,11 +332,7 @@ function renderSideView(){
   }
 
   // ═══ L1: BACKGROUND ═══
-  if(SKINCFG.drawArena){
-    // Cartoon skin: the arena is drawn in code (license-free, zero download) and
-    // cached to an offscreen canvas per size.
-    cx.drawImage(_cartoonArena(W,H),0,0);
-  }else if(S.bg&&S.bg.complete&&S.bg.naturalWidth){
+  if(S.bg&&S.bg.complete&&S.bg.naturalWidth){
     var bgA=S.bg.naturalWidth/S.bg.naturalHeight,scA=W/H;
     var dW,dH;
     if(scA>bgA){dW=W;dH=W/bgA}else{dH=H;dW=H*bgA}
@@ -475,7 +352,7 @@ function renderSideView(){
     for(var i=0;i<a.length;i++){if(!(a[i].complete&&a[i].naturalWidth>0))return false}
     return true;
   }
-  var _idleReady=_setReady(PRO_ANIM.anims.idle)&&(!AM_OWN||_setReady(AM_FRAMES.anims.idle));
+  var _idleReady=_setReady(PRO_ANIM.anims.idle);
   if(!_idleReady&&PRO_ANIM._totalFrames>0){
     var lp=Math.min(1,PRO_ANIM._loadCount/PRO_ANIM._totalFrames);
     var lw=Math.min(220,W*0.4),lx=W*0.5-lw/2,ly=floorY-baseH*0.45;
