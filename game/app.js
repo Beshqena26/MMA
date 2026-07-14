@@ -975,8 +975,9 @@ function update(ts){
       G.phaseTimer+=G.dt;
       _updateMultAndUI();
       G.camera.zoomTarget=1;
-      // Random fight alerts
-      if(Math.random()<G.dt*0.12){
+      // Random fight alerts — POV only. The side view is a held face-off: nothing is
+      // thrown until the crash punch, so announcing kicks there contradicts the scene.
+      if(GAME_VIEW!=='side'&&Math.random()<G.dt*0.12){
         showAlert(['BODY SHOT!','UPPERCUT!','SPINNING KICK!','LIVER SHOT!','HEAD KICK!','JAB-CROSS!'][Math.floor(Math.random()*6)]);
       }
       var mf=Math.floor(G.mult);if(mf>G.lastMultFloor&&mf>=2){G.lastMultFloor=mf}
@@ -1725,15 +1726,20 @@ function openMenu(){if(menuOverlay)menuOverlay.classList.add('open');if(menuPane
 function closeMenu(){if(menuOverlay)menuOverlay.classList.remove('open');if(menuPanel)menuPanel.classList.remove('open')}
 
 // ── Game View Switcher ──
-var GAME_VIEW=localStorage.getItem('mma_view')||'pov'; // 'pov' or 'side'
+var GAME_VIEW=localStorage.getItem('mma_view')||'side'; // 'pov' or 'side'
 function toggleGameView(){
   GAME_VIEW=GAME_VIEW==='pov'?'side':'pov';
   localStorage.setItem('mma_view',GAME_VIEW);
   var btn=document.getElementById('viewSwitch');
   if(btn)btn.textContent=GAME_VIEW==='pov'?'👁':'🥊';
-  // Reload images for new view
-  if(typeof IMG!=='undefined')IMG._ready=false;
-  if(typeof SCENE!=='undefined')SCENE.ready=false;
+  // Scenes only load the active view's assets at startup — lazy-load the other on
+  // first switch. The loaders are idempotent (guarded by _started flags).
+  if(GAME_VIEW==='side'){
+    if(typeof _loadProFrames==='function')_loadProFrames();
+    if(typeof _loadSideImages==='function')_loadSideImages();
+  }else{
+    if(typeof _loadImages==='function')_loadImages();
+  }
 }
 // Set initial button state
 try{var _vsBtn=document.getElementById('viewSwitch');if(_vsBtn)_vsBtn.textContent=GAME_VIEW==='pov'?'👁':'🥊'}catch(e){}

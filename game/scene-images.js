@@ -14,18 +14,20 @@ var IMG={};
 var _isMobile=window.innerWidth<600;
 var _assetDir=_isMobile?'assets/mobile/':'assets/';
 var _imgList=[
-  {key:'bg',src:_assetDir+'bg.png'},
-  {key:'idle',src:_assetDir+'Fighter-Idle.png'},
-  {key:'hook',src:_assetDir+'Fighter-hook.png'},
-  {key:'kick',src:_assetDir+'Fighter-kick.png'},
-  {key:'victory',src:_assetDir+'fighter-Victory.png'},
-  {key:'hitL',src:_assetDir+'fighter-hit-left.png'},
-  {key:'hitR',src:_assetDir+'fighter-hit-right.png'},
-  {key:'fistL',src:_assetDir+'hand-Left.png'},
-  {key:'fistR',src:_assetDir+'hand-Right.png'}
+  {key:'bg',src:_assetDir+'bg.webp'},
+  {key:'idle',src:_assetDir+'Fighter-Idle.webp'},
+  {key:'hook',src:_assetDir+'Fighter-hook.webp'},
+  {key:'kick',src:_assetDir+'Fighter-kick.webp'},
+  {key:'victory',src:_assetDir+'fighter-Victory.webp'},
+  {key:'hitL',src:_assetDir+'fighter-hit-left.webp'},  // desktop PNG never existed — mobile-only asset
+  {key:'hitR',src:_assetDir+'fighter-hit-right.webp'},
+  {key:'fistL',src:_assetDir+'hand-Left.webp'},
+  {key:'fistR',src:_assetDir+'hand-Right.webp'}
 ];
 var _imgsLoaded=0;
 function _loadImages(){
+  if(IMG._started)return;
+  IMG._started=true;
   _imgList.forEach(function(item){
     var img=new Image();
     img.onload=function(){_imgsLoaded++;if(_imgsLoaded>=_imgList.length)IMG._ready=true};
@@ -34,7 +36,9 @@ function _loadImages(){
     IMG[item.key]=img;
   });
 }
-_loadImages();
+// Load only if this scene is the active view; toggleGameView() lazy-loads it otherwise.
+// Same key + default as GAME_VIEW in app.js (which loads after this file).
+if((localStorage.getItem('mma_view')||'side')!=='side')_loadImages();
 
 // ── State ──
 function initFighterState(){
