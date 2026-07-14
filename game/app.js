@@ -389,7 +389,47 @@ var SND={
     try{this._bgMusic.pause();this._bgMusic.currentTime=0;this._bgPlaying=false}catch(e){}
   },
   toggleSound:function(){this.soundOn=!this.soundOn;return this.soundOn},
-  toggleMusic:function(){this.musicOn=!this.musicOn;if(this.musicOn)this.startBG();else this.stopBG();return this.musicOn}
+  toggleMusic:function(){this.musicOn=!this.musicOn;if(this.musicOn)this.startBG();else this.stopBG();return this.musicOn},
+  // ── Tension ambience ──────────────────────────────────────────────
+  // The scene builds tension through stillness; the audio mirrors it:
+  // music fades toward silence as the multiplier climbs (the arena
+  // holding its breath), a low heartbeat comes up underneath, then the
+  // crash punch lands into near-silence. No assets needed — the
+  // heartbeat is synthesized.
+  _musicBase:0.15,_nextBeat:0,
+  tickAmbience:function(phase,t){
+    // music duck: 100% volume calm -> 25% at max tension; silent through the crash
+    if(this._bgMusic&&this.musicOn){
+      var duck=(phase==='FREEFALL')?t*0.75:(phase==='CRASH')?1:0;
+      var target=this._musicBase*(1-duck);
+      var v=this._bgMusic.volume;
+      this._bgMusic.volume=Math.max(0,Math.min(1,v+(target-v)*0.06));
+    }
+    // heartbeat: FREEFALL only, from mid tension, quickening as it climbs
+    if(!this.soundOn||phase!=='FREEFALL'||t<0.45){this._nextBeat=0;return}
+    var c=this._getCtx();if(!c||c.state!=='running')return;
+    var now=c.currentTime;
+    if(!this._nextBeat||this._nextBeat<now-1)this._nextBeat=now+0.05;
+    if(now>=this._nextBeat){
+      var period=1.05-t*0.4;                    // ~57bpm -> ~92bpm
+      this._thump(now,0.09+t*0.06);             // lub
+      this._thump(now+period*0.3,0.06+t*0.04);  // dub
+      this._nextBeat=now+period;
+    }
+  },
+  _thump:function(at,vol){
+    var c=this._getCtx();if(!c)return;
+    try{
+      var osc=c.createOscillator(),gain=c.createGain();
+      osc.connect(gain);gain.connect(c.destination);
+      osc.type='sine';osc.frequency.setValueAtTime(52,at);
+      osc.frequency.exponentialRampToValueAtTime(38,at+0.12);
+      gain.gain.setValueAtTime(0.0001,at);
+      gain.gain.exponentialRampToValueAtTime(vol,at+0.015);
+      gain.gain.exponentialRampToValueAtTime(0.0001,at+0.14);
+      osc.start(at);osc.stop(at+0.16);
+    }catch(e){}
+  }
 };
 SND.init();
 // Wake Lock — keep screen on while game is open
@@ -861,7 +901,7 @@ function startFreefallPhase(){
   G.phase='FREEFALL';G.phaseTimer=0;
   if(!G.mult||G.mult<1){G.mult=1.0;G.speed=CFG.multSpeed||0.002}
   G.lastMultFloor=Math.floor(G.mult);
-  try{setSt('FIGHT! — CASH OUT ANYTIME!','s3');setCine(G.mult.toFixed(2)+'×','MULTIPLIER');G.camera.zoomTarget=0.95;updAllBtns();sfx.startFreefall()}catch(e){}
+  try{setSt('FIGHT! — CASH OUT ANYTIME!','s3');setCine(G.mult.toFixed(2)+'×','FIGHT');G.camera.zoomTarget=0.95;updAllBtns();sfx.startFreefall()}catch(e){}
 }
 
 function startCrashPhase(){
@@ -871,7 +911,6 @@ function startCrashPhase(){
   // Force-clear any active black hole suck animation
   if(!G.pilot.ejected){G.pilot.ejected=true;G.pilot.x=G.rocket.x||0;G.pilot.y=G.rocket.y||0;G.pilot.vx=0;G.pilot.vy=0;G.pilot.spin=0;G.pilot._phase='freefall'}
   G.pilot.chuteOpen=true;G.pilot.vy=Math.min(G.pilot.vy||0,20);
-  try{sfx.stopFreefall();sfx.play('chute')}catch(e){}
   G.camera.shake=2;G.camera.zoomTarget=1.05;
   // Record losses
   for(var i=0;i<2;i++){if(G.bets[i].placed&&!G.bets[i].out){G.totP-=G.bets[i].amount;G.betHistory.unshift({round:G.roundNum,bet:G.bets[i].amount,mult:G.crashPt,win:0,time:new Date()});if(G.betHistory.length>200)G.betHistory.pop()}}
@@ -892,7 +931,7 @@ function _updateMultAndUI(){
   if(!isFinite(G.mult)||G.mult>99999)G.mult=G.crashPt+1;
   if(!isFinite(G.speed)||G.speed>10)G.speed=0.01;
   // UI
-  setCine(G.mult.toFixed(2)+'×','FREEFALL');
+  setCine(G.mult.toFixed(2)+'×','FIGHT');
   try{$('cine').className='cine show'+(G.mult>=8?' gold':G.mult>=4?' wrn':'')}catch(e){}
   setSt('FIGHT — '+G.mult.toFixed(2)+'×','s3');
   // Update bet button amounts
@@ -1019,6 +1058,7 @@ function update(ts){
 
     // MMA: update tension + fighters
     if(typeof getTension==='function')G.tension=getTension(G.mult);
+    try{SND.tickAmbience(G.phase,G.tension||0)}catch(e){}
     if(typeof GAME_VIEW!=='undefined'&&GAME_VIEW==='side'){
       if(typeof updateSideView==='function')updateSideView();
     }else{
