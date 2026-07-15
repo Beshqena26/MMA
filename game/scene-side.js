@@ -43,15 +43,15 @@ var SIDE={
 // WHICH frames play and HOW FAST, not by amplitude. Tension rides on rate, not size.
 var FACEOFF={
   idleFPS:6, idleFPSRamp:5,   // idle playback: 6fps calm (~2.7s breath) -> 11fps at full tension
-  punchFPS:18,                // crash punch — full extension is source frame 10
-  hitFPS:18,                  // reaction to the crash punch
-  strikeFPS:13,               // mid-fight exchange strikes — deliberate, readable
-  exHitFPS:12,                // reaction playback during exchanges
-  koFPS:13,                   // the on-screen fall to the mat
-  contactAt:10/18,            // s from CRASH start to impact (= extension frame at punchFPS)
+  punchFPS:14,                // crash punch — full extension is source frame 10
+  hitFPS:13,                  // reaction to the crash punch
+  strikeFPS:9,                // mid-fight exchange strikes — deliberate, readable
+  exHitFPS:9,                 // reaction playback during exchanges
+  koFPS:10,                   // the on-screen fall to the mat
+  contactAt:10/14,            // s from CRASH start to impact (= extension frame at punchFPS)
   koDelay:0.35,               // s after impact: reaction -> the fall starts
   vicDelay:0.95,              // s after impact: punch has landed -> pro celebrates
-  exGapMin:2.2, exGapMax:4.8, // s between exchanges; shrinks somewhat with tension
+  exGapMin:3.0, exGapMax:6.0, // s between exchanges; shrinks somewhat with tension
   impactShake:8,              // px, decays via app.js camera.shake *= 0.94
   pushIn:0.06,                // max zoom-in at full tension
   amPhase:5, amRate:0.93      // amateur desync so the two don't breathe in lockstep
@@ -144,7 +144,7 @@ function _animFPS(name){
   if(name==='rightpunch'||name==='kick')return (G.phase==='CRASH')?FACEOFF.punchFPS:FACEOFF.strikeFPS;
   if(name==='gettinghit')return (G.phase==='CRASH')?FACEOFF.hitFPS:FACEOFF.exHitFPS;
   if(name==='ko')return FACEOFF.koFPS;
-  if(name==='victory')return 12;   // celebration loop — relaxed, not frantic
+  if(name==='victory')return 9;    // celebration loop — relaxed, not frantic
   return FACEOFF.hitFPS;
 }
 
