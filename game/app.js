@@ -1079,15 +1079,10 @@ function update(ts){
     if(typeof getTension==='function')G.tension=getTension(G.mult);
     try{SND.tickAmbience(G.phase,G.tension||0)}catch(e){}
     if(G.cashoutFx){G.cashoutFx.t+=G.dt;if(G.cashoutFx.t>=1.1)G.cashoutFx=null}
-    if(typeof GAME_VIEW!=='undefined'&&GAME_VIEW==='side'){
-      if(typeof updateSideView==='function')updateSideView();
-    }else{
-      if(typeof updateFighters==='function')updateFighters();
-    }
+    if(typeof updateFighters==='function')updateFighters();
   }catch(e){console.error('Update:',e)}
   try{
-    if(typeof GAME_VIEW!=='undefined'&&GAME_VIEW==='side'&&typeof renderSideView==='function'){renderSideView()}
-    else{render()}
+    render()
   }catch(re){console.error('RENDER ERROR:',re.message,re.stack)}
   requestAnimationFrame(update);
 }
@@ -1785,24 +1780,7 @@ var menuOverlay=document.getElementById('menuOverlay'),menuPanel=document.getEle
 function openMenu(){if(menuOverlay)menuOverlay.classList.add('open');if(menuPanel)menuPanel.classList.add('open')}
 function closeMenu(){if(menuOverlay)menuOverlay.classList.remove('open');if(menuPanel)menuPanel.classList.remove('open')}
 
-// ── Game View Switcher ──
-var GAME_VIEW=localStorage.getItem('mma_view')||'side'; // 'pov' or 'side'
-function toggleGameView(){
-  GAME_VIEW=GAME_VIEW==='pov'?'side':'pov';
-  localStorage.setItem('mma_view',GAME_VIEW);
-  var btn=document.getElementById('viewSwitch');
-  if(btn)btn.textContent=GAME_VIEW==='pov'?'👁':'🥊';
-  // Scenes only load the active view's assets at startup — lazy-load the other on
-  // first switch. The loaders are idempotent (guarded by _started flags).
-  if(GAME_VIEW==='side'){
-    if(typeof _loadProFrames==='function')_loadProFrames();
-    if(typeof _loadSideImages==='function')_loadSideImages();
-  }else{
-    if(typeof _loadImages==='function')_loadImages();
-  }
-}
-// Set initial button state
-try{var _vsBtn=document.getElementById('viewSwitch');if(_vsBtn)_vsBtn.textContent=GAME_VIEW==='pov'?'👁':'🥊'}catch(e){}
+// (View switcher removed 2026-07 — the first-person scene is the only view.)
 var _burgerBtn=document.getElementById('burgerBtn');if(_burgerBtn)_burgerBtn.onclick=openMenu;
 var _menuClose=document.getElementById('menuClose');if(_menuClose)_menuClose.onclick=closeMenu;
 if(menuOverlay)menuOverlay.onclick=closeMenu;

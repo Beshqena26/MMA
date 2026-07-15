@@ -69,9 +69,8 @@ function _loadImages(){
   });
   POVSETS.forEach(_povLoadSet);
 }
-// Load only if this scene is the active view; toggleGameView() lazy-loads it otherwise.
-// Same key + default as GAME_VIEW in app.js (which loads after this file).
-if((localStorage.getItem('mma_view')||'side')!=='side')_loadImages();
+// The first-person scene is the only view — load immediately.
+_loadImages();
 
 // ── State ──
 function initFighterState(){
