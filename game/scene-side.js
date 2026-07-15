@@ -27,7 +27,7 @@ var SIDE={
 // The fighters are pre-rendered flat PNGs — there is no rig, so motion is controlled by
 // WHICH frames play and HOW FAST, not by amplitude. Tension rides on rate, not size.
 var FACEOFF={
-  idleFPS:10, idleFPSRamp:4,  // idle playback: 10fps calm -> 14fps at full tension
+  idleFPS:6, idleFPSRamp:5,   // idle playback: 6fps calm (~2.7s breath) -> 11fps at full tension
   punchFPS:24,                // crash punch — full extension is source frame 10
   hitFPS:18,                  // reaction playback
   contactAt:10/24,            // s from CRASH start to impact (= extension frame at punchFPS)
@@ -155,6 +155,43 @@ function _setAmAnim(name){
   }
 }
 
+// ── Amateur recolor ──
+// The amateur shares the pro's frames, so without this the fight is two identical
+// twins. Bake a recolored copy of each frame the first time the amateur needs it:
+// skin shifts to a deeper brown, the blue wrist tape goes red. Greys and blacks
+// (gloves, shorts, outlines, shoes) are left alone — both corners wear black.
+function _amTint(img){
+  if(img._am)return img._am;
+  var c=document.createElement('canvas');
+  c.width=img.naturalWidth;c.height=img.naturalHeight;
+  var g=c.getContext('2d',{willReadFrequently:true});
+  g.drawImage(img,0,0);
+  var d=g.getImageData(0,0,c.width,c.height),p=d.data;
+  for(var i=0;i<p.length;i+=4){
+    if(p[i+3]===0)continue;
+    var r=p[i],gr=p[i+1],b=p[i+2];
+    var mx=Math.max(r,gr,b),mn=Math.min(r,gr,b),df=mx-mn;
+    if(df<30)continue;                    // near-greys: white shoes, glove patch, black gear
+    var h;
+    if(mx===r)h=((gr-b)/df+6)%6;else if(mx===gr)h=(b-r)/df+2;else h=(r-gr)/df+4;
+    h*=60;
+    var l=(mx+mn)/2;
+    if(h>=10&&h<=50&&l>60&&l<235){
+      // Skin (and brown hair) → deeper brown, multiplicative so shading survives
+      p[i]=Math.round(r*0.66);p[i+1]=Math.round(gr*0.52);p[i+2]=Math.round(b*0.46);
+    }else if(h>=190&&h<=260){
+      // Blue wrist tape → red corner
+      p[i]=mx;p[i+1]=Math.round(mn*0.55);p[i+2]=Math.round(mn*0.6);
+    }
+  }
+  g.putImageData(d,0,0);
+  // The draw path sizes frames off naturalWidth/naturalHeight (Image API) —
+  // mirror them onto the canvas so tinted frames measure identically.
+  c.naturalWidth=c.width;c.naturalHeight=c.height;
+  img._am=c;
+  return c;
+}
+
 function _getAmFrame(dt){
   var anim=_amAnims()[AM_ANIM.current];
   if(!anim||anim.length===0)return null;
@@ -177,7 +214,7 @@ function _getAmFrame(dt){
   }
 
   var img=anim[idx];
-  return (img&&img.complete&&img.naturalWidth>0)?img:null;
+  return (img&&img.complete&&img.naturalWidth>0)?_amTint(img):null;
 }
 
 function _loadSideImages(){
@@ -384,6 +421,7 @@ function renderSideView(){
     var koAnim=_amAnims().ko;
     var koImg=koAnim&&koAnim.length?koAnim[koAnim.length-1]:null;
     if(koImg&&koImg.complete&&koImg.naturalWidth>0){
+      koImg=_amTint(koImg);
       var kW=Math.round(baseH*(koImg.naturalWidth/koImg.naturalHeight));
       var kY=fightersY+Math.round(baseH*SKINCFG.koYOff);   // same mat offset as the held ko pose
       cx.save();
