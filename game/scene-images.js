@@ -14,7 +14,9 @@ var IMG={};
 var _isMobile=window.innerWidth<600;
 var _assetDir=_isMobile?'assets/mobile/':'assets/';
 var _imgList=[
-  {key:'bg',src:_assetDir+'bg.webp'}   // fallback until the animated loop decodes
+  {key:'bg',src:_assetDir+'bg.webp'},  // fallback until the animated loop decodes
+  {key:'fistL',src:_assetDir+'hand-Left.webp'},
+  {key:'fistR',src:_assetDir+'hand-Right.webp'}
 ];
 var _imgsLoaded=0;
 
@@ -30,18 +32,18 @@ var POV={
 // s = crop height / frame-0 body height; ax = body center inside the crop;
 // ay = the body's bottom edge inside the crop. Filled by extraction metrics.
 var POVCFG={
-  idle:   {s:1.024,ax:0.500,ay:1.0},
-  punch:  {s:1.089,ax:0.548,ay:1.0},
-  victory:{s:1.091,ax:0.477,ay:1.0}   // wide crop: raised arms swing both ways
+  idle:   {s:1.028,ax:0.502,ay:1.0},
+  punch:  {s:1.070,ax:0.654,ay:1.0},  // wide crop: the glove reaches toward the camera
+  victory:{s:1.022,ax:0.538,ay:1.0}
 };
 var POVFPS={idle:6,idleRamp:5,punch:20,victory:12,bg:10};
 var POVSETS=[
-  {name:'idle',   path:'assets/anim3/hero/idle/',   prefix:'idle_',   count:26},
+  {name:'idle',   path:'assets/anim3/hero/idle/',   prefix:'idle_',   count:24},
   {name:'punch',  path:'assets/anim3/hero/punch/',  prefix:'punch_',  count:32},
-  {name:'victory',path:'assets/anim3/hero/victory/',prefix:'victory_',count:27},
+  {name:'victory',path:'assets/anim3/hero/victory/',prefix:'victory_',count:32},
   {name:'bg',     path:'assets/anim3/front/bg/',    prefix:'bg_',     count:16}
 ];
-var PUNCH_CONTACT=9; // frame where the glove fills the frame (measured max-fill)
+var PUNCH_CONTACT=25; // frame where the glove fills the frame (measured max-fill)
 
 function _povLoadSet(s){
   POV.anims[s.name]=[];
@@ -193,6 +195,19 @@ function render(){
     var drawW=Math.round(drawH*(heroImg.naturalWidth/heroImg.naturalHeight));
     var bottomY=Math.round(H*(isMob?0.93:1.0));
     cx.drawImage(heroImg,Math.round(W*0.5-pc.ax*drawW),bottomY-Math.round(pc.ay*drawH),drawW,drawH);
+  }
+
+  // ═══ L2b: MY GLOVES — always present, calm idle bob ═══
+  var fistW2=W<600?W*0.828:W<900?W*0.4:W*0.358;
+  var fistH2=fistW2*0.56;
+  var idleBobL=Math.sin(time*2)*(W<600?3:5);
+  var idleBobR=Math.sin(time*2+1)*(W<600?3:5);
+  var fistBottomOffset=W<600?124:W<900?124:30;
+  if(IMG.fistL&&IMG.fistL.complete&&IMG.fistL.naturalWidth>0){
+    cx.drawImage(IMG.fistL,W*0.5-fistW2*0.8,H-fistH2-fistBottomOffset+idleBobL,fistW2,fistH2);
+  }
+  if(IMG.fistR&&IMG.fistR.complete&&IMG.fistR.naturalWidth>0){
+    cx.drawImage(IMG.fistR,W*0.5-fistW2*0.2,H-fistH2-fistBottomOffset+idleBobR,fistW2,fistH2);
   }
 
   // ═══ L3: IMPACT FLASH — the punch reaching the camera ═══
