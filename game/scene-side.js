@@ -288,8 +288,10 @@ function updateSideView(){
       if(ex.cool<=0){
         var atk=Math.random()<0.62?'pro':'am';       // you land a few more than you take
         var mv=Math.random()<0.6?'punchR':'kick';
-        var cf=STRIKE[atk][mv==='punchR'?'rightpunch':'kick'];
-        ex.a={atk:atk,t:0,contactT:cf/FACEOFF.strikeFPS,dur:16/FACEOFF.strikeFPS+0.7,landed:false};
+        var setName=(mv==='punchR')?'rightpunch':'kick';
+        var cf=STRIKE[atk][setName];
+        var setLen=((atk==='pro'?PRO_ANIM:AM_ANIM).anims[setName]||[]).length||32;
+        ex.a={atk:atk,t:0,contactT:cf/FACEOFF.strikeFPS,dur:setLen/FACEOFF.strikeFPS+0.5,landed:false};
         if(atk==='pro'){pro.pose=mv;pro._poseTime=0}
         else{am.pose=mv;am._poseTime=0}
       }
