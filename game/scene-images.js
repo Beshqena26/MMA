@@ -89,6 +89,17 @@ function _povSet(name){
   if(POV.cur!==name){POV.cur=name;POV.frame=0;POV.timer=0}
 }
 
+// A set is animatable only when EVERY frame has decoded — cycling through a
+// half-loaded set makes the character/arena flicker on first load.
+function _povReady(name){
+  var a=POV.anims[name];
+  if(!a||!a.length)return false;
+  if(POV._ready&&POV._ready[name])return true;
+  for(var i=0;i<a.length;i++){if(!(a[i].complete&&a[i].naturalWidth>0))return false}
+  (POV._ready||(POV._ready={}))[name]=true;
+  return true;
+}
+
 // Advance + fetch the current hero frame. Idle/victory loop; punch plays once, holds.
 function _povFrame(dt){
   var anim=POV.anims[POV.cur];
@@ -102,7 +113,10 @@ function _povFrame(dt){
   if(POV.cur==='punch'){if(POV.frame>=anim.length)POV.frame=anim.length-1;idx=POV.frame}
   else idx=POV.frame=POV.frame%anim.length;
   var img=anim[idx];
-  return (img&&img.complete&&img.naturalWidth>0)?img:null;
+  // Hold the last good frame if this one hasn't decoded (mid-set switch on a
+  // slow connection) — a held pose beats a vanishing fighter.
+  if(img&&img.complete&&img.naturalWidth>0){POV._lastImg=img;return img}
+  return POV._lastImg||null;
 }
 
 // ── Update ──
@@ -172,15 +186,14 @@ function render(){
   var dt=G.dt||0.016;
 
   // ═══ L1: ARENA BACKGROUND — animated crowd loop, static still as fallback ═══
-  var bgAnim=POV.anims.bg;
   var bgImg=null;
-  if(bgAnim&&bgAnim.length){
+  if(_povReady('bg')){
+    var bgAnim=POV.anims.bg;
     POV.bgTimer+=dt;
     // Crowd stirs a little faster as the roar builds
     var bgD=1/(POVFPS.bg*(1+(G.crowdRoarSmooth||0)*0.6));
     while(POV.bgTimer>=bgD){POV.bgTimer-=bgD;POV.bgFrame=(POV.bgFrame+1)%bgAnim.length}
-    var cand=bgAnim[POV.bgFrame];
-    if(cand&&cand.complete&&cand.naturalWidth>0)bgImg=cand;
+    bgImg=bgAnim[POV.bgFrame];
   }
   if(!bgImg&&IMG.bg&&IMG.bg.complete&&IMG.bg.naturalWidth)bgImg=IMG.bg;
   if(bgImg){
@@ -193,7 +206,9 @@ function render(){
   }
 
   // ═══ L2: THE FIGHTER — knees-up, faces the camera ═══
-  var heroImg=_povFrame(dt);
+  // Wait for the FULL idle set before he first appears: one clean reveal
+  // instead of a fighter flickering while frames stream in.
+  var heroImg=_povReady('idle')?_povFrame(dt):null;
   if(heroImg){
     var pc=POVCFG[POV.cur]||{s:1,ax:0.5,ay:1};
     var isMob=W<600;
