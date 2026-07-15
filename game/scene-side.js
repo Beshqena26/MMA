@@ -9,8 +9,16 @@ var _sideMobile=window.innerWidth<600;
 // character fills the frame and faces LEFT in the source art).
 var SKINCFG={
   baseH:0.62, baseHMob:0.55,        // fighter height as fraction of canvas
-  centerOff:0.36, centerOffMob:0.31, // fighter center distance from screen center, ×baseH
-  koYOff:0.22
+  centerOff:0.36, centerOffMob:0.31 // fighter center distance from screen center, ×baseH
+};
+
+// Drawn-height multiplier per animation, normalized to each fighter's standing body
+// height. The generated sets aren't zoom-consistent (KO/victory render the character
+// at ~61% of the idle zoom), so each set's union-bbox crop is rescaled here to keep
+// the body the same size on screen: crop height / standing height within that crop.
+var SETSCALE={
+  pro:{victory:1.32},               // arms raised over head extend past standing height
+  am:{gettinghit:1.02,ko:1.06}      // ko crop is wide+low: the fall down to the mat
 };
 
 var SIDE={
@@ -78,23 +86,31 @@ function _loadSet(target,s){
 function _loadProFrames(){
   if(PRO_ANIM._started)return;
   PRO_ANIM._started=true;
-  // The comic fighter sprite sets: 16 tight-cropped PNG frames each, numbered 00-15.
+  // Two comic fighter sprite sets, 16 frames each, numbered 00-15, all facing LEFT.
+  // Pro (black shorts, blue tape) in assets/anim/, amateur (orange shorts, mohawk)
+  // in assets/anim2/ — union-bbox crops, so frames register within each set.
   var sets=[
     // Full breathing/bounce cycle, played as a forward loop.
-    {name:'idle',       path:'assets/anim/idle/',  prefix:'idle_',        start:0, end:15, pad:2, ext:'.png'},
-    // Punch combo — full extension lands at source frame 10 (= FACEOFF.contactAt at punchFPS).
-    {name:'rightpunch', path:'assets/anim/punch/', prefix:'punch_combo_', start:0, end:15, pad:2, ext:'.png'},
-    // Amateur's reaction — only the first few frames are visible before the blackout.
-    {name:'gettinghit', path:'assets/anim/hit/',   prefix:'hit_',         start:0, end:15, pad:2, ext:'.png'},
-    // KO reveal pose — no downed set in this skin yet, so hold the doubled-over
-    // moment of the hit reaction, pushed toward the mat by SKINCFG.koYOff.
-    {name:'ko',         path:'assets/anim/hit/',   prefix:'hit_',         start:8, end:8,  pad:2, ext:'.png'}
+    {name:'idle',       path:'assets/anim/idle/',    prefix:'idle_',        start:0, end:15, pad:2, ext:'.png'},
+    // Punch combo — full extension is source frame 10 (= FACEOFF.contactAt at punchFPS).
+    {name:'rightpunch', path:'assets/anim/punch/',   prefix:'punch_combo_', start:0, end:15, pad:2, ext:'.png'},
+    // Post-KO celebration, loops until the next round resets him to idle.
+    {name:'victory',    path:'assets/anim/victory/', prefix:'victory_',     start:0, end:15, pad:2, ext:'.webp'}
   ];
   sets.forEach(function(s){_loadSet(PRO_ANIM.anims,s)});
+  var amSets=[
+    {name:'idle',       path:'assets/anim2/idle/',   prefix:'idle2_',       start:0, end:15, pad:2, ext:'.webp'},
+    // Reaction to the crash punch — only the first frames show before the blackout.
+    {name:'gettinghit', path:'assets/anim2/hit/',    prefix:'hit2_',        start:0, end:15, pad:2, ext:'.webp'},
+    // Real KO fall: guard -> crumple -> flat on the mat. Plays once, holds the last
+    // frame; most of it happens behind the blackout, the reveal catches the tail.
+    {name:'ko',         path:'assets/anim2/ko/',     prefix:'ko2_',         start:0, end:15, pad:2, ext:'.webp'}
+  ];
+  amSets.forEach(function(s){_loadSet(AM_ANIM.anims,s)});
 }
 
-// The amateur reuses the pro's frames, mirrored at draw time
-function _amAnims(){return PRO_ANIM.anims}
+// The amateur has his own character set since 2026-07 (before that: pro's frames tinted)
+function _amAnims(){return AM_ANIM.anims}
 
 // Set pro animation — switch instantly
 function _setProAnim(name){
@@ -109,6 +125,7 @@ function _setProAnim(name){
 function _animFPS(name){
   if(name==='idle')return FACEOFF.idleFPS+(G.tension||0)*FACEOFF.idleFPSRamp;
   if(name==='rightpunch')return FACEOFF.punchFPS;
+  if(name==='victory')return 12;   // celebration loop — relaxed, not frantic
   return FACEOFF.hitFPS;
 }
 
@@ -125,9 +142,9 @@ function _getProFrame(dt){
     PRO_ANIM.frame++;
   }
 
-  // Idle is a designed cycle — loop it forward; others play once then hold last frame
+  // Idle and victory are designed cycles — loop them; others play once, hold last frame
   var idx;
-  if(PRO_ANIM.current==='idle'){
+  if(PRO_ANIM.current==='idle'||PRO_ANIM.current==='victory'){
     idx=PRO_ANIM.frame=PRO_ANIM.frame%anim.length;
   }else{
     if(PRO_ANIM.frame>=anim.length)PRO_ANIM.frame=anim.length-1;
@@ -138,8 +155,9 @@ function _getProFrame(dt){
   return (img&&img.complete&&img.naturalWidth>0)?img:null;
 }
 
-// ── Amateur frame animation — shares Pro's images, flipped when drawn ──
+// ── Amateur frame animation — his own character set, drawn unflipped ──
 var AM_ANIM={
+  anims:{},  // {idle:[Image,...], gettinghit:[...], ko:[...]}
   current:'idle',
   frame:FACEOFF.amPhase,  // offset from the pro on the very first round too — _setAmAnim
                           // won't fire at load, since both already start on 'idle'
@@ -153,43 +171,6 @@ function _setAmAnim(name){
     AM_ANIM.frame=(name==='idle')?FACEOFF.amPhase:0;
     AM_ANIM.frameTimer=0;
   }
-}
-
-// ── Amateur recolor ──
-// The amateur shares the pro's frames, so without this the fight is two identical
-// twins. Bake a recolored copy of each frame the first time the amateur needs it:
-// skin shifts to a deeper brown, the blue wrist tape goes red. Greys and blacks
-// (gloves, shorts, outlines, shoes) are left alone — both corners wear black.
-function _amTint(img){
-  if(img._am)return img._am;
-  var c=document.createElement('canvas');
-  c.width=img.naturalWidth;c.height=img.naturalHeight;
-  var g=c.getContext('2d',{willReadFrequently:true});
-  g.drawImage(img,0,0);
-  var d=g.getImageData(0,0,c.width,c.height),p=d.data;
-  for(var i=0;i<p.length;i+=4){
-    if(p[i+3]===0)continue;
-    var r=p[i],gr=p[i+1],b=p[i+2];
-    var mx=Math.max(r,gr,b),mn=Math.min(r,gr,b),df=mx-mn;
-    if(df<30)continue;                    // near-greys: white shoes, glove patch, black gear
-    var h;
-    if(mx===r)h=((gr-b)/df+6)%6;else if(mx===gr)h=(b-r)/df+2;else h=(r-gr)/df+4;
-    h*=60;
-    var l=(mx+mn)/2;
-    if(h>=10&&h<=50&&l>60&&l<235){
-      // Skin (and brown hair) → deeper brown, multiplicative so shading survives
-      p[i]=Math.round(r*0.66);p[i+1]=Math.round(gr*0.52);p[i+2]=Math.round(b*0.46);
-    }else if(h>=190&&h<=260){
-      // Blue wrist tape → red corner
-      p[i]=mx;p[i+1]=Math.round(mn*0.55);p[i+2]=Math.round(mn*0.6);
-    }
-  }
-  g.putImageData(d,0,0);
-  // The draw path sizes frames off naturalWidth/naturalHeight (Image API) —
-  // mirror them onto the canvas so tinted frames measure identically.
-  c.naturalWidth=c.width;c.naturalHeight=c.height;
-  img._am=c;
-  return c;
 }
 
 function _getAmFrame(dt){
@@ -214,7 +195,7 @@ function _getAmFrame(dt){
   }
 
   var img=anim[idx];
-  return (img&&img.complete&&img.naturalWidth>0)?_amTint(img):null;
+  return (img&&img.complete&&img.naturalWidth>0)?img:null;
 }
 
 function _loadSideImages(){
@@ -272,11 +253,12 @@ function updateSideView(){
       G.crowdRoar=1;
       if(typeof SND!=='undefined'){SND.play('punch',0.9);SND.play('cheer',0.4)}
     }
-    // Hidden by the black: amateur drops, pro settles back to his guard
+    // Hidden by the black: amateur starts his fall, pro turns to celebrate — the
+    // reveal catches the tail of the drop and the victory loop already going
     if(!SIDE._koSet&&ct>=FACEOFF.koAt){
       SIDE._koSet=true;
       am.pose='ko';am._poseTime=0;
-      pro.pose='idle';pro._poseTime=0;
+      pro.pose='victory';pro._poseTime=0;
       if(typeof SND!=='undefined')SND.play('punch',0.6);
     }
   }
@@ -284,6 +266,7 @@ function updateSideView(){
   // ── Sync pro pose → frame animation ──
   if(pro.pose==='idle')_setProAnim('idle');
   else if(pro.pose==='punchR')_setProAnim('rightpunch');
+  else if(pro.pose==='victory')_setProAnim('victory');
 
   // ── Sync amateur pose → frame animation ──
   if(am.pose==='idle')_setAmAnim('idle');
@@ -371,7 +354,7 @@ function renderSideView(){
     for(var i=0;i<a.length;i++){if(!(a[i].complete&&a[i].naturalWidth>0))return false}
     return true;
   }
-  var _idleReady=_setReady(PRO_ANIM.anims.idle);
+  var _idleReady=_setReady(PRO_ANIM.anims.idle)&&_setReady(AM_ANIM.anims.idle);
   if(!_idleReady&&PRO_ANIM._totalFrames>0){
     var lp=Math.min(1,PRO_ANIM._loadCount/PRO_ANIM._totalFrames);
     var lw=Math.min(220,W*0.4),lx=W*0.5-lw/2,ly=floorY-baseH*0.45;
@@ -385,34 +368,33 @@ function renderSideView(){
   }
 
   // The source art faces LEFT: the pro (left side) is mirrored to face his opponent,
-  // the amateur draws as-is. Each frame keeps its own aspect at the shared height,
-  // anchored center-bottom so differing set widths (punch reach) don't shift the body.
-  var fightersY=floorY-baseH;
+  // the amateur draws as-is. Each frame keeps its own aspect at its set's scaled
+  // height (SETSCALE normalizes body size across sets), anchored center-bottom on
+  // the floor so differing crop sizes (punch reach, the KO fall) don't shift the body.
 
   // ── Pro (left, you) — frame animation, flipped to face right ──
-  // Fighters wait for the FULL idle set before appearing: drawing per-frame while it
-  // streams makes them flicker as the loop hits undecoded indices, and they'd
+  // Fighters wait for the FULL idle sets before appearing: drawing per-frame while
+  // they stream makes them flicker as the loop hits undecoded indices, and they'd
   // stand on top of the loading line. One clean reveal instead.
   var proFrame=_idleReady?_getProFrame(dt):null;
 
   if(proFrame){
-    var drawW=Math.round(baseH*(proFrame.naturalWidth/proFrame.naturalHeight));
+    var pH=Math.round(baseH*(SETSCALE.pro[PRO_ANIM.current]||1));
+    var drawW=Math.round(pH*(proFrame.naturalWidth/proFrame.naturalHeight));
     cx.save();
-    cx.translate(proCX,fightersY);
+    cx.translate(proCX,floorY-pH);
     cx.scale(-1,1);
-    cx.drawImage(proFrame,-Math.round(drawW*0.5),0,drawW,baseH);
+    cx.drawImage(proFrame,-Math.round(drawW*0.5),0,drawW,pH);
     cx.restore();
   }
 
-  // ── Amateur (right, opponent) — same frames as Pro, unflipped (faces left) ──
+  // ── Amateur (right, opponent) — his own set, unflipped (faces left) ──
   var amFrame=_idleReady?_getAmFrame(dt):null;
 
   if(amFrame){
-    var aDrawW=Math.round(baseH*(amFrame.naturalWidth/amFrame.naturalHeight));
-    var aDrawY=fightersY;
-    // KO pose sits toward the mat — per-skin push down
-    if(am.pose==='ko')aDrawY+=Math.round(baseH*SKINCFG.koYOff);
-    cx.drawImage(amFrame,amCX-Math.round(aDrawW*0.5),aDrawY,aDrawW,baseH);
+    var aH=Math.round(baseH*(SETSCALE.am[AM_ANIM.current]||1));
+    var aDrawW=Math.round(aH*(amFrame.naturalWidth/amFrame.naturalHeight));
+    cx.drawImage(amFrame,amCX-Math.round(aDrawW*0.5),floorY-aH,aDrawW,aH);
   }
 
   // KO body fading off the mat while the standing idle takes over (see updateSideView)
@@ -421,12 +403,11 @@ function renderSideView(){
     var koAnim=_amAnims().ko;
     var koImg=koAnim&&koAnim.length?koAnim[koAnim.length-1]:null;
     if(koImg&&koImg.complete&&koImg.naturalWidth>0){
-      koImg=_amTint(koImg);
-      var kW=Math.round(baseH*(koImg.naturalWidth/koImg.naturalHeight));
-      var kY=fightersY+Math.round(baseH*SKINCFG.koYOff);   // same mat offset as the held ko pose
+      var koH=Math.round(baseH*(SETSCALE.am.ko||1));
+      var kW=Math.round(koH*(koImg.naturalWidth/koImg.naturalHeight));
       cx.save();
       cx.globalAlpha=Math.max(0,SIDE._koFade/0.35);
-      cx.drawImage(koImg,amCX-Math.round(kW*0.5),kY,kW,baseH);
+      cx.drawImage(koImg,amCX-Math.round(kW*0.5),floorY-koH,kW,koH);
       cx.restore();
     }
   }
