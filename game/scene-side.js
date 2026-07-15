@@ -17,15 +17,16 @@ var SKINCFG={
 // at ~61% of the idle zoom), so each set's union-bbox crop is rescaled here to keep
 // the body the same size on screen: crop height / standing height within that crop.
 var SETSCALE={
-  pro:{victory:1.32,kick:1.06},     // victory: arms over head; kick set is zoomed out a bit
-  am:{gettinghit:1.02,ko:1.06,rightpunch:1.03,kick:1.03}
+  pro:{idle:1.082,rightpunch:1.078,kick:1.165,gettinghit:1.059,victory:1.294},
+  am:{idle:1.101,rightpunch:1.072,kick:1.147,gettinghit:1.081,ko:1.191}
 };
 
 // Contact frame per strike — the source frame where the hit fully extends; the
-// defender's reaction fires when playback reaches it.
+// defender's reaction fires when playback reaches it. (Measured: widest reach
+// toward the opponent in each generated set.)
 var STRIKE={
-  pro:{rightpunch:10,kick:6},
-  am:{rightpunch:3,kick:7}
+  pro:{rightpunch:9,kick:14},
+  am:{rightpunch:13,kick:11}
 };
 
 var SIDE={
@@ -41,16 +42,19 @@ var SIDE={
 // ── Face-off tuning ──
 // The fighters are pre-rendered flat PNGs — there is no rig, so motion is controlled by
 // WHICH frames play and HOW FAST, not by amplitude. Tension rides on rate, not size.
+// The 2026-07 sets are 22-32 frames (video-derived), so playback fps roughly
+// doubled vs the old 16-frame sets while wall-clock speed stays the same slow
+// pace — twice the in-betweens is where the smoothness comes from.
 var FACEOFF={
-  idleFPS:6, idleFPSRamp:5,   // idle playback: 6fps calm (~2.7s breath) -> 11fps at full tension
-  punchFPS:14,                // crash punch — full extension is source frame 10
-  hitFPS:13,                  // reaction to the crash punch
-  strikeFPS:9,                // mid-fight exchange strikes — deliberate, readable
-  exHitFPS:9,                 // reaction playback during exchanges
-  koFPS:10,                   // the on-screen fall to the mat
-  contactAt:10/14,            // s from CRASH start to impact (= extension frame at punchFPS)
+  idleFPS:6, idleFPSRamp:5,   // idle playback: 6fps calm (~real-time breath) -> 11fps tense
+  punchFPS:20,                // crash punch — full extension is STRIKE.pro.rightpunch
+  hitFPS:20,                  // reaction to the crash punch
+  strikeFPS:16,               // mid-fight exchange strikes — deliberate, readable
+  exHitFPS:16,                // reaction playback during exchanges
+  koFPS:16,                   // the on-screen fall to the mat (~2s)
+  contactAt:9/20,             // s from CRASH start to impact (= extension frame at punchFPS)
   koDelay:0.35,               // s after impact: reaction -> the fall starts
-  vicDelay:0.95,              // s after impact: punch has landed -> pro celebrates
+  vicDelay:1.25,              // s after impact: punch fully played out -> pro celebrates
   exGapMin:3.0, exGapMax:6.0, // s between exchanges; shrinks somewhat with tension
   impactShake:8,              // px, decays via app.js camera.shake *= 0.94
   pushIn:0.06,                // max zoom-in at full tension
@@ -95,32 +99,26 @@ function _loadSet(target,s){
 function _loadProFrames(){
   if(PRO_ANIM._started)return;
   PRO_ANIM._started=true;
-  // Two comic fighter sprite sets, 16 frames each, numbered 00-15, all facing LEFT.
-  // Pro (black shorts, blue tape) in assets/anim/, amateur (orange shorts, mohawk)
-  // in assets/anim2/ — union-bbox crops, so frames register within each set.
+  // Video-derived comic sprite sets (Seedance green-screen -> chroma key, 2026-07),
+  // 22-32 frames per move, all facing LEFT, union-bbox crops per set so frames
+  // register within a set. Pro in assets/anim3/f1/, amateur in assets/anim3/f2/.
   var sets=[
-    // Full breathing/bounce cycle, played as a forward loop.
-    {name:'idle',       path:'assets/anim/idle/',    prefix:'idle_',        start:0, end:15, pad:2, ext:'.png'},
-    // Punch combo — full extension is source frame 10 (= FACEOFF.contactAt at punchFPS).
-    {name:'rightpunch', path:'assets/anim/punch/',   prefix:'punch_combo_', start:0, end:15, pad:2, ext:'.png'},
-    // Left kick — thrown during mid-fight exchanges.
-    {name:'kick',       path:'assets/anim/kick/',    prefix:'kick_left_',   start:0, end:15, pad:2, ext:'.png'},
-    // Reaction when the amateur lands one on him during an exchange.
-    {name:'gettinghit', path:'assets/anim/hit/',     prefix:'hit_',         start:0, end:15, pad:2, ext:'.png'},
-    // Post-KO celebration, loops until the next round resets him to idle.
-    {name:'victory',    path:'assets/anim/victory/', prefix:'victory_',     start:0, end:15, pad:2, ext:'.webp'}
+    // Full breathing cycle, loop-cut where the clip best matches its start.
+    {name:'idle',       path:'assets/anim3/f1/idle/',    prefix:'idle_',    start:0, end:30, pad:2, ext:'.webp'},
+    {name:'rightpunch', path:'assets/anim3/f1/punch/',   prefix:'punch_',   start:0, end:31, pad:2, ext:'.webp'},
+    {name:'kick',       path:'assets/anim3/f1/kick/',    prefix:'kick_',    start:0, end:31, pad:2, ext:'.webp'},
+    {name:'gettinghit', path:'assets/anim3/f1/hit/',     prefix:'hit_',     start:0, end:31, pad:2, ext:'.webp'},
+    // Post-KO celebration loop.
+    {name:'victory',    path:'assets/anim3/f1/victory/', prefix:'victory_', start:0, end:21, pad:2, ext:'.webp'}
   ];
   sets.forEach(function(s){_loadSet(PRO_ANIM.anims,s)});
   var amSets=[
-    {name:'idle',       path:'assets/anim2/idle/',   prefix:'idle2_',       start:0, end:15, pad:2, ext:'.webp'},
-    // His own offense for the exchanges.
-    {name:'rightpunch', path:'assets/anim2/punch/',  prefix:'punch2_',      start:0, end:15, pad:2, ext:'.webp'},
-    {name:'kick',       path:'assets/anim2/kick/',   prefix:'kick2_',       start:0, end:15, pad:2, ext:'.webp'},
-    // Reaction to a landed strike (exchanges and the crash punch).
-    {name:'gettinghit', path:'assets/anim2/hit/',    prefix:'hit2_',        start:0, end:15, pad:2, ext:'.webp'},
-    // Real KO fall: guard -> crumple -> flat on the mat. Plays once, holds the last
-    // frame; most of it happens behind the blackout, the reveal catches the tail.
-    {name:'ko',         path:'assets/anim2/ko/',     prefix:'ko2_',         start:0, end:15, pad:2, ext:'.webp'}
+    {name:'idle',       path:'assets/anim3/f2/idle/',    prefix:'idle_',    start:0, end:21, pad:2, ext:'.webp'},
+    {name:'rightpunch', path:'assets/anim3/f2/punch/',   prefix:'punch_',   start:0, end:31, pad:2, ext:'.webp'},
+    {name:'kick',       path:'assets/anim3/f2/kick/',    prefix:'kick_',    start:0, end:31, pad:2, ext:'.webp'},
+    {name:'gettinghit', path:'assets/anim3/f2/hit/',     prefix:'hit_',     start:0, end:31, pad:2, ext:'.webp'},
+    // Full KO fall: guard -> crumple -> flat on his back. Plays once, holds last frame.
+    {name:'ko',         path:'assets/anim3/f2/ko/',      prefix:'ko_',      start:0, end:31, pad:2, ext:'.webp'}
   ];
   amSets.forEach(function(s){_loadSet(AM_ANIM.anims,s)});
 }
@@ -144,7 +142,7 @@ function _animFPS(name){
   if(name==='rightpunch'||name==='kick')return (G.phase==='CRASH')?FACEOFF.punchFPS:FACEOFF.strikeFPS;
   if(name==='gettinghit')return (G.phase==='CRASH')?FACEOFF.hitFPS:FACEOFF.exHitFPS;
   if(name==='ko')return FACEOFF.koFPS;
-  if(name==='victory')return 9;    // celebration loop — relaxed, not frantic
+  if(name==='victory')return 12;   // 22-frame celebration loop (~1.8s), relaxed
   return FACEOFF.hitFPS;
 }
 
