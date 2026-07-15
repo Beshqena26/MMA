@@ -428,12 +428,12 @@ var SND={
   _tickLoops:function(phase,t){
     if(!this._breath)return;
     var mute=!this.soundOn;
-    // Breathing: soft while betting, present through the fight, faster with tension
-    var bTarget=mute?0:(phase==='FREEFALL')?0.10+t*0.10:(phase==='BETTING')?0.05:0;
+    // Breathing: soft while betting, clearly present through the fight
+    var bTarget=mute?0:(phase==='FREEFALL')?0.30+t*0.30:(phase==='BETTING')?0.12:0;
     var bRate=(phase==='FREEFALL')?1+t*0.35:1;
-    // Heartbeat: fades in from mid tension, quickens toward the crash
-    var hTarget=mute?0:(phase==='FREEFALL'&&t>0.45)?(t-0.45)*0.55:0;
-    var hRate=1+Math.max(0,t-0.45)*0.8;
+    // Heartbeat: fades in from ~2x multiplier, swells and quickens to the crash
+    var hTarget=mute?0:(phase==='FREEFALL'&&t>0.3)?Math.min(0.7,(t-0.3)*1.1):0;
+    var hRate=1+Math.max(0,t-0.3)*0.7;
     try{
       this._breath.volume+=(bTarget-this._breath.volume)*0.05;
       this._breath.playbackRate=bRate;
