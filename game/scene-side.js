@@ -17,8 +17,15 @@ var SKINCFG={
 // at ~61% of the idle zoom), so each set's union-bbox crop is rescaled here to keep
 // the body the same size on screen: crop height / standing height within that crop.
 var SETSCALE={
-  pro:{victory:1.32},               // arms raised over head extend past standing height
-  am:{gettinghit:1.02,ko:1.06}      // ko crop is wide+low: the fall down to the mat
+  pro:{victory:1.32,kick:1.06},     // victory: arms over head; kick set is zoomed out a bit
+  am:{gettinghit:1.02,ko:1.06,rightpunch:1.03,kick:1.03}
+};
+
+// Contact frame per strike — the source frame where the hit fully extends; the
+// defender's reaction fires when playback reaches it.
+var STRIKE={
+  pro:{rightpunch:10,kick:6},
+  am:{rightpunch:3,kick:7}
 };
 
 var SIDE={
@@ -36,13 +43,15 @@ var SIDE={
 // WHICH frames play and HOW FAST, not by amplitude. Tension rides on rate, not size.
 var FACEOFF={
   idleFPS:6, idleFPSRamp:5,   // idle playback: 6fps calm (~2.7s breath) -> 11fps at full tension
-  punchFPS:24,                // crash punch — full extension is source frame 10
-  hitFPS:18,                  // reaction playback
-  contactAt:10/24,            // s from CRASH start to impact (= extension frame at punchFPS)
-  blackoutAt:10/24+0.10,      // s from CRASH start to hard cut to black
-  koAt:10/24+0.17,            // s: amateur drops + pro resets to guard (hidden by the black)
-  fadeUpAt:1.05,              // s: start revealing the KO
-  fadeUpDur:0.35,             // s: reveal fade length (fully up at ~1.40s)
+  punchFPS:18,                // crash punch — full extension is source frame 10
+  hitFPS:18,                  // reaction to the crash punch
+  strikeFPS:13,               // mid-fight exchange strikes — deliberate, readable
+  exHitFPS:12,                // reaction playback during exchanges
+  koFPS:13,                   // the on-screen fall to the mat
+  contactAt:10/18,            // s from CRASH start to impact (= extension frame at punchFPS)
+  koDelay:0.35,               // s after impact: reaction -> the fall starts
+  vicDelay:0.95,              // s after impact: punch has landed -> pro celebrates
+  exGapMin:2.2, exGapMax:4.8, // s between exchanges; shrinks somewhat with tension
   impactShake:8,              // px, decays via app.js camera.shake *= 0.94
   pushIn:0.06,                // max zoom-in at full tension
   amPhase:5, amRate:0.93      // amateur desync so the two don't breathe in lockstep
@@ -94,13 +103,20 @@ function _loadProFrames(){
     {name:'idle',       path:'assets/anim/idle/',    prefix:'idle_',        start:0, end:15, pad:2, ext:'.png'},
     // Punch combo — full extension is source frame 10 (= FACEOFF.contactAt at punchFPS).
     {name:'rightpunch', path:'assets/anim/punch/',   prefix:'punch_combo_', start:0, end:15, pad:2, ext:'.png'},
+    // Left kick — thrown during mid-fight exchanges.
+    {name:'kick',       path:'assets/anim/kick/',    prefix:'kick_left_',   start:0, end:15, pad:2, ext:'.png'},
+    // Reaction when the amateur lands one on him during an exchange.
+    {name:'gettinghit', path:'assets/anim/hit/',     prefix:'hit_',         start:0, end:15, pad:2, ext:'.png'},
     // Post-KO celebration, loops until the next round resets him to idle.
     {name:'victory',    path:'assets/anim/victory/', prefix:'victory_',     start:0, end:15, pad:2, ext:'.webp'}
   ];
   sets.forEach(function(s){_loadSet(PRO_ANIM.anims,s)});
   var amSets=[
     {name:'idle',       path:'assets/anim2/idle/',   prefix:'idle2_',       start:0, end:15, pad:2, ext:'.webp'},
-    // Reaction to the crash punch — only the first frames show before the blackout.
+    // His own offense for the exchanges.
+    {name:'rightpunch', path:'assets/anim2/punch/',  prefix:'punch2_',      start:0, end:15, pad:2, ext:'.webp'},
+    {name:'kick',       path:'assets/anim2/kick/',   prefix:'kick2_',       start:0, end:15, pad:2, ext:'.webp'},
+    // Reaction to a landed strike (exchanges and the crash punch).
     {name:'gettinghit', path:'assets/anim2/hit/',    prefix:'hit2_',        start:0, end:15, pad:2, ext:'.webp'},
     // Real KO fall: guard -> crumple -> flat on the mat. Plays once, holds the last
     // frame; most of it happens behind the blackout, the reveal catches the tail.
@@ -121,10 +137,13 @@ function _setProAnim(name){
   }
 }
 
-// FPS per animation — idle rate is the tension dial: faster breathing, same amplitude
+// FPS per animation — idle rate is the tension dial: faster breathing, same amplitude.
+// Strikes and reactions run slower during exchanges than in the crash finish.
 function _animFPS(name){
   if(name==='idle')return FACEOFF.idleFPS+(G.tension||0)*FACEOFF.idleFPSRamp;
-  if(name==='rightpunch')return FACEOFF.punchFPS;
+  if(name==='rightpunch'||name==='kick')return (G.phase==='CRASH')?FACEOFF.punchFPS:FACEOFF.strikeFPS;
+  if(name==='gettinghit')return (G.phase==='CRASH')?FACEOFF.hitFPS:FACEOFF.exHitFPS;
+  if(name==='ko')return FACEOFF.koFPS;
   if(name==='victory')return 12;   // celebration loop — relaxed, not frantic
   return FACEOFF.hitFPS;
 }
@@ -177,8 +196,9 @@ function _getAmFrame(dt){
   var anim=_amAnims()[AM_ANIM.current];
   if(!anim||anim.length===0)return null;
 
-  // Slightly off the pro's rate so the two drift apart instead of twinning
-  var fps=_animFPS(AM_ANIM.current)*FACEOFF.amRate;
+  // Idle runs slightly off the pro's rate so the two drift apart instead of
+  // twinning; strikes/reactions keep exact speed so contact timing stays true.
+  var fps=_animFPS(AM_ANIM.current)*(AM_ANIM.current==='idle'?FACEOFF.amRate:1);
   AM_ANIM.frameTimer+=dt;
   var frameDur=1/fps;
   while(AM_ANIM.frameTimer>=frameDur){
@@ -228,21 +248,48 @@ function updateSideView(){
     pro.pose='idle';pro._poseTime=0;
     am.pose='idle';am._poseTime=0;
     SIDE._crashInit=false;   // arm the next crash sequence
+    if(SIDE._ex)SIDE._ex.a=null;
   }
   else if(G.phase==='FREEFALL'){
-    // The face-off: both fighters hold. Nothing is thrown until the crash punch — the
-    // tension is carried by breathing rate, the push-in and the vignette, not by activity.
-    pro.pose='idle';
-    am.pose='idle';
+    // Mid-fight exchanges: the two trade light strikes while the multiplier climbs.
+    // Pacing quickens a little with tension but stays deliberate — the stakes still
+    // live in the breathing and the push-in; the strikes are punctuation.
+    var ex=SIDE._ex||(SIDE._ex={cool:1.6,a:null});
+    if(ex.a){
+      var a=ex.a;a.t+=dt;
+      if(!a.landed&&a.t>=a.contactT){
+        a.landed=true;
+        if(a.atk==='pro'){am.pose='hit';am._poseTime=0}
+        else{pro.pose='hit';pro._poseTime=0}
+        if(G.camera)G.camera.shake=3;
+        if(typeof SND!=='undefined')SND.play('punch',0.35);
+      }
+      if(a.t>=a.dur){
+        pro.pose='idle';am.pose='idle';
+        ex.a=null;
+        ex.cool=(FACEOFF.exGapMin+Math.random()*(FACEOFF.exGapMax-FACEOFF.exGapMin))*(1-0.4*t);
+      }
+    }else{
+      ex.cool-=dt;
+      if(ex.cool<=0){
+        var atk=Math.random()<0.62?'pro':'am';       // you land a few more than you take
+        var mv=Math.random()<0.6?'punchR':'kick';
+        var cf=STRIKE[atk][mv==='punchR'?'rightpunch':'kick'];
+        ex.a={atk:atk,t:0,contactT:cf/FACEOFF.strikeFPS,dur:16/FACEOFF.strikeFPS+0.7,landed:false};
+        if(atk==='pro'){pro.pose=mv;pro._poseTime=0}
+        else{am.pose=mv;am._poseTime=0}
+      }
+    }
   }
   else if(G.phase==='CRASH'){
-    // One punch -> impact -> hard cut to black -> the KO is revealed out of the black.
-    // The drop itself is never seen: it happens behind the blackout, so there is still
-    // no follow-through animation on screen — only a held reveal pose.
+    // The finish plays out fully on screen: crash punch -> reaction -> the fall to
+    // the mat -> the pro celebrates over the body until the next round resets.
     var ct=G.phaseTimer||0;
     if(!SIDE._crashInit){
-      SIDE._crashInit=true;SIDE._impact=false;SIDE._koSet=false;
+      SIDE._crashInit=true;SIDE._impact=false;SIDE._koSet=false;SIDE._vicSet=false;
+      if(SIDE._ex)SIDE._ex.a=null;
       pro.pose='punchR';pro._poseTime=0;
+      PRO_ANIM.frame=0;PRO_ANIM.frameTimer=0;  // even if an exchange punch was mid-play
       am.pose='idle';am._poseTime=0;
     }
     if(!SIDE._impact&&ct>=FACEOFF.contactAt){
@@ -253,23 +300,28 @@ function updateSideView(){
       G.crowdRoar=1;
       if(typeof SND!=='undefined'){SND.play('punch',0.9);SND.play('cheer',0.4)}
     }
-    // Hidden by the black: amateur starts his fall, pro turns to celebrate — the
-    // reveal catches the tail of the drop and the victory loop already going
-    if(!SIDE._koSet&&ct>=FACEOFF.koAt){
+    if(!SIDE._koSet&&ct>=FACEOFF.contactAt+FACEOFF.koDelay){
       SIDE._koSet=true;
       am.pose='ko';am._poseTime=0;
-      pro.pose='victory';pro._poseTime=0;
       if(typeof SND!=='undefined')SND.play('punch',0.6);
+    }
+    if(!SIDE._vicSet&&ct>=FACEOFF.contactAt+FACEOFF.vicDelay){
+      SIDE._vicSet=true;
+      pro.pose='victory';pro._poseTime=0;
     }
   }
 
   // ── Sync pro pose → frame animation ──
   if(pro.pose==='idle')_setProAnim('idle');
   else if(pro.pose==='punchR')_setProAnim('rightpunch');
+  else if(pro.pose==='kick')_setProAnim('kick');
+  else if(pro.pose==='hit')_setProAnim('gettinghit');
   else if(pro.pose==='victory')_setProAnim('victory');
 
   // ── Sync amateur pose → frame animation ──
   if(am.pose==='idle')_setAmAnim('idle');
+  else if(am.pose==='punchR')_setAmAnim('rightpunch');
+  else if(am.pose==='kick')_setAmAnim('kick');
   else if(am.pose==='hit')_setAmAnim('gettinghit');
   else if(am.pose==='ko')_setAmAnim('ko');
 
@@ -289,23 +341,6 @@ function renderSideView(){
   var t=G.tension=getTension(G.mult||1);
   var S=SIDE.img;
   var dt=G.dt||0.016;
-
-  // ── Blackout, then the KO reveal fades up out of it ──
-  // Canvas only — #cine / KNOCKOUT! / the final multiplier are DOM overlays sitting above
-  // the canvas, so the result stays readable even while fully black.
-  var blackA=0;
-  if(G.phase==='CRASH'){
-    var ct=G.phaseTimer||0;
-    if(ct>=FACEOFF.blackoutAt){
-      blackA=(ct<FACEOFF.fadeUpAt)?1
-            :Math.max(0,1-(ct-FACEOFF.fadeUpAt)/FACEOFF.fadeUpDur);
-    }
-  }
-  // Fully black — skip the scene entirely rather than draw under an opaque cover
-  if(blackA>=0.999){
-    cx.fillStyle='#000';cx.fillRect(0,0,W,H);
-    return;
-  }
 
   cx.save();
 
@@ -394,7 +429,10 @@ function renderSideView(){
   if(amFrame){
     var aH=Math.round(baseH*(SETSCALE.am[AM_ANIM.current]||1));
     var aDrawW=Math.round(aH*(amFrame.naturalWidth/amFrame.naturalHeight));
-    cx.drawImage(amFrame,amCX-Math.round(aDrawW*0.5),floorY-aH,aDrawW,aH);
+    var aX=amCX-Math.round(aDrawW*0.5);
+    // The lying body is wide — pull it back in if it would hang past the right edge
+    if(AM_ANIM.current==='ko')aX=Math.min(aX,W-aDrawW-4);
+    cx.drawImage(amFrame,aX,floorY-aH,aDrawW,aH);
   }
 
   // KO body fading off the mat while the standing idle takes over (see updateSideView)
@@ -405,9 +443,10 @@ function renderSideView(){
     if(koImg&&koImg.complete&&koImg.naturalWidth>0){
       var koH=Math.round(baseH*(SETSCALE.am.ko||1));
       var kW=Math.round(koH*(koImg.naturalWidth/koImg.naturalHeight));
+      var kX=Math.min(amCX-Math.round(kW*0.5),W-kW-4);  // same edge clamp as the ko pose
       cx.save();
       cx.globalAlpha=Math.max(0,SIDE._koFade/0.35);
-      cx.drawImage(koImg,amCX-Math.round(kW*0.5),floorY-koH,kW,koH);
+      cx.drawImage(koImg,kX,floorY-koH,kW,koH);
       cx.restore();
     }
   }
@@ -517,12 +556,6 @@ function renderSideView(){
   cx.save();cx.globalAlpha=vS;
   cx.fillStyle=SIDE._vig;cx.fillRect(0,0,W,H);
   cx.restore();
-
-  // ═══ L7: KO REVEAL FADE — the tail of the blackout lifting off the scene ═══
-  if(blackA>0){
-    cx.fillStyle='rgba(0,0,0,'+blackA.toFixed(3)+')';
-    cx.fillRect(0,0,W,H);
-  }
 
   cx.restore();
   }catch(e){console.error('Side Render error:',e);try{cx.restore()}catch(e2){}}
