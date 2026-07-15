@@ -1,47 +1,47 @@
 // =====================================================================
-// MMA FIRST-PERSON (POV) SCENE — the opponent faces the camera
-// Calm by design (2026-07 rework): both fighters just idle while the
-// multiplier climbs — no exchanges, no alerts. At the crash your right
-// glove throws the single finishing punch: KO -> the round is won.
+// MMA FRONT SCENE — the pro fighter faces the camera, knees-up shot
+// The whole story is his (2026-07): he idles while the multiplier
+// climbs, throws the single finishing punch toward the camera at the
+// crash, then celebrates. No player gloves, no visible opponent.
 // =====================================================================
 
-// ── Easing + helpers ──
+// ── Helpers ──
 function _easeOutCubic(x){return 1-Math.pow(1-x,3)}
 function _lerp(a,b,t){return a+(b-a)*t}
 
-// ── Static images (gloves + background fallback) ──
+// ── Static images (background fallback) ──
 var IMG={};
 var _isMobile=window.innerWidth<600;
 var _assetDir=_isMobile?'assets/mobile/':'assets/';
 var _imgList=[
-  {key:'bg',src:_assetDir+'bg.webp'},          // fallback until the animated loop decodes
-  {key:'fistL',src:_assetDir+'hand-Left.webp'},
-  {key:'fistR',src:_assetDir+'hand-Right.webp'}
+  {key:'bg',src:_assetDir+'bg.webp'}   // fallback until the animated loop decodes
 ];
 var _imgsLoaded=0;
 
-// ── POV frame sets (video-derived, same pipeline as the side view) ──
+// ── Frame sets (video-derived, same pipeline as the side view) ──
 var POV={
-  anims:{},          // {oppidle:[Image,...], oppko:[...], bg:[...]}
-  cur:'oppidle',
+  anims:{},          // {idle:[Image,...], punch:[...], victory:[...], bg:[...]}
+  cur:'idle',
   frame:0,timer:0,
-  bgFrame:0,bgTimer:0,
-  _started:false
+  bgFrame:0,bgTimer:0
 };
-// Draw config per opponent set — measured like the side view's SETCFG:
-// s = crop height / standing body height, ax/ay = the fighter's standing
-// anchor inside the crop (fractions). Values from sprite_meta of the
-// front-facing green-screen clips.
+// Draw config per set — measured from the green-screen clips (figure centered
+// at x=960, knee-up body pinned to the canvas bottom y=1080 of 1920x1080).
+// s = crop height / frame-0 body height; ax = body center inside the crop;
+// ay = the body's bottom edge inside the crop. Filled by extraction metrics.
 var POVCFG={
-  oppidle:{s:1.062,ax:0.499,ay:0.980},
-  oppko:  {s:1.061,ax:0.793,ay:0.987}   // wide crop: he falls to the frame's left
+  idle:   {s:1.024,ax:0.500,ay:1.0},
+  punch:  {s:1.089,ax:0.548,ay:1.0},
+  victory:{s:1.091,ax:0.477,ay:1.0}   // wide crop: raised arms swing both ways
 };
-var POVFPS={idle:6,idleRamp:5,ko:16,bg:10};
+var POVFPS={idle:6,idleRamp:5,punch:20,victory:12,bg:10};
 var POVSETS=[
-  {name:'oppidle',path:'assets/anim3/front/idle/',prefix:'idle_',count:32},
-  {name:'oppko',  path:'assets/anim3/front/ko/',  prefix:'ko_',  count:32},
-  {name:'bg',     path:'assets/anim3/front/bg/',  prefix:'bg_',  count:16}
+  {name:'idle',   path:'assets/anim3/hero/idle/',   prefix:'idle_',   count:26},
+  {name:'punch',  path:'assets/anim3/hero/punch/',  prefix:'punch_',  count:32},
+  {name:'victory',path:'assets/anim3/hero/victory/',prefix:'victory_',count:27},
+  {name:'bg',     path:'assets/anim3/front/bg/',    prefix:'bg_',     count:16}
 ];
+var PUNCH_CONTACT=9; // frame where the glove fills the frame (measured max-fill)
 
 function _povLoadSet(s){
   POV.anims[s.name]=[];
@@ -73,76 +73,65 @@ if((localStorage.getItem('mma_view')||'side')!=='side')_loadImages();
 
 // ── State ──
 function initFighterState(){
-  G.opp={breathCycle:0};
-  G.myFists={punchArm:1,punchPhase:'idle',punchTimer:0,punchWindup:0};
+  G.opp={breathCycle:0}; // kept: app.js pokes G.opp/G.myFists existence
+  G.myFists={};
   G.tension=0;G.koTimer=0;G.bellRing=0;G.arenaShake=0;G.crowdRoar=0;G.crowdRoarSmooth=0;
-  POV.cur='oppidle';POV.frame=0;POV.timer=0;
-  POV._koInit=false;POV._koHit=false;
+  POV.cur='idle';POV.frame=0;POV.timer=0;
+  POV._punchHit=false;POV._vic=false;
 }
 function getTension(m){if(m<=1)return 0;if(m<=1.5)return(m-1)/0.5*0.25;if(m<=3)return 0.25+(m-1.5)/1.5*0.25;if(m<=7)return 0.5+(m-3)/4*0.25;return Math.min(1,0.75+(m-7)/13*0.25)}
 function initCrowd(){}
 
-function _povSetOpp(name){
+function _povSet(name){
   if(POV.cur!==name){POV.cur=name;POV.frame=0;POV.timer=0}
 }
 
-// Advance + fetch the current opponent frame. Idle loops; ko plays once, holds.
-function _povOppFrame(dt){
+// Advance + fetch the current hero frame. Idle/victory loop; punch plays once, holds.
+function _povFrame(dt){
   var anim=POV.anims[POV.cur];
   if(!anim||!anim.length)return null;
-  var fps=(POV.cur==='oppidle')?POVFPS.idle+(G.tension||0)*POVFPS.idleRamp:POVFPS.ko;
+  var fps=(POV.cur==='idle')?POVFPS.idle+(G.tension||0)*POVFPS.idleRamp
+         :(POV.cur==='victory')?POVFPS.victory:POVFPS.punch;
   POV.timer+=dt;
   var d=1/fps;
   while(POV.timer>=d){POV.timer-=d;POV.frame++}
   var idx;
-  if(POV.cur==='oppidle')idx=POV.frame=POV.frame%anim.length;
-  else{if(POV.frame>=anim.length)POV.frame=anim.length-1;idx=POV.frame}
+  if(POV.cur==='punch'){if(POV.frame>=anim.length)POV.frame=anim.length-1;idx=POV.frame}
+  else idx=POV.frame=POV.frame%anim.length;
   var img=anim[idx];
   return (img&&img.complete&&img.naturalWidth>0)?img:null;
 }
 
 // ── Update ──
 function updateFighters(){
-  var dt=G.dt||0.016,fists=G.myFists;
-  if(!G.opp||!fists)return;
-
-  G.opp.breathCycle+=dt*2.8;
-
-  // My punch phases (drives the glove offsets in render)
-  if(fists.punchPhase!=='idle'){
-    fists.punchTimer-=dt;
-    if(fists.punchPhase==='windup'){fists.punchWindup=Math.min(1,fists.punchWindup+dt*14);if(fists.punchTimer<=0){fists.punchPhase='extend';fists.punchTimer=0.08}}
-    else if(fists.punchPhase==='extend'){fists.punchWindup=0;if(fists.punchTimer<=0){fists.punchPhase='hold';fists.punchTimer=0.05}}
-    else if(fists.punchPhase==='hold'){if(fists.punchTimer<=0){fists.punchPhase='retract';fists.punchTimer=0.2}}
-    else if(fists.punchPhase==='retract'){if(fists.punchTimer<=0){fists.punchPhase='idle';fists.punchTimer=0}}
-  }
+  var dt=G.dt||0.016;
+  if(!G.opp)return;
 
   if(G.phase==='BETTING'){
-    fists.punchPhase='idle';
-    G.koTimer=0;POV._koInit=false;POV._koHit=false;
-    _povSetOpp('oppidle');
+    G.koTimer=0;POV._punchHit=false;POV._vic=false;
+    _povSet('idle');
   }
   else if(G.phase==='EXPLODE'){
     G.bellRing=Math.max(0,(G.bellRing||0)-dt);
     if(G.phaseTimer>1.2&&G.bellRing<=0)G.bellRing=0.5;
   }
-  // FREEFALL: nothing to do — both fighters just breathe. The tension lives in
-  // the idle rate, the vignette and the crowd, not in activity.
+  // FREEFALL: nothing — he just breathes; tension lives in the idle rate,
+  // the vignette and the crowd.
   else if(G.phase==='CRASH'){
     G.koTimer+=dt;
-    if(!POV._koInit){
-      POV._koInit=true;
-      // The one punch — right glove
-      fists.punchArm=1;
-      fists.punchPhase='windup';fists.punchTimer=0.07;fists.punchWindup=0;
-    }
-    // Impact lands as the glove reaches extension
-    if(!POV._koHit&&G.koTimer>=0.14){
-      POV._koHit=true;
-      _povSetOpp('oppko');
+    if(POV.cur==='idle')_povSet('punch');
+    // Impact: the glove reaches the camera
+    if(!POV._punchHit&&POV.cur==='punch'&&POV.frame>=PUNCH_CONTACT){
+      POV._punchHit=true;
       G.arenaShake=12;G.crowdRoar=1;
-      if(typeof spawnParticles==='function')spawnParticles(cv.width*0.5,cv.height*0.35,'gold',8);
+      if(typeof spawnParticles==='function')spawnParticles(cv.width*0.5,cv.height*0.4,'gold',8);
       if(typeof SND!=='undefined'){SND.play('punch',0.9);SND.play('cheer',0.5)}
+    }
+    // Punch played out -> celebration until the next round resets him
+    var pAnim=POV.anims.punch;
+    if(!POV._vic&&POV.cur==='punch'&&pAnim&&POV.frame>=pAnim.length-1){
+      POV._vic=true;
+      _povSet('victory');
     }
   }
 
@@ -169,7 +158,6 @@ function render(){
   if(z!==1){var zx=cam.zoomX||W*0.5,zy=cam.zoomY||H*0.45;cx.translate(zx,zy);cx.scale(z,z);cx.translate(-zx,-zy)}
 
   var t=G.tension=getTension(G.mult||1);
-  var fists=G.myFists||{};
   var time=G.time||0;
   var dt=G.dt||0.016;
 
@@ -194,62 +182,32 @@ function render(){
     cx.fillStyle='#060414';cx.fillRect(0,0,W,H);
   }
 
-  // ═══ L2: OPPONENT — frame animation, faces the camera ═══
-  var oppImg=_povOppFrame(dt);
-  if(oppImg){
+  // ═══ L2: THE FIGHTER — knees-up, faces the camera ═══
+  var heroImg=_povFrame(dt);
+  if(heroImg){
     var pc=POVCFG[POV.cur]||{s:1,ax:0.5,ay:1};
     var isMob=W<600;
-    // He stands close: body height ~86% of the canvas, feet just above the panel
-    var bodyH=Math.round(H*(isMob?0.72:0.86));
+    // Knee-up body height relative to the canvas; bottom pinned near the panel
+    var bodyH=Math.round(H*(isMob?0.78:0.92));
     var drawH=Math.round(bodyH*pc.s);
-    var drawW=Math.round(drawH*(oppImg.naturalWidth/oppImg.naturalHeight));
-    var floorY=Math.round(H*(isMob?0.9:0.99));
-    cx.drawImage(oppImg,Math.round(W*0.5-pc.ax*drawW),floorY-Math.round(pc.ay*drawH),drawW,drawH);
+    var drawW=Math.round(drawH*(heroImg.naturalWidth/heroImg.naturalHeight));
+    var bottomY=Math.round(H*(isMob?0.93:1.0));
+    cx.drawImage(heroImg,Math.round(W*0.5-pc.ax*drawW),bottomY-Math.round(pc.ay*drawH),drawW,drawH);
   }
 
-  // ═══ L3: MY GLOVES ═══
-  var fistW2=W<600?W*0.828:W<900?W*0.4:W*0.358;
-  var fistH2=fistW2*0.56;
-  var idleBobL=Math.sin(time*2)*(W<600?3:5);
-  var idleBobR=Math.sin(time*2+1)*(W<600?3:5);
-  var fistBottomOffset=W<600?124:W<900?124:30;
-  var lBaseX=W*0.5-fistW2*0.8;
-  var lBaseY=H-fistH2-fistBottomOffset+idleBobL;
-  var rBaseX=W*0.5-fistW2*0.2;
-  var rBaseY=H-fistH2-fistBottomOffset+idleBobR;
-
-  // The single KO punch — right glove lunges toward his chin
-  var lOffX=0,lOffY=0,rOffX=0,rOffY=0;
-  if(fists.punchPhase==='windup'){
-    var wb=fists.punchWindup||0;
-    if(fists.punchArm===-1){lOffY=15*wb;lOffX=-10*wb}else{rOffY=15*wb;rOffX=10*wb}
-  }else if(fists.punchPhase==='extend'||fists.punchPhase==='hold'){
-    if(fists.punchArm===-1){lOffY=-H*0.2;lOffX=W*0.12}else{rOffY=-H*0.2;rOffX=-W*0.12}
-  }else if(fists.punchPhase==='retract'){
-    var rp=Math.max(0,(fists.punchTimer||0)/0.2);
-    if(fists.punchArm===-1){lOffY=-H*0.2*rp;lOffX=W*0.12*rp}else{rOffY=-H*0.2*rp;rOffX=-W*0.12*rp}
-  }
-
-  if(IMG.fistL&&IMG.fistL.complete&&IMG.fistL.naturalWidth>0){
-    cx.drawImage(IMG.fistL,lBaseX+lOffX,lBaseY+lOffY,fistW2,fistH2);
-  }
-  if(IMG.fistR&&IMG.fistR.complete&&IMG.fistR.naturalWidth>0){
-    cx.drawImage(IMG.fistR,rBaseX+rOffX,rBaseY+rOffY,fistW2,fistH2);
-  }
-
-  // ═══ L4: IMPACT FLASH — the moment the punch lands ═══
-  if(fists.punchPhase==='hold'||(fists.punchPhase==='extend'&&(fists.punchTimer||0)<0.03)){
-    var impX=W*0.5,impY=H*0.35;
+  // ═══ L3: IMPACT FLASH — the punch reaching the camera ═══
+  if(G.phase==='CRASH'&&POV.cur==='punch'&&POV._punchHit&&POV.frame<=PUNCH_CONTACT+3){
+    var impX=W*0.5,impY=H*0.42;
     cx.save();cx.globalAlpha=0.5;
-    var ig=cx.createRadialGradient(impX,impY,0,impX,impY,W*0.07);
+    var ig=cx.createRadialGradient(impX,impY,0,impX,impY,W*0.09);
     ig.addColorStop(0,'rgba(255,255,255,0.9)');ig.addColorStop(0.3,'rgba(255,240,150,0.4)');ig.addColorStop(1,'transparent');
-    cx.fillStyle=ig;cx.beginPath();cx.arc(impX,impY,W*0.07,0,Math.PI*2);cx.fill();
+    cx.fillStyle=ig;cx.beginPath();cx.arc(impX,impY,W*0.09,0,Math.PI*2);cx.fill();
     cx.strokeStyle='rgba(255,230,100,0.5)';cx.lineWidth=2;
-    for(var sl=0;sl<8;sl++){var sa=sl/8*Math.PI*2+time*15;cx.beginPath();cx.moveTo(impX+Math.cos(sa)*W*0.025,impY+Math.sin(sa)*W*0.025);cx.lineTo(impX+Math.cos(sa)*W*0.06,impY+Math.sin(sa)*W*0.06);cx.stroke()}
+    for(var sl=0;sl<8;sl++){var sa=sl/8*Math.PI*2+time*15;cx.beginPath();cx.moveTo(impX+Math.cos(sa)*W*0.03,impY+Math.sin(sa)*W*0.03);cx.lineTo(impX+Math.cos(sa)*W*0.075,impY+Math.sin(sa)*W*0.075);cx.stroke()}
     cx.restore();
   }
 
-  // ═══ L5: PARTICLES ═══
+  // ═══ L4: PARTICLES ═══
   G.particles=(G.particles||[]).filter(function(p){
     p.x+=p.vx*dt*60;p.y+=p.vy*dt*60;
     p.vy+=dt*7;p.life-=dt*1.2;
@@ -260,7 +218,7 @@ function render(){
     cx.fill();return true;
   });
 
-  // ═══ L6: KO TEXT ═══
+  // ═══ L5: KO TEXT ═══
   if(G.phase==='CRASH'){
     var koT=G.koTimer||0;
     if(koT>0.5){
@@ -280,10 +238,10 @@ function render(){
     }
   }
 
-  // ═══ L7: BELL FLASH ═══
+  // ═══ L6: BELL FLASH ═══
   if((G.bellRing||0)>0){cx.globalAlpha=G.bellRing*0.15;cx.fillStyle='#fff';cx.fillRect(0,0,W,H);cx.globalAlpha=1}
 
-  // ═══ L8: VIGNETTE ═══
+  // ═══ L7: VIGNETTE ═══
   var vS=0.2+t*0.3;
   var vG=cx.createRadialGradient(W/2,H*0.4,H*0.2,W/2,H/2,H*0.85);
   vG.addColorStop(0,'transparent');vG.addColorStop(0.5,'rgba(0,0,0,'+vS*0.15+')');vG.addColorStop(1,'rgba(0,0,0,'+vS+')');
