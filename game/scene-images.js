@@ -43,7 +43,9 @@ var POVSETS=[
   {name:'victory',path:'assets/anim3/hero/victory/',prefix:'victory_',count:32},
   {name:'bg',     path:'assets/anim3/front/bg/',    prefix:'bg_',     count:16}
 ];
-var PUNCH_CONTACT=25; // frame where the glove fills the frame (measured max-fill)
+// The punch clip is a combo: three full extensions toward the camera, with
+// pull-backs between. Each one gets its own impact (measured fill peaks).
+var PUNCH_HITS=[10,19,25];
 
 function _povLoadSet(s){
   POV.anims[s.name]=[];
@@ -78,7 +80,7 @@ function initFighterState(){
   G.myFists={};
   G.tension=0;G.koTimer=0;G.bellRing=0;G.arenaShake=0;G.crowdRoar=0;G.crowdRoarSmooth=0;
   POV.cur='idle';POV.frame=0;POV.timer=0;
-  POV._punchHit=false;POV._vic=false;
+  POV._hitIdx=0;POV._flashT=0;POV._vic=false;
 }
 function getTension(m){if(m<=1)return 0;if(m<=1.5)return(m-1)/0.5*0.25;if(m<=3)return 0.25+(m-1.5)/1.5*0.25;if(m<=7)return 0.5+(m-3)/4*0.25;return Math.min(1,0.75+(m-7)/13*0.25)}
 function initCrowd(){}
@@ -109,7 +111,7 @@ function updateFighters(){
   if(!G.opp)return;
 
   if(G.phase==='BETTING'){
-    G.koTimer=0;POV._punchHit=false;POV._vic=false;
+    G.koTimer=0;POV._hitIdx=0;POV._flashT=0;POV._vic=false;
     _povSet('idle');
   }
   else if(G.phase==='EXPLODE'){
@@ -120,13 +122,19 @@ function updateFighters(){
   // the vignette and the crowd.
   else if(G.phase==='CRASH'){
     G.koTimer+=dt;
-    if(POV.cur==='idle')_povSet('punch');
-    // Impact: the glove reaches the camera
-    if(!POV._punchHit&&POV.cur==='punch'&&POV.frame>=PUNCH_CONTACT){
-      POV._punchHit=true;
-      G.arenaShake=12;G.crowdRoar=1;
-      if(typeof spawnParticles==='function')spawnParticles(cv.width*0.5,cv.height*0.4,'gold',8);
-      if(typeof SND!=='undefined'){SND.play('punch',0.9);SND.play('cheer',0.5)}
+    if(POV.cur==='idle'){_povSet('punch');POV._hitIdx=0}
+    // Impacts: one per extension of the combo, fired the moment playback
+    // reaches each measured contact frame (the final one is the KO blow)
+    if(POV.cur==='punch'){
+      while(POV._hitIdx<PUNCH_HITS.length&&POV.frame>=PUNCH_HITS[POV._hitIdx]){
+        POV._hitIdx++;
+        var last=POV._hitIdx>=PUNCH_HITS.length;
+        POV._flashT=0.16;
+        G.arenaShake=last?12:7;
+        G.crowdRoar=last?1:Math.min(1,(G.crowdRoar||0)+0.4);
+        if(typeof spawnParticles==='function')spawnParticles(cv.width*0.5,cv.height*0.4,'gold',last?8:4);
+        if(typeof SND!=='undefined'){SND.play('punch',last?0.9:0.6);if(last)SND.play('cheer',0.5)}
+      }
     }
     // Punch played out -> celebration until the next round resets him
     var pAnim=POV.anims.punch;
@@ -135,6 +143,7 @@ function updateFighters(){
       _povSet('victory');
     }
   }
+  POV._flashT=Math.max(0,(POV._flashT||0)-dt);
 
   G.arenaShake=Math.max(0,(G.arenaShake||0)*(1-dt*8));
   G.crowdRoar=Math.max(0,(G.crowdRoar||0)-dt*0.4);
@@ -209,8 +218,8 @@ function render(){
     cx.drawImage(IMG.fistR,W*0.5-fistW2*0.2,H-fistH2-fistBottomOffset+idleBobR,fistW2,fistH2);
   }
 
-  // ═══ L3: IMPACT FLASH — the punch reaching the camera ═══
-  if(G.phase==='CRASH'&&POV.cur==='punch'&&POV._punchHit&&POV.frame<=PUNCH_CONTACT+3){
+  // ═══ L3: IMPACT FLASH — one burst per landed hit ═══
+  if((POV._flashT||0)>0){
     var impX=W*0.5,impY=H*0.42;
     cx.save();cx.globalAlpha=0.5;
     var ig=cx.createRadialGradient(impX,impY,0,impX,impY,W*0.09);
