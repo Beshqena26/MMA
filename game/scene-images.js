@@ -1,30 +1,60 @@
 // =====================================================================
-// MMA FIRST-PERSON SCENE — Real image assets
-// Uses pre-made PNG images for fighter, fists, and arena background
+// MMA FIRST-PERSON (POV) SCENE — the opponent faces the camera
+// Calm by design (2026-07 rework): both fighters just idle while the
+// multiplier climbs — no exchanges, no alerts. At the crash your right
+// glove throws the single finishing punch: KO -> the round is won.
 // =====================================================================
 
 // ── Easing + helpers ──
-function _easeOutBack(x){return 1+2.7*Math.pow(x-1,3)+1.7*Math.pow(x-1,2)}
 function _easeOutCubic(x){return 1-Math.pow(1-x,3)}
-function _easeInOutCubic(x){return x<0.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2}
 function _lerp(a,b,t){return a+(b-a)*t}
 
-// ── Image loader ──
+// ── Static images (gloves + background fallback) ──
 var IMG={};
 var _isMobile=window.innerWidth<600;
 var _assetDir=_isMobile?'assets/mobile/':'assets/';
 var _imgList=[
-  {key:'bg',src:_assetDir+'bg.webp'},
-  {key:'idle',src:_assetDir+'Fighter-Idle.webp'},
-  {key:'hook',src:_assetDir+'Fighter-hook.webp'},
-  {key:'kick',src:_assetDir+'Fighter-kick.webp'},
-  {key:'victory',src:_assetDir+'fighter-Victory.webp'},
-  {key:'hitL',src:_assetDir+'fighter-hit-left.webp'},  // desktop PNG never existed — mobile-only asset
-  {key:'hitR',src:_assetDir+'fighter-hit-right.webp'},
+  {key:'bg',src:_assetDir+'bg.webp'},          // fallback until the animated loop decodes
   {key:'fistL',src:_assetDir+'hand-Left.webp'},
   {key:'fistR',src:_assetDir+'hand-Right.webp'}
 ];
 var _imgsLoaded=0;
+
+// ── POV frame sets (video-derived, same pipeline as the side view) ──
+var POV={
+  anims:{},          // {oppidle:[Image,...], oppko:[...], bg:[...]}
+  cur:'oppidle',
+  frame:0,timer:0,
+  bgFrame:0,bgTimer:0,
+  _started:false
+};
+// Draw config per opponent set — measured like the side view's SETCFG:
+// s = crop height / standing body height, ax/ay = the fighter's standing
+// anchor inside the crop (fractions). Values from sprite_meta of the
+// front-facing green-screen clips.
+var POVCFG={
+  oppidle:{s:1.062,ax:0.499,ay:0.980},
+  oppko:  {s:1.061,ax:0.793,ay:0.987}   // wide crop: he falls to the frame's left
+};
+var POVFPS={idle:6,idleRamp:5,ko:16,bg:10};
+var POVSETS=[
+  {name:'oppidle',path:'assets/anim3/front/idle/',prefix:'idle_',count:32},
+  {name:'oppko',  path:'assets/anim3/front/ko/',  prefix:'ko_',  count:32},
+  {name:'bg',     path:'assets/anim3/front/bg/',  prefix:'bg_',  count:16}
+];
+
+function _povLoadSet(s){
+  POV.anims[s.name]=[];
+  for(var i=0;i<s.count;i++){
+    var img=new Image();
+    (function(img,src){
+      img.onerror=function(){if(!img._retried){img._retried=true;setTimeout(function(){img.src=src+'?r=1'},1500)}};
+      img.src=src;
+    })(img,s.path+s.prefix+('0'+i).slice(-2)+'.webp');
+    POV.anims[s.name].push(img);
+  }
+}
+
 function _loadImages(){
   if(IMG._started)return;
   IMG._started=true;
@@ -35,6 +65,7 @@ function _loadImages(){
     img.src=item.src;
     IMG[item.key]=img;
   });
+  POVSETS.forEach(_povLoadSet);
 }
 // Load only if this scene is the active view; toggleGameView() lazy-loads it otherwise.
 // Same key + default as GAME_VIEW in app.js (which loads after this file).
@@ -42,142 +73,83 @@ if((localStorage.getItem('mma_view')||'side')!=='side')_loadImages();
 
 // ── State ──
 function initFighterState(){
-  G.opp={health:1,hitFlash:0,staggerX:0,staggerY:0,recoilTimer:0,leanAngle:0,breathCycle:0,blinkTimer:3,blinkAmount:0,flinchTimer:0,shakeX:0,shakeY:0,hitPose:'idle',hitPoseTimer:0,_atkTimer:0,atkPose:'idle',atkPoseTimer:0};
-  G.playerHit={flash:0,shakeX:0,shakeY:0}; // when opponent hits you
-  G.bonusPopups=[]; // floating "+X" text popups
-  G.myFists={punchArm:0,punchPhase:'idle',punchTimer:0,punchWindup:0,combo:0,_stanceTimer:0};
-  G.koKick={active:false,timer:0};
-  G.tension=0;G.koTimer=0;G.koFlash=0;G.bellRing=0;G.arenaShake=0;G.crowdRoar=0;G.crowdRoarSmooth=0;G.fightStarted=false;
-  G.f1={x:0,y:0,health:1,punchPhase:'idle',punchTimer:0,punchWindup:0,punchArm:1,kickPhase:'idle',kickTimer:0,kickWindup:0,combo:0,hitFlash:0,staggerX:0,staggerY:0,recoilTimer:0,leanAngle:0,blockTimer:0,blockAmount:0,stanceTimer:0,walkCycle:0,breathCycle:0,blinkTimer:3,blinkAmount:0,weightShift:0,weightTarget:0,stance:0};
-  G.f2=G.opp;
+  G.opp={breathCycle:0};
+  G.myFists={punchArm:1,punchPhase:'idle',punchTimer:0,punchWindup:0};
+  G.tension=0;G.koTimer=0;G.bellRing=0;G.arenaShake=0;G.crowdRoar=0;G.crowdRoarSmooth=0;
+  POV.cur='oppidle';POV.frame=0;POV.timer=0;
+  POV._koInit=false;POV._koHit=false;
 }
 function getTension(m){if(m<=1)return 0;if(m<=1.5)return(m-1)/0.5*0.25;if(m<=3)return 0.25+(m-1.5)/1.5*0.25;if(m<=7)return 0.5+(m-3)/4*0.25;return Math.min(1,0.75+(m-7)/13*0.25)}
 function initCrowd(){}
 
+function _povSetOpp(name){
+  if(POV.cur!==name){POV.cur=name;POV.frame=0;POV.timer=0}
+}
+
+// Advance + fetch the current opponent frame. Idle loops; ko plays once, holds.
+function _povOppFrame(dt){
+  var anim=POV.anims[POV.cur];
+  if(!anim||!anim.length)return null;
+  var fps=(POV.cur==='oppidle')?POVFPS.idle+(G.tension||0)*POVFPS.idleRamp:POVFPS.ko;
+  POV.timer+=dt;
+  var d=1/fps;
+  while(POV.timer>=d){POV.timer-=d;POV.frame++}
+  var idx;
+  if(POV.cur==='oppidle')idx=POV.frame=POV.frame%anim.length;
+  else{if(POV.frame>=anim.length)POV.frame=anim.length-1;idx=POV.frame}
+  var img=anim[idx];
+  return (img&&img.complete&&img.naturalWidth>0)?img:null;
+}
+
 // ── Update ──
 function updateFighters(){
-  var dt=G.dt||0.016,t=G.tension,opp=G.opp,fists=G.myFists;
-  if(!opp||!fists)return;
-  var time=G.time||0,W=cv.width,H=cv.height;
+  var dt=G.dt||0.016,fists=G.myFists;
+  if(!G.opp||!fists)return;
 
-  opp.breathCycle+=dt*2.8;
-  // Blink
-  opp.blinkTimer-=dt;if(opp.blinkTimer<=0){opp.blinkAmount=1;opp.blinkTimer=2.5+Math.random()*4}
-  if(opp.blinkAmount>0)opp.blinkAmount=Math.max(0,opp.blinkAmount-dt*8);
-  // Hit decay
-  if(opp.recoilTimer>0){opp.recoilTimer-=dt;opp.staggerX*=(1-dt*5);opp.staggerY*=(1-dt*6)}else{opp.staggerX*=(1-dt*8);opp.staggerY*=(1-dt*8)}
-  opp.hitFlash=Math.max(0,opp.hitFlash-dt*2.5);
-  opp.leanAngle=_lerp(opp.leanAngle,0,dt*4);
-  opp.flinchTimer=Math.max(0,(opp.flinchTimer||0)-dt*3);
-  opp.shakeX=_lerp(opp.shakeX||0,0,dt*10);
-  // Hit pose timer — shows face/body hit image then returns to idle
-  if(opp.hitPoseTimer>0){opp.hitPoseTimer-=dt;if(opp.hitPoseTimer<=0)opp.hitPose='idle'}
-  // Attack pose timer — shows punch/kick when opponent attacks you
-  if(opp.atkPoseTimer>0){opp.atkPoseTimer-=dt;if(opp.atkPoseTimer<=0)opp.atkPose='idle'}
-  opp.shakeY=_lerp(opp.shakeY||0,0,dt*10);
+  G.opp.breathCycle+=dt*2.8;
 
-  // Punch phases
+  // My punch phases (drives the glove offsets in render)
   if(fists.punchPhase!=='idle'){
     fists.punchTimer-=dt;
     if(fists.punchPhase==='windup'){fists.punchWindup=Math.min(1,fists.punchWindup+dt*14);if(fists.punchTimer<=0){fists.punchPhase='extend';fists.punchTimer=0.08}}
-    else if(fists.punchPhase==='extend'){fists.punchWindup=0;if(fists.punchTimer<=0){fists.punchPhase='hold';fists.punchTimer=0.04}}
-    else if(fists.punchPhase==='hold'){if(fists.punchTimer<=0){fists.punchPhase='retract';fists.punchTimer=0.15}}
+    else if(fists.punchPhase==='extend'){fists.punchWindup=0;if(fists.punchTimer<=0){fists.punchPhase='hold';fists.punchTimer=0.05}}
+    else if(fists.punchPhase==='hold'){if(fists.punchTimer<=0){fists.punchPhase='retract';fists.punchTimer=0.2}}
     else if(fists.punchPhase==='retract'){if(fists.punchTimer<=0){fists.punchPhase='idle';fists.punchTimer=0}}
   }
 
-  if(G.koKick&&G.koKick.active)G.koKick.timer+=dt;
-
-  // Phase logic
   if(G.phase==='BETTING'){
-    opp.health=1;opp.hitFlash=0;opp.staggerX=0;opp.staggerY=0;opp.leanAngle=0;opp.flinchTimer=0;opp.shakeX=0;opp.shakeY=0;
-    fists.punchPhase='idle';fists.combo=0;
-    G.koKick={active:false,timer:0};G.koTimer=0;G._koLegSide=null;G._koFistFade=0;
+    fists.punchPhase='idle';
+    G.koTimer=0;POV._koInit=false;POV._koHit=false;
+    _povSetOpp('oppidle');
   }
   else if(G.phase==='EXPLODE'){
     G.bellRing=Math.max(0,(G.bellRing||0)-dt);
     if(G.phaseTimer>1.2&&G.bellRing<=0)G.bellRing=0.5;
   }
-  else if(G.phase==='FREEFALL'){
-    if(!G.fightStarted){G.fightStarted=true}
-
-    // ── OPPONENT (fists) hits ME (fighter on screen) — frequent ──
-    if(!fists._stanceTimer)fists._stanceTimer=0;
-    fists._stanceTimer-=dt;
-    var oppPI=Math.max(0.4,1.4-t*0.7); // opponent hits often
-    if(fists._stanceTimer<=0&&fists.punchPhase==='idle'){
-      if(Math.random()<Math.max(0.5,0.75-t*0.15)){
-        fists.punchPhase='windup';fists.punchTimer=0.06;fists.punchWindup=0;
-        fists.combo=Math.min(6,fists.combo+1);
-        fists.punchArm=fists.combo%2===0?1:-1;
-        fists._stanceTimer=oppPI*(0.5+Math.random()*0.6);
-        var _hitArm=fists.punchArm;
-        setTimeout(function(){
-          // I get hit — face or body reaction
-          opp.hitPose=_hitArm===-1?'face':'body';
-          opp.hitPoseTimer=0.25;
-          opp.hitFlash=0.35;opp.recoilTimer=0.25;
-          opp.staggerX=(Math.random()-0.5)*10;
-          opp.staggerY=-2-Math.random()*3;
-          opp.leanAngle=(Math.random()-0.5)*0.12;
-          opp.flinchTimer=0.3;
-          opp.shakeX=(Math.random()-0.5)*15;
-          opp.shakeY=(Math.random()-0.5)*8;
-          opp.health=Math.max(0,opp.health-(0.005+t*0.018));
-          G.arenaShake=Math.max(G.arenaShake,1+t*3);
-          G.crowdRoar=Math.min(1,G.crowdRoar+0.12);
-          spawnParticles(W*0.5+opp.staggerX*3,H*0.35,t>0.5?'fire':'gold',Math.floor(2+t*6));
-          if(typeof SND!=='undefined')SND.play('punch',0.3+t*0.3);
-        },100);
-      }else{
-        fists._stanceTimer=oppPI*(0.5+Math.random());fists.combo=0;
-      }
-    }
-    if(t>0.75)opp.health=Math.max(0,opp.health-dt*0.02*(t-0.5));
-
-    // ── ME (fighter on screen) hits OPPONENT back — gives +X bonus ──
-    if(!opp._atkTimer)opp._atkTimer=0;
-    opp._atkTimer-=dt;
-    var myAtkInterval=Math.max(0.8,2.2-t*0.9);
-    if(opp._atkTimer<=0&&fists.punchPhase==='idle'){
-      if(Math.random()<Math.max(0.25,0.5-t*0.2)){
-        opp._atkTimer=myAtkInterval*(1+Math.random()*0.8);
-        // I attack — show punch or kick pose
-        opp.atkPose=Math.random()<0.6?'punch':'kick';
-        opp.atkPoseTimer=0.35;
-        opp.hitPose='idle';opp.hitPoseTimer=0;
-        G.arenaShake=Math.max(G.arenaShake,1.5);
-        G.crowdRoar=Math.min(1,G.crowdRoar+0.1);
-        // Bonus multiplier popup — I score!
-        var bonus=+(0.05+Math.random()*0.2+t*0.15).toFixed(2);
-        G.bonusPopups.push({x:W*0.5+(Math.random()-0.5)*80,y:H*0.3,val:bonus,life:1.2});
-        spawnParticles(W*0.5,H*0.55,'gold',Math.floor(3+t*4));
-        if(typeof SND!=='undefined')SND.play('punch',0.5);
-      }else{
-        opp._atkTimer=myAtkInterval*(0.5+Math.random()*0.5);
-      }
-    }
-  }
+  // FREEFALL: nothing to do — both fighters just breathe. The tension lives in
+  // the idle rate, the vignette and the crowd, not in activity.
   else if(G.phase==='CRASH'){
     G.koTimer+=dt;
-    if(G.koTimer<0.05){
-      G.arenaShake=12;G.crowdRoar=1;
-      opp.atkPose='punch';opp.atkPoseTimer=2;
-      if(typeof SND!=='undefined'){SND.play('punch',0.7);SND.play('cheer',0.4)}
+    if(!POV._koInit){
+      POV._koInit=true;
+      // The one punch — right glove
+      fists.punchArm=1;
+      fists.punchPhase='windup';fists.punchTimer=0.07;fists.punchWindup=0;
     }
-    // Opponent's fists fade out (they lose)
-    G._koFistFade=Math.min(1,G.koTimer/0.5); // 0→1 over 0.5s
+    // Impact lands as the glove reaches extension
+    if(!POV._koHit&&G.koTimer>=0.14){
+      POV._koHit=true;
+      _povSetOpp('oppko');
+      G.arenaShake=12;G.crowdRoar=1;
+      if(typeof spawnParticles==='function')spawnParticles(cv.width*0.5,cv.height*0.35,'gold',8);
+      if(typeof SND!=='undefined'){SND.play('punch',0.9);SND.play('cheer',0.5)}
+    }
   }
 
-  G.arenaShake=Math.max(0,G.arenaShake*(1-dt*8));
-  G.crowdRoar=Math.max(0,G.crowdRoar-dt*0.4);
+  G.arenaShake=Math.max(0,(G.arenaShake||0)*(1-dt*8));
+  G.crowdRoar=Math.max(0,(G.crowdRoar||0)-dt*0.4);
   G.crowdRoarSmooth=_lerp(G.crowdRoarSmooth||0,G.crowdRoar,dt*5);
   if(G.arenaShake>0.3)G.camera.shake=Math.max(G.camera.shake,G.arenaShake*0.6);
-  // Player hit flash decay
-  if(G.playerHit){G.playerHit.flash=Math.max(0,G.playerHit.flash-dt*2.5);G.playerHit.shakeX=_lerp(G.playerHit.shakeX,0,dt*10);G.playerHit.shakeY=_lerp(G.playerHit.shakeY,0,dt*10)}
-  // Bonus popups decay
-  if(G.bonusPopups){G.bonusPopups=G.bonusPopups.filter(function(p){p.life-=dt;p.y-=dt*60;return p.life>0})}
-  if(G.f1)G.f1.health=1;
-  if(G.f2)G.f2.health=opp.health;
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -190,172 +162,97 @@ function render(){
   if(!G.opp){try{initFighterState()}catch(e){}}
   cx.clearRect(0,0,W,H);cx.save();
 
-  // Camera shake
+  // Camera shake + zoom
   var cam=G.camera||{};
   if((cam.shake||0)>0.1)cx.translate((Math.random()-0.5)*cam.shake,(Math.random()-0.5)*cam.shake);
   var z=cam.zoom||1;
   if(z!==1){var zx=cam.zoomX||W*0.5,zy=cam.zoomY||H*0.45;cx.translate(zx,zy);cx.scale(z,z);cx.translate(-zx,-zy)}
 
   var t=G.tension=getTension(G.mult||1);
-  var opp=G.opp||{},fists=G.myFists||{};
+  var fists=G.myFists||{};
   var time=G.time||0;
+  var dt=G.dt||0.016;
 
-  // ═══ L1: ARENA BACKGROUND (full screen cover) ═══
-  if(IMG.bg&&IMG.bg.complete&&IMG.bg.naturalWidth){
-    var bgA=IMG.bg.naturalWidth/IMG.bg.naturalHeight,scA=W/H;
+  // ═══ L1: ARENA BACKGROUND — animated crowd loop, static still as fallback ═══
+  var bgAnim=POV.anims.bg;
+  var bgImg=null;
+  if(bgAnim&&bgAnim.length){
+    POV.bgTimer+=dt;
+    // Crowd stirs a little faster as the roar builds
+    var bgD=1/(POVFPS.bg*(1+(G.crowdRoarSmooth||0)*0.6));
+    while(POV.bgTimer>=bgD){POV.bgTimer-=bgD;POV.bgFrame=(POV.bgFrame+1)%bgAnim.length}
+    var cand=bgAnim[POV.bgFrame];
+    if(cand&&cand.complete&&cand.naturalWidth>0)bgImg=cand;
+  }
+  if(!bgImg&&IMG.bg&&IMG.bg.complete&&IMG.bg.naturalWidth)bgImg=IMG.bg;
+  if(bgImg){
+    var bgA=bgImg.naturalWidth/bgImg.naturalHeight,scA=W/H;
     var dW,dH;
     if(scA>bgA){dW=W;dH=W/bgA}else{dH=H;dW=H*bgA}
-    cx.drawImage(IMG.bg,(W-dW)/2,(H-dH)/2,dW,dH);
+    cx.drawImage(bgImg,(W-dW)/2,(H-dH)/2,dW,dH);
   }else{
-    // Fallback black
     cx.fillStyle='#060414';cx.fillRect(0,0,W,H);
   }
 
-  // ═══ L2: OPPONENT ═══
-  var isKO=G.phase==='CRASH';
-  var koT=G.koTimer||0;
-  var hitPose=opp.hitPose||'idle';
-  var atkPose=opp.atkPose||'idle';
-  var oppImg;
-  // KO: first show kick pose, then victory
-  if(isKO&&koT>1.0&&IMG.victory&&IMG.victory.complete){oppImg=IMG.victory}
-  else if(isKO&&IMG.kick&&IMG.kick.complete){oppImg=IMG.kick}
-  // My attack — hook pose
-  else if(atkPose!=='idle'&&IMG.hook&&IMG.hook.complete){oppImg=IMG.hook}
-  // Getting hit — show hit-left or hit-right based on which fist hit.
-  // `complete` is true even for FAILED images (naturalWidth 0), and desktop has no
-  // fighter-hit-left asset — without the naturalWidth check + hitR fallback the
-  // opponent vanished for 0.25s on every face hit.
-  else if(hitPose==='face'&&IMG.hitL&&IMG.hitL.naturalWidth){oppImg=IMG.hitL}
-  else if(hitPose!=='idle'&&IMG.hitR&&IMG.hitR.naturalWidth){oppImg=IMG.hitR}
-  // Default idle
-  else{oppImg=IMG.idle&&IMG.idle.complete?IMG.idle:null}
-  if(oppImg&&oppImg.naturalWidth){
-    cx.save();
-    var isMob=W<600,isTab=W>=600&&W<900;
-    var oppW,oppH,oppX,oppY;
-
-    if(isMob){
-      // ── MOBILE: fixed box, fixed position, no movement ──
-      var refW=IMG.idle&&IMG.idle.naturalWidth?IMG.idle.naturalWidth:982;
-      var refH=IMG.idle&&IMG.idle.naturalHeight?IMG.idle.naturalHeight:1536;
-      var mScale=Math.min(W*0.79/refW,H*0.79/refH);
-      oppW=refW*mScale;
-      oppH=refH*mScale;
-      oppX=W*0.5-oppW/2;
-      oppY=H-oppH-56;
-    }else{
-      // ── DESKTOP: original behavior — per-image sizing + full animations ──
-      var dMaxW=isTab?0.5:0.45;
-      var dMaxH=isTab?0.7:0.75;
-      var dScale=Math.min(W*dMaxW/oppImg.naturalWidth,H*dMaxH/oppImg.naturalHeight);
-      oppW=oppImg.naturalWidth*dScale;
-      oppH=oppImg.naturalHeight*dScale;
-      oppX=W*0.5-oppW/2+(opp.staggerX||0)+(opp.shakeX||0);
-      var dBottom=isTab?56:0;
-      oppY=H-oppH-dBottom+(opp.staggerY||0)+(opp.shakeY||0)+Math.sin(opp.breathCycle||0)*2;
-
-      // Lean from hits
-      if(opp.leanAngle){cx.translate(W*0.5,H*0.45);cx.rotate(opp.leanAngle);cx.translate(-W*0.5,-H*0.45)}
-      // Flinch offset
-      var flinch=opp.flinchTimer||0;
-      if(flinch>0){oppY+=flinch*10;oppX+=(Math.random()-0.5)*flinch*6}
-    }
-
-    cx.drawImage(oppImg,oppX,oppY,oppW,oppH);
-
-
-
-    cx.restore();
+  // ═══ L2: OPPONENT — frame animation, faces the camera ═══
+  var oppImg=_povOppFrame(dt);
+  if(oppImg){
+    var pc=POVCFG[POV.cur]||{s:1,ax:0.5,ay:1};
+    var isMob=W<600;
+    // He stands close: body height ~86% of the canvas, feet just above the panel
+    var bodyH=Math.round(H*(isMob?0.72:0.86));
+    var drawH=Math.round(bodyH*pc.s);
+    var drawW=Math.round(drawH*(oppImg.naturalWidth/oppImg.naturalHeight));
+    var floorY=Math.round(H*(isMob?0.9:0.99));
+    cx.drawImage(oppImg,Math.round(W*0.5-pc.ax*drawW),floorY-Math.round(pc.ay*drawH),drawW,drawH);
   }
 
-  // ═══ L3: HEALTH BAR ═══
-  if(G.phase!=='BETTING'&&G.phase!=='WAITING'&&G.phase!=='INIT'){
-    var bW=W<600?Math.min(200,W*0.55):Math.min(300,W*0.35),bH=W<600?10:12,bY=H*(W<600?0.03:0.04);
-    var bX=W*0.5-bW/2;
-    // Background
-    cx.fillStyle='rgba(0,0,0,0.5)';
-    cx.beginPath();
-    cx.moveTo(bX+4,bY);cx.lineTo(bX+bW-4,bY);cx.quadraticCurveTo(bX+bW,bY,bX+bW,bY+4);
-    cx.lineTo(bX+bW,bY+bH-4);cx.quadraticCurveTo(bX+bW,bY+bH,bX+bW-4,bY+bH);
-    cx.lineTo(bX+4,bY+bH);cx.quadraticCurveTo(bX,bY+bH,bX,bY+bH-4);
-    cx.lineTo(bX,bY+4);cx.quadraticCurveTo(bX,bY,bX+4,bY);
-    cx.fill();
-    // Health fill
-    var hp=Math.max(0,Math.min(1,opp.health||1));
-    var hpG=cx.createLinearGradient(bX,0,bX+bW*hp,0);
-    hpG.addColorStop(0,hp>0.5?'#22aa44':hp>0.25?'#cc8800':'#cc2222');
-    hpG.addColorStop(1,hp>0.5?'#44dd66':hp>0.25?'#ffaa00':'#ff4444');
-    cx.fillStyle=hpG;
-    cx.fillRect(bX+1,bY+1,(bW-2)*hp,bH-2);
-    // Border
-    cx.strokeStyle='rgba(255,255,255,0.15)';cx.lineWidth=1;
-    cx.strokeRect(bX,bY,bW,bH);
-    // Label
-    cx.fillStyle='rgba(255,255,255,0.7)';cx.font='bold 10px sans-serif';cx.textAlign='center';
-    cx.fillText('YOU',W*0.5,bY-3);
+  // ═══ L3: MY GLOVES ═══
+  var fistW2=W<600?W*0.828:W<900?W*0.4:W*0.358;
+  var fistH2=fistW2*0.56;
+  var idleBobL=Math.sin(time*2)*(W<600?3:5);
+  var idleBobR=Math.sin(time*2+1)*(W<600?3:5);
+  var fistBottomOffset=W<600?124:W<900?124:30;
+  var lBaseX=W*0.5-fistW2*0.8;
+  var lBaseY=H-fistH2-fistBottomOffset+idleBobL;
+  var rBaseX=W*0.5-fistW2*0.2;
+  var rBaseY=H-fistH2-fistBottomOffset+idleBobR;
+
+  // The single KO punch — right glove lunges toward his chin
+  var lOffX=0,lOffY=0,rOffX=0,rOffY=0;
+  if(fists.punchPhase==='windup'){
+    var wb=fists.punchWindup||0;
+    if(fists.punchArm===-1){lOffY=15*wb;lOffX=-10*wb}else{rOffY=15*wb;rOffX=10*wb}
+  }else if(fists.punchPhase==='extend'||fists.punchPhase==='hold'){
+    if(fists.punchArm===-1){lOffY=-H*0.2;lOffX=W*0.12}else{rOffY=-H*0.2;rOffX=-W*0.12}
+  }else if(fists.punchPhase==='retract'){
+    var rp=Math.max(0,(fists.punchTimer||0)/0.2);
+    if(fists.punchArm===-1){lOffY=-H*0.2*rp;lOffX=W*0.12*rp}else{rOffY=-H*0.2*rp;rOffX=-W*0.12*rp}
   }
 
-  // ═══ L4: OPPONENT'S FISTS ═══
-  var koFade=G._koFistFade||0;
-  if(koFade<1){
-    if(koFade>0)cx.globalAlpha=1-koFade;
-    // Fixed fist size as % of screen
-    var fistW2=W<600?W*0.828:W<900?W*0.4:W*0.358;
-    var fistH2=fistW2*0.56; // aspect ratio ~1536/2752 ≈ 0.56
-
-    var idleBobL=Math.sin(time*2)*(W<600?3:5);
-    var idleBobR=Math.sin(time*2+1)*(W<600?3:5);
-
-    // Base positions — tighter to center, bottom -30px
-    var visHF=H;
-    var fistBottomOffset=W<600?124:W<900?124:30;
-    var lBaseX=W*0.5-fistW2*0.8;
-    var lBaseY=visHF-fistH2-fistBottomOffset+idleBobL;
-    var rBaseX=W*0.5-fistW2*0.2;
-    var rBaseY=visHF-fistH2-fistBottomOffset+idleBobR;
-
-    // Punch animation offsets
-    var lOffX=0,lOffY=0,rOffX=0,rOffY=0;
-    if(fists.punchPhase==='windup'){
-      var wb=fists.punchWindup||0;
-      if(fists.punchArm===-1){lOffY=15*wb;lOffX=-10*wb}else{rOffY=15*wb;rOffX=10*wb}
-    }else if(fists.punchPhase==='extend'||fists.punchPhase==='hold'){
-      if(fists.punchArm===-1){lOffY=-H*0.2;lOffX=W*0.12}else{rOffY=-H*0.2;rOffX=-W*0.12}
-    }else if(fists.punchPhase==='retract'){
-      var rp=Math.max(0,(fists.punchTimer||0)/0.15);
-      if(fists.punchArm===-1){lOffY=-H*0.2*rp;lOffX=W*0.12*rp}else{rOffY=-H*0.2*rp;rOffX=-W*0.12*rp}
-    }
-
-    // Draw left fist
-    if(IMG.fistL&&IMG.fistL.complete&&IMG.fistL.naturalWidth>0){
-      cx.drawImage(IMG.fistL,lBaseX+lOffX,lBaseY+lOffY,fistW2,fistH2);
-    }
-    // Draw right fist
-    if(IMG.fistR&&IMG.fistR.complete&&IMG.fistR.naturalWidth>0){
-      cx.drawImage(IMG.fistR,rBaseX+rOffX,rBaseY+rOffY,fistW2,fistH2);
-    }
-    cx.globalAlpha=1;
+  if(IMG.fistL&&IMG.fistL.complete&&IMG.fistL.naturalWidth>0){
+    cx.drawImage(IMG.fistL,lBaseX+lOffX,lBaseY+lOffY,fistW2,fistH2);
+  }
+  if(IMG.fistR&&IMG.fistR.complete&&IMG.fistR.naturalWidth>0){
+    cx.drawImage(IMG.fistR,rBaseX+rOffX,rBaseY+rOffY,fistW2,fistH2);
   }
 
-  // ═══ L5: IMPACT FLASH ═══
+  // ═══ L4: IMPACT FLASH — the moment the punch lands ═══
   if(fists.punchPhase==='hold'||(fists.punchPhase==='extend'&&(fists.punchTimer||0)<0.03)){
-    var impX=W*0.5+(opp.staggerX||0)*2;
-    var impY=(W<600?H*0.55:H)*0.35;
+    var impX=W*0.5,impY=H*0.35;
     cx.save();cx.globalAlpha=0.5;
     var ig=cx.createRadialGradient(impX,impY,0,impX,impY,W*0.07);
     ig.addColorStop(0,'rgba(255,255,255,0.9)');ig.addColorStop(0.3,'rgba(255,240,150,0.4)');ig.addColorStop(1,'transparent');
     cx.fillStyle=ig;cx.beginPath();cx.arc(impX,impY,W*0.07,0,Math.PI*2);cx.fill();
-    // Speed lines
     cx.strokeStyle='rgba(255,230,100,0.5)';cx.lineWidth=2;
     for(var sl=0;sl<8;sl++){var sa=sl/8*Math.PI*2+time*15;cx.beginPath();cx.moveTo(impX+Math.cos(sa)*W*0.025,impY+Math.sin(sa)*W*0.025);cx.lineTo(impX+Math.cos(sa)*W*0.06,impY+Math.sin(sa)*W*0.06);cx.stroke()}
     cx.restore();
   }
 
-  // ═══ L6: PARTICLES ═══
+  // ═══ L5: PARTICLES ═══
   G.particles=(G.particles||[]).filter(function(p){
-    p.x+=p.vx*(G.dt||0.016)*60;p.y+=p.vy*(G.dt||0.016)*60;
-    p.vy+=(G.dt||0.016)*7;p.life-=(G.dt||0.016)*1.2;
+    p.x+=p.vx*dt*60;p.y+=p.vy*dt*60;
+    p.vy+=dt*7;p.life-=dt*1.2;
     if(p.life<=0)return false;
     var a=p.life*p.life;
     cx.beginPath();cx.arc(p.x,p.y,p.r*(0.5+p.life*0.5),0,Math.PI*2);
@@ -363,55 +260,9 @@ function render(){
     cx.fill();return true;
   });
 
-  // ═══ L6b: PLAYER GOT HIT — red edge flash ═══
-  if(G.playerHit&&G.playerHit.flash>0){
-    var phf=G.playerHit.flash;
-    // Red vignette edges (you got punched)
-    cx.save();
-    var redVig=cx.createRadialGradient(W/2,H/2,H*0.25,W/2,H/2,H*0.7);
-    redVig.addColorStop(0,'transparent');
-    redVig.addColorStop(0.6,'rgba(200,20,20,'+phf*0.15+')');
-    redVig.addColorStop(1,'rgba(180,10,10,'+phf*0.4+')');
-    cx.fillStyle=redVig;cx.fillRect(0,0,W,H);
-    // Screen offset from hit
-    if(Math.abs(G.playerHit.shakeX)>0.5||Math.abs(G.playerHit.shakeY)>0.5){
-      cx.translate(G.playerHit.shakeX,G.playerHit.shakeY);
-    }
-    cx.restore();
-  }
-
-  // ═══ L6c: BONUS MULTIPLIER POPUPS ═══
-  if(G.bonusPopups&&G.bonusPopups.length>0){
-    cx.save();
-    for(var bi=0;bi<G.bonusPopups.length;bi++){
-      var bp=G.bonusPopups[bi];
-      var bpAlpha=Math.min(1,bp.life*2); // fade out in last 0.5s
-      var bpScale=0.8+_easeOutCubic(Math.min(1,(1.2-bp.life)/0.3))*0.4; // pop in
-      cx.save();
-      cx.translate(bp.x,bp.y);
-      cx.scale(bpScale,bpScale);
-      cx.globalAlpha=bpAlpha;
-      // Glow behind text
-      cx.shadowColor='#ffd700';cx.shadowBlur=12;
-      cx.font='bold 22px sans-serif';cx.textAlign='center';cx.textBaseline='middle';
-      cx.fillStyle='#ffd700';
-      cx.fillText('+'+bp.val.toFixed(2)+'x',0,0);
-      cx.shadowBlur=0;
-      // White outline
-      cx.strokeStyle='rgba(255,255,255,0.4)';cx.lineWidth=1;
-      cx.strokeText('+'+bp.val.toFixed(2)+'x',0,0);
-      cx.restore();
-    }
-    cx.restore();
-  }
-
-  // ═══ L7: KO SEQUENCE ═══
+  // ═══ L6: KO TEXT ═══
   if(G.phase==='CRASH'){
     var koT=G.koTimer||0;
-
-    // (KO legs removed — opponent fists just fade out)
-
-    // K.O. text
     if(koT>0.5){
       var tp=Math.min(1,(koT-0.5)/0.4),ts=0.5+tp*0.5;
       cx.save();cx.translate(W/2,H*0.4);cx.scale(ts,ts);cx.globalAlpha=tp;
@@ -429,10 +280,10 @@ function render(){
     }
   }
 
-  // ═══ L8: BELL FLASH ═══
+  // ═══ L7: BELL FLASH ═══
   if((G.bellRing||0)>0){cx.globalAlpha=G.bellRing*0.15;cx.fillStyle='#fff';cx.fillRect(0,0,W,H);cx.globalAlpha=1}
 
-  // ═══ L9: VIGNETTE ═══
+  // ═══ L8: VIGNETTE ═══
   var vS=0.2+t*0.3;
   var vG=cx.createRadialGradient(W/2,H*0.4,H*0.2,W/2,H/2,H*0.85);
   vG.addColorStop(0,'transparent');vG.addColorStop(0.5,'rgba(0,0,0,'+vS*0.15+')');vG.addColorStop(1,'rgba(0,0,0,'+vS+')');

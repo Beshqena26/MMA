@@ -1036,11 +1036,8 @@ function update(ts){
       G.phaseTimer+=G.dt;
       _updateMultAndUI();
       G.camera.zoomTarget=1;
-      // Random fight alerts — POV only. The side view is a held face-off: nothing is
-      // thrown until the crash punch, so announcing kicks there contradicts the scene.
-      if(GAME_VIEW!=='side'&&Math.random()<G.dt*0.12){
-        showAlert(['BODY SHOT!','UPPERCUT!','SPINNING KICK!','LIVER SHOT!','HEAD KICK!','JAB-CROSS!'][Math.floor(Math.random()*6)]);
-      }
+      // (Fight alerts removed — the POV round is a calm stare-down until the
+      // crash punch, and the side view choreographs its own exchanges.)
       var mf=Math.floor(G.mult);if(mf>G.lastMultFloor&&mf>=2){G.lastMultFloor=mf}
       if(Math.random()<0.02)fakeFeed(G.mult*(0.5+Math.random()*0.6),true);
       // CRASH CHECK
