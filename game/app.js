@@ -327,6 +327,20 @@ var SND={
     this._load('intro','assets/sounds/intro-music.mp3');
     this._bgMusic=new Audio('assets/sounds/bg-music.mp3');
     this._bgMusic.loop=true;this._bgMusic.volume=0.15;
+    // Real recordings (Wikimedia Commons): breathing (public domain),
+    // heartbeat (CC BY 3.0, "Heartbeat.ogg" by Benboncan). Looped, volume
+    // and playbackRate driven by phase/tension in _tickLoops.
+    this._breath=new Audio('assets/sounds/breath-loop.mp3');
+    this._breath.loop=true;this._breath.volume=0;
+    this._heart=new Audio('assets/sounds/heartbeat-loop.mp3');
+    this._heart.loop=true;this._heart.volume=0;
+  },
+  _loopsOn:false,
+  startLoops:function(){
+    if(this._loopsOn)return;
+    this._loopsOn=true;
+    try{var p1=this._breath.play();if(p1&&p1.catch)p1.catch(function(){});}catch(e){}
+    try{var p2=this._heart.play();if(p2&&p2.catch)p2.catch(function(){});}catch(e){}
   },
   _playing:{},
   play:function(key,vol){
@@ -405,20 +419,27 @@ var SND={
       var v=this._bgMusic.volume;
       this._bgMusic.volume=Math.max(0,Math.min(1,v+(target-v)*0.06));
     }
-    // idle foley: the fighter is alive even when nothing happens — breathing,
-    // feint whooshes, glove taps, feet shuffling on the mat (all synthesized)
+    // idle foley: feint whooshes, glove taps, feet shuffling (synthesized)
     this._tickFoley(phase,t);
-    // heartbeat: FREEFALL only, from mid tension, quickening as it climbs
-    if(!this.soundOn||phase!=='FREEFALL'||t<0.45){this._nextBeat=0;return}
-    var c=this._getCtx();if(!c||c.state!=='running')return;
-    var now=c.currentTime;
-    if(!this._nextBeat||this._nextBeat<now-1)this._nextBeat=now+0.05;
-    if(now>=this._nextBeat){
-      var period=1.05-t*0.4;                    // ~57bpm -> ~92bpm
-      this._thump(now,0.09+t*0.06);             // lub
-      this._thump(now+period*0.3,0.06+t*0.04);  // dub
-      this._nextBeat=now+period;
-    }
+    // real breathing + heartbeat loops: volume and rate follow the round
+    this._tickLoops(phase,t);
+  },
+  // ── Real breath/heartbeat loops ──
+  _tickLoops:function(phase,t){
+    if(!this._breath)return;
+    var mute=!this.soundOn;
+    // Breathing: soft while betting, present through the fight, faster with tension
+    var bTarget=mute?0:(phase==='FREEFALL')?0.10+t*0.10:(phase==='BETTING')?0.05:0;
+    var bRate=(phase==='FREEFALL')?1+t*0.35:1;
+    // Heartbeat: fades in from mid tension, quickens toward the crash
+    var hTarget=mute?0:(phase==='FREEFALL'&&t>0.45)?(t-0.45)*0.55:0;
+    var hRate=1+Math.max(0,t-0.45)*0.8;
+    try{
+      this._breath.volume+=(bTarget-this._breath.volume)*0.05;
+      this._breath.playbackRate=bRate;
+      this._heart.volume+=(hTarget-this._heart.volume)*0.05;
+      this._heart.playbackRate=hRate;
+    }catch(e){}
   },
   // ── Idle foley (synthesized: breath / whoosh / shuffle / glove tap) ──
   _noiseBuf:null,
@@ -447,24 +468,15 @@ var SND={
       src.start(at);src.stop(at+dur+0.05);
     }catch(e){}
   },
-  _nextBreath:0,_nextFoley:0,
+  _nextFoley:0,
   _tickFoley:function(phase,t){
     if(!this.soundOn)return;
-    var fight=(phase==='FREEFALL'),calm=(phase==='BETTING');
-    if(!fight&&!calm){this._nextBreath=0;this._nextFoley=0;return}
+    var fight=(phase==='FREEFALL');
+    if(!fight){this._nextFoley=0;return}
     var c=this._getCtx();if(!c||c.state!=='running')return;
     var now=c.currentTime;
-    // Breathing — period tracks the on-screen idle rate (calm -> tense)
-    if(!this._nextBreath||this._nextBreath<now-2)this._nextBreath=now+0.3;
-    if(now>=this._nextBreath){
-      var period=fight?(3.4-t*1.6):4.0;          // ~3.4s calm -> ~1.8s at max tension
-      var bv=(fight?0.05+t*0.05:0.035);
-      this._noiseSweep(now,period*0.34,600,950,1.1,bv,0.5);          // inhale (rising)
-      this._noiseSweep(now+period*0.42,period*0.4,700,380,1.0,bv*1.25,0.25); // exhale through the nose
-      this._nextBreath=now+period;
-    }
     // Feints & footwork — only during the fight, random every few seconds
-    if(fight){
+    {
       if(!this._nextFoley||this._nextFoley<now-2)this._nextFoley=now+1.5;
       if(now>=this._nextFoley){
         var r=Math.random();
@@ -481,7 +493,7 @@ var SND={
         }
         this._nextFoley=now+(2.2+Math.random()*3.4)*(1-t*0.35); // a bit denser when tense
       }
-    }else{this._nextFoley=0}
+    }
   },
   _thump:function(at,vol){
     var c=this._getCtx();if(!c)return;
@@ -506,7 +518,7 @@ async function _requestWakeLock(){
 _requestWakeLock();
 document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')_requestWakeLock()});
 // Start audio on first interaction
-function _startAudio(){SND._getCtx();SND.startBG();_requestWakeLock();document.removeEventListener('click',_startAudio);document.removeEventListener('touchstart',_startAudio)}
+function _startAudio(){SND._getCtx();SND.startBG();SND.startLoops();_requestWakeLock();document.removeEventListener('click',_startAudio);document.removeEventListener('touchstart',_startAudio)}
 // Click sound on all buttons
 document.addEventListener('click',function(e){var t=e.target;if(t&&(t.tagName==='BUTTON'||t.closest('button')||t.classList.contains('bp-q')||t.classList.contains('bp-btn')||t.classList.contains('hc')||t.classList.contains('sb-tab'))){SND.playClick()}});
 document.addEventListener('click',_startAudio);
