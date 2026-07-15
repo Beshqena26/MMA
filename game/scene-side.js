@@ -12,14 +12,30 @@ var SKINCFG={
   centerOff:0.36, centerOffMob:0.31 // fighter center distance from screen center, ×baseH
 };
 
-// Drawn-height multiplier per animation, normalized to each fighter's standing body
-// height. The generated sets aren't zoom-consistent (KO/victory render the character
-// at ~61% of the idle zoom), so each set's union-bbox crop is rescaled here to keep
-// the body the same size on screen: crop height / standing height within that crop.
-var SETSCALE={
-  pro:{idle:1.082,rightpunch:1.078,kick:1.165,gettinghit:1.059,victory:1.294},
-  am:{idle:1.101,rightpunch:1.072,kick:1.147,gettinghit:1.081,ko:1.191}
+// Per-animation draw config, measured from the source green-screen videos where
+// every clip had the fighter standing at the same spot (x=960, feet y=990 of
+// 1920x1080). s = drawn-height multiplier (crop height / standing body height);
+// ax/ay = where that standing spot sits inside the crop, as fractions. Anchoring
+// by ax/ay instead of crop-center keeps the body registered when the animation
+// switches — wide crops (stagger, kick reach, the KO slide) would otherwise
+// teleport the fighter sideways.
+var SETCFG={
+  pro:{
+    idle:      {s:1.082,ax:0.504,ay:0.997},
+    rightpunch:{s:1.078,ax:0.646,ay:0.985},
+    kick:      {s:1.165,ax:0.733,ay:0.971},
+    gettinghit:{s:1.059,ax:0.709,ay:0.987},
+    victory:   {s:1.294,ax:0.500,ay:0.984}
+  },
+  am:{
+    idle:      {s:1.101,ax:0.511,ay:0.978},
+    rightpunch:{s:1.072,ax:0.632,ay:1.005},
+    kick:      {s:1.147,ax:0.720,ay:0.970},
+    gettinghit:{s:1.081,ax:0.735,ay:0.988},
+    ko:        {s:1.191,ax:0.565,ay:0.903}
+  }
 };
+var SETCFG_DEF={s:1,ax:0.5,ay:1};
 
 // Contact frame per strike — the source frame where the hit fully extends; the
 // defender's reaction fires when playback reaches it. (Measured: widest reach
@@ -402,8 +418,8 @@ function renderSideView(){
 
   // The source art faces LEFT: the pro (left side) is mirrored to face his opponent,
   // the amateur draws as-is. Each frame keeps its own aspect at its set's scaled
-  // height (SETSCALE normalizes body size across sets), anchored center-bottom on
-  // the floor so differing crop sizes (punch reach, the KO fall) don't shift the body.
+  // height, positioned by SETCFG's measured body anchor so differing crop sizes
+  // (punch reach, stagger, the KO fall) never shift the standing body.
 
   // ── Pro (left, you) — frame animation, flipped to face right ──
   // Fighters wait for the FULL idle sets before appearing: drawing per-frame while
@@ -412,12 +428,15 @@ function renderSideView(){
   var proFrame=_idleReady?_getProFrame(dt):null;
 
   if(proFrame){
-    var pH=Math.round(baseH*(SETSCALE.pro[PRO_ANIM.current]||1));
+    var pc=SETCFG.pro[PRO_ANIM.current]||SETCFG_DEF;
+    var pH=Math.round(baseH*pc.s);
     var drawW=Math.round(pH*(proFrame.naturalWidth/proFrame.naturalHeight));
     cx.save();
-    cx.translate(proCX,floorY-pH);
+    // Mirrored draw: under scale(-1,1) the anchor column (ax from the crop's left)
+    // lands on proCX when the image is drawn at local x = -ax*width.
+    cx.translate(proCX,floorY-Math.round(pc.ay*pH));
     cx.scale(-1,1);
-    cx.drawImage(proFrame,-Math.round(drawW*0.5),0,drawW,pH);
+    cx.drawImage(proFrame,-Math.round(pc.ax*drawW),0,drawW,pH);
     cx.restore();
   }
 
@@ -425,12 +444,13 @@ function renderSideView(){
   var amFrame=_idleReady?_getAmFrame(dt):null;
 
   if(amFrame){
-    var aH=Math.round(baseH*(SETSCALE.am[AM_ANIM.current]||1));
+    var ac=SETCFG.am[AM_ANIM.current]||SETCFG_DEF;
+    var aH=Math.round(baseH*ac.s);
     var aDrawW=Math.round(aH*(amFrame.naturalWidth/amFrame.naturalHeight));
-    var aX=amCX-Math.round(aDrawW*0.5);
+    var aX=amCX-Math.round(ac.ax*aDrawW);
     // The lying body is wide — pull it back in if it would hang past the right edge
     if(AM_ANIM.current==='ko')aX=Math.min(aX,W-aDrawW-4);
-    cx.drawImage(amFrame,aX,floorY-aH,aDrawW,aH);
+    cx.drawImage(amFrame,aX,floorY-Math.round(ac.ay*aH),aDrawW,aH);
   }
 
   // KO body fading off the mat while the standing idle takes over (see updateSideView)
@@ -439,12 +459,13 @@ function renderSideView(){
     var koAnim=_amAnims().ko;
     var koImg=koAnim&&koAnim.length?koAnim[koAnim.length-1]:null;
     if(koImg&&koImg.complete&&koImg.naturalWidth>0){
-      var koH=Math.round(baseH*(SETSCALE.am.ko||1));
+      var kc=SETCFG.am.ko;
+      var koH=Math.round(baseH*kc.s);
       var kW=Math.round(koH*(koImg.naturalWidth/koImg.naturalHeight));
-      var kX=Math.min(amCX-Math.round(kW*0.5),W-kW-4);  // same edge clamp as the ko pose
+      var kX=Math.min(amCX-Math.round(kc.ax*kW),W-kW-4);  // same edge clamp as the ko pose
       cx.save();
       cx.globalAlpha=Math.max(0,SIDE._koFade/0.35);
-      cx.drawImage(koImg,kX,floorY-koH,kW,koH);
+      cx.drawImage(koImg,kX,floorY-Math.round(kc.ay*koH),kW,koH);
       cx.restore();
     }
   }
