@@ -405,6 +405,9 @@ var SND={
       var v=this._bgMusic.volume;
       this._bgMusic.volume=Math.max(0,Math.min(1,v+(target-v)*0.06));
     }
+    // idle foley: the fighter is alive even when nothing happens — breathing,
+    // feint whooshes, glove taps, feet shuffling on the mat (all synthesized)
+    this._tickFoley(phase,t);
     // heartbeat: FREEFALL only, from mid tension, quickening as it climbs
     if(!this.soundOn||phase!=='FREEFALL'||t<0.45){this._nextBeat=0;return}
     var c=this._getCtx();if(!c||c.state!=='running')return;
@@ -416,6 +419,69 @@ var SND={
       this._thump(now+period*0.3,0.06+t*0.04);  // dub
       this._nextBeat=now+period;
     }
+  },
+  // ── Idle foley (synthesized: breath / whoosh / shuffle / glove tap) ──
+  _noiseBuf:null,
+  _getNoise:function(){
+    var c=this._getCtx();if(!c)return null;
+    if(!this._noiseBuf){
+      var len=c.sampleRate*1.5,buf=c.createBuffer(1,len,c.sampleRate),d=buf.getChannelData(0);
+      for(var i=0;i<len;i++)d[i]=Math.random()*2-1;
+      this._noiseBuf=buf;
+    }
+    return this._noiseBuf;
+  },
+  // filtered-noise swell: the building block for breath/whoosh/shuffle
+  _noiseSweep:function(at,dur,f0,f1,q,vol,attack){
+    var c=this._getCtx();if(!c)return;
+    try{
+      var src=c.createBufferSource();src.buffer=this._getNoise();src.loop=true;
+      var bp=c.createBiquadFilter();bp.type='bandpass';bp.Q.value=q;
+      bp.frequency.setValueAtTime(f0,at);
+      bp.frequency.exponentialRampToValueAtTime(Math.max(40,f1),at+dur);
+      var g=c.createGain();
+      g.gain.setValueAtTime(0.0001,at);
+      g.gain.exponentialRampToValueAtTime(vol,at+dur*(attack||0.35));
+      g.gain.exponentialRampToValueAtTime(0.0001,at+dur);
+      src.connect(bp);bp.connect(g);g.connect(c.destination);
+      src.start(at);src.stop(at+dur+0.05);
+    }catch(e){}
+  },
+  _nextBreath:0,_nextFoley:0,
+  _tickFoley:function(phase,t){
+    if(!this.soundOn)return;
+    var fight=(phase==='FREEFALL'),calm=(phase==='BETTING');
+    if(!fight&&!calm){this._nextBreath=0;this._nextFoley=0;return}
+    var c=this._getCtx();if(!c||c.state!=='running')return;
+    var now=c.currentTime;
+    // Breathing — period tracks the on-screen idle rate (calm -> tense)
+    if(!this._nextBreath||this._nextBreath<now-2)this._nextBreath=now+0.3;
+    if(now>=this._nextBreath){
+      var period=fight?(3.4-t*1.6):4.0;          // ~3.4s calm -> ~1.8s at max tension
+      var bv=(fight?0.05+t*0.05:0.035);
+      this._noiseSweep(now,period*0.34,600,950,1.1,bv,0.5);          // inhale (rising)
+      this._noiseSweep(now+period*0.42,period*0.4,700,380,1.0,bv*1.25,0.25); // exhale through the nose
+      this._nextBreath=now+period;
+    }
+    // Feints & footwork — only during the fight, random every few seconds
+    if(fight){
+      if(!this._nextFoley||this._nextFoley<now-2)this._nextFoley=now+1.5;
+      if(now>=this._nextFoley){
+        var r=Math.random();
+        if(r<0.45){ // glove whoosh — a feint that doesn't land
+          this._noiseSweep(now,0.22,1400,350,2.5,0.10+t*0.06,0.15);
+          if(Math.random()<0.35)this._noiseSweep(now+0.28,0.18,1200,400,2.5,0.08,0.15); // double feint
+        }else if(r<0.75){ // feet shuffling on the mat
+          this._noiseSweep(now,0.09,260,180,1.5,0.07,0.2);
+          this._noiseSweep(now+0.13,0.11,300,170,1.5,0.06,0.2);
+          if(Math.random()<0.5)this._noiseSweep(now+0.3,0.09,240,160,1.5,0.05,0.2);
+        }else{ // glove tap — knuckles bumping in guard
+          this._noiseSweep(now,0.05,900,500,3,0.06,0.1);
+          this._thump(now,0.035);
+        }
+        this._nextFoley=now+(2.2+Math.random()*3.4)*(1-t*0.35); // a bit denser when tense
+      }
+    }else{this._nextFoley=0}
   },
   _thump:function(at,vol){
     var c=this._getCtx();if(!c)return;
