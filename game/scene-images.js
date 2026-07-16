@@ -34,29 +34,32 @@ var POV={
 // at x=960, knee-up body pinned to the canvas bottom y=1080 of 1920x1080).
 // s = crop height / frame-0 body height; ax = body center inside the crop;
 // ay = the body's bottom edge inside the crop. Filled by extraction metrics.
+// ax = MEAN body center across the clip (not frame 0): the full-body boxer
+// shifts on his feet inside the union crop, so the mean keeps him wandering
+// around screen center instead of parking off to one side.
 var POVCFG={
-  idle:   {s:1.015,ax:0.506,ay:1.0},
-  punch:  {s:1.017,ax:0.532,ay:1.0},
-  feint:  {s:1.036,ax:0.473,ay:1.0},
-  jab:    {s:1.015,ax:0.477,ay:1.0},
-  hook:   {s:1.019,ax:0.501,ay:1.0}
+  idle:   {s:1.018,ax:0.440,ay:1.0},
+  punch:  {s:1.065,ax:0.485,ay:1.0},
+  feint:  {s:1.041,ax:0.510,ay:1.0},
+  jab:    {s:1.065,ax:0.679,ay:1.0},
+  hook:   {s:1.015,ax:0.484,ay:1.0}
 };
 var POVFPS={idle:6,idleRamp:5,punch:8,feint:7,jab:10,hook:10,bg:10};
+// Static ring bg (boss spec: the background does not move) — no bg frame set.
 var POVSETS=[
   {name:'idle', path:'assets/anim3/hero/idle/', prefix:'idle_', count:24},
   {name:'punch',path:'assets/anim3/hero/punch/',prefix:'punch_',count:32},
   {name:'feint',path:'assets/anim3/hero/feint/',prefix:'feint_',count:24},
   {name:'jab',  path:'assets/anim3/hero/jab/',  prefix:'jab_',  count:24},
-  {name:'hook', path:'assets/anim3/hero/hook/', prefix:'hook_', count:24},
-  {name:'bg',   path:'assets/anim3/front/bg/',  prefix:'bg_',   count:16}
+  {name:'hook', path:'assets/anim3/hero/hook/', prefix:'hook_', count:24}
 ];
 // Clips that play once and hand back to idle (everything except the loops)
 var POV_ONESHOT={punch:1,feint:1,jab:1,hook:1};
 // The punch clip is one slow-motion KO blow: deliberate wind-up, single full
 // extension toward the camera (measured fill peak), slow settle back.
-var PUNCH_HITS=[15];
+var PUNCH_HITS=[20];
 // Mid-round strikes land on YOUR guard: contact frame per clip (measured fill peak)
-var STRIKE_HIT={jab:9,hook:9};
+var STRIKE_HIT={jab:15,hook:8};
 
 function _povLoadSet(s){
   POV.anims[s.name]=[];
@@ -261,17 +264,9 @@ function render(){
   var time=G.time||0;
   var dt=G.dt||0.016;
 
-  // ═══ L1: ARENA BACKGROUND — animated crowd loop, static still as fallback ═══
+  // ═══ L1: RING BACKGROUND — static (boss spec), cover-fit ═══
   var bgImg=null;
-  if(_povReady('bg')){
-    var bgAnim=POV.anims.bg;
-    POV.bgTimer+=dt;
-    // Crowd stirs a little faster as the roar builds
-    var bgD=1/(POVFPS.bg*(1+(G.crowdRoarSmooth||0)*0.6));
-    while(POV.bgTimer>=bgD){POV.bgTimer-=bgD;POV.bgFrame=(POV.bgFrame+1)%bgAnim.length}
-    bgImg=bgAnim[POV.bgFrame];
-  }
-  if(!bgImg&&IMG.bg&&IMG.bg.complete&&IMG.bg.naturalWidth)bgImg=IMG.bg;
+  if(IMG.bg&&IMG.bg.complete&&IMG.bg.naturalWidth)bgImg=IMG.bg;
   if(bgImg){
     var bgA=bgImg.naturalWidth/bgImg.naturalHeight,scA=W/H;
     var dW,dH;
@@ -293,9 +288,11 @@ function render(){
     try{var ls=document.getElementById('loadingScreen');if(ls)ls.classList.add('hidden')}catch(e){}
   }
   if(heroReady){
+    // Camera per the boss reference: the boxer is FULL BODY at mid-distance,
+    // standing on the ring floor — not the old knees-up close-up.
     var isMob=W<600;
-    var bodyH=Math.round(H*(isMob?0.78:0.92));
-    var bottomY=Math.round(H*(isMob?0.93:1.0))+(isMob?0:124);  // desktop: fighter sits 124px lower
+    var bodyH=Math.round(H*(isMob?0.55:0.66));
+    var bottomY=Math.round(H*(isMob?0.82:0.90));
     var drawClip=function(name,t,alpha){
       var smp=_povSample(name,t);if(!smp)return;
       var pc=POVCFG[name]||{s:1,ax:0.5,ay:1};
@@ -317,22 +314,23 @@ function render(){
     }
   }
 
-  // ═══ L2b: MY GLOVES — always present, calm idle bob ═══
-  var fistW2=W<600?W*0.828:W<900?W*0.4:W*0.43;  // desktop gloves +20%
-  var fistH2=fistW2*0.56;
+  // ═══ L2b: MY GLOVES — black boxing gloves anchored in the bottom corners,
+  // forearms bleeding off-frame (boss reference), calm idle bob ═══
+  var fistW2=W<600?W*0.52:W<900?W*0.36:W*0.34;
+  var fistH2=fistW2*0.715;  // 610x436 source aspect
   var idleBobL=Math.sin(time*2)*(W<600?3:5);
   var idleBobR=Math.sin(time*2+1)*(W<600?3:5);
-  var fistBottomOffset=W<600?124:W<900?124:-12;  // desktop: gloves hang 12px past the bottom
+  var fistBottomOffset=W<600?124:0;  // mobile: lift above the bet panel
   // a landed strike dips your guard for a beat (first-person head reaction)
   var gDip=(POV._gloveDipT||0)>0?(POV._gloveDipT/0.35)*(W<600?10:15):0;
   // the KO blow drops your guard for good: gloves slide down and out
   var koT2=POV._koT||0;
   var koDrop=koT2>0?_easeOutCubic(Math.min(1,koT2/0.9))*fistH2*1.7:0;
   if(IMG.fistL&&IMG.fistL.complete&&IMG.fistL.naturalWidth>0){
-    cx.drawImage(IMG.fistL,W*0.5-fistW2*0.8-koDrop*0.25,H-fistH2-fistBottomOffset+idleBobL+gDip+koDrop,fistW2,fistH2);
+    cx.drawImage(IMG.fistL,-fistW2*0.08-koDrop*0.25,H-fistH2-fistBottomOffset+idleBobL+gDip+koDrop,fistW2,fistH2);
   }
   if(IMG.fistR&&IMG.fistR.complete&&IMG.fistR.naturalWidth>0){
-    cx.drawImage(IMG.fistR,W*0.5-fistW2*0.2+koDrop*0.25,H-fistH2-fistBottomOffset+idleBobR+gDip+koDrop*1.15,fistW2,fistH2);
+    cx.drawImage(IMG.fistR,W-fistW2*0.92+koDrop*0.25,H-fistH2-fistBottomOffset+idleBobR+gDip+koDrop*1.15,fistW2,fistH2);
   }
 
   // ═══ L3: IMPACT FLASH — one burst per landed hit ═══
