@@ -228,7 +228,10 @@ function updateFighters(){
   else if(G.phase==='CRASH'){
     // koTimer drives the K.O. text — hold it until the slow-mo blow lands
     if(POV._hitIdx>0||POV.cur!=='punch')G.koTimer+=dt;
-    if(POV.cur!=='punch'){_povSet('punch');POV._hitIdx=0}
+    // Start the KO clip 1.4s in: CRASH_WAIT is only ~3s live, and the full
+    // wind-up would put the contact frame (32 @10fps = 3.2s) past the reset —
+    // the hit, its punch sound and the blackout would never fire.
+    if(POV.cur!=='punch'){_povSet('punch');POV.t=14;POV._hitIdx=0}
     // Impacts: one per extension of the combo, fired the moment playback
     // reaches each measured contact frame (the final one is the KO blow)
     if(POV.cur==='punch'){
