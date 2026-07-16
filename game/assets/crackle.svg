@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="90" viewBox="0 0 240 90">
+  <filter id="veins" x="0" y="0" width="100%" height="100%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.018 0.07" numOctaves="3" seed="11" result="n"/>
+    <feColorMatrix in="n" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  1.1 1.1 1.1 0 -1.25"/>
+    <feGaussianBlur stdDeviation="0.8"/>
+  </filter>
+  <rect width="100%" height="100%" filter="url(#veins)" opacity="0.22"/>
+</svg>
