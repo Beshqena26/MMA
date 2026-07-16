@@ -316,10 +316,26 @@ var SYNC={
 
 // ======================== SFX ENGINE ========================
 var SND={
-  _sounds:{},_bgMusic:null,_bgPlaying:false,soundOn:true,musicOn:false,_ctx:null, // music defaults OFF — the round is carried by foley/breath/heartbeat
+  // Three independent channels, persisted in localStorage:
+  //   sfxOn   = UI sounds (clicks, bet/cashout chimes)
+  //   fightOn = fight audio (punches, crowd, breath/heartbeat loops, foley)
+  //   musicOn = background music (defaults OFF — the round is carried by foley)
+  _sounds:{},_bgMusic:null,_bgPlaying:false,sfxOn:true,fightOn:true,musicOn:false,_ctx:null,
+  _loadPrefs:function(){
+    try{
+      var p=JSON.parse(localStorage.getItem('snd-prefs')||'{}');
+      if(typeof p.sfx==='boolean')this.sfxOn=p.sfx;
+      if(typeof p.fight==='boolean')this.fightOn=p.fight;
+      if(typeof p.music==='boolean')this.musicOn=p.music;
+    }catch(e){}
+  },
+  _savePrefs:function(){
+    try{localStorage.setItem('snd-prefs',JSON.stringify({sfx:this.sfxOn,fight:this.fightOn,music:this.musicOn}))}catch(e){}
+  },
   _load:function(key,src){var a=new Audio(src);a.preload='auto';this._sounds[key]=a},
   _getCtx:function(){if(!this._ctx){try{this._ctx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}return this._ctx},
   init:function(){
+    this._loadPrefs();
     this._load('punch','assets/sounds/punch.mp3');
     this._load('victory','assets/sounds/crowd-victory.wav');
     this._load('fight','assets/sounds/fight-voice.mp3');
@@ -344,13 +360,13 @@ var SND={
   },
   _playing:{},
   play:function(key,vol){
-    if(!this.soundOn)return;
+    if(!this.fightOn)return;
     var s=this._sounds[key];if(!s)return;
     try{var c=s.cloneNode();c.volume=vol||0.5;var p=c.play();if(p&&p.catch)p.catch(function(){});this._playing[key]=c}catch(e){}
   },
   // Procedural UI sounds via Web Audio API
   playTone:function(freq,dur,vol,type){
-    if(!this.soundOn)return;
+    if(!this.sfxOn)return;
     var c=this._getCtx();if(!c)return;
     try{
       var n=c.currentTime;
@@ -402,8 +418,10 @@ var SND={
     if(!this._bgMusic)return;
     try{this._bgMusic.pause();this._bgMusic.currentTime=0;this._bgPlaying=false}catch(e){}
   },
-  toggleSound:function(){this.soundOn=!this.soundOn;return this.soundOn},
-  toggleMusic:function(){this.musicOn=!this.musicOn;if(this.musicOn)this.startBG();else this.stopBG();return this.musicOn},
+  toggleSfx:function(){this.sfxOn=!this.sfxOn;this._savePrefs();return this.sfxOn},
+  toggleGameSnd:function(){this.fightOn=!this.fightOn;this._savePrefs();return this.fightOn},
+  toggleMusic:function(){this.musicOn=!this.musicOn;if(this.musicOn)this.startBG();else this.stopBG();this._savePrefs();return this.musicOn},
+  toggleSound:function(){return this.toggleSfx()},  // legacy alias
   // ── Tension ambience ──────────────────────────────────────────────
   // The scene builds tension through stillness; the audio mirrors it:
   // music fades toward silence as the multiplier climbs (the arena
@@ -427,7 +445,7 @@ var SND={
   // ── Real breath/heartbeat loops ──
   _tickLoops:function(phase,t){
     if(!this._breath)return;
-    var mute=!this.soundOn;
+    var mute=!this.fightOn;
     // Breathing: soft while betting, clearly present through the fight
     var bTarget=mute?0:(phase==='FREEFALL')?0.30+t*0.30:(phase==='BETTING')?0.12:0;
     var bRate=(phase==='FREEFALL')?1+t*0.35:1;
@@ -470,7 +488,7 @@ var SND={
   },
   _nextFoley:0,
   _tickFoley:function(phase,t){
-    if(!this.soundOn)return;
+    if(!this.fightOn)return;
     var fight=(phase==='FREEFALL');
     if(!fight){this._nextFoley=0;return}
     var c=this._getCtx();if(!c||c.state!=='running')return;
@@ -2008,12 +2026,19 @@ if(menuOverlay)menuOverlay.onclick=closeMenu;
     });
   });
 })();
-// Sound toggles in menu
-try{
-  document.getElementById('menuSfx').onclick=function(){var on=SND.toggleSfx();document.getElementById('sfxToggle').classList.toggle('on',on)};
-  document.getElementById('menuGameSnd').onclick=function(){var on=SND.toggleGameSnd();document.getElementById('gameSndToggle').classList.toggle('on',on)};
-  document.getElementById('menuMusic').onclick=function(){var on=SND.toggleMusic();document.getElementById('musicToggle').classList.toggle('on',on)};
-}catch(e){}
+// Sound toggles in menu — each channel wired independently, knobs synced to
+// the (persisted) SND state on boot so the UI never lies about what's on.
+(function(){
+  function wire(itemId,knobId,isOn,toggle){
+    var item=document.getElementById(itemId),knob=document.getElementById(knobId);
+    if(!item||!knob)return;
+    knob.classList.toggle('on',isOn());
+    item.onclick=function(){knob.classList.toggle('on',toggle())};
+  }
+  wire('menuSfx','sfxToggle',function(){return SND.sfxOn},function(){return SND.toggleSfx()});
+  wire('menuGameSnd','gameSndToggle',function(){return SND.fightOn},function(){return SND.toggleGameSnd()});
+  wire('menuMusic','musicToggle',function(){return SND.musicOn},function(){return SND.toggleMusic()});
+})();
 // Menu items open modals
 document.getElementById('menuHowToPlay').onclick=()=>{closeMenu();document.getElementById('infoModal').classList.add('open')};
 
