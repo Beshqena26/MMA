@@ -268,7 +268,7 @@ function render(){
   }
 
   // ═══ L2b: MY GLOVES — always present, calm idle bob ═══
-  var fistW2=W<600?W*0.828:W<900?W*0.4:W*0.358;
+  var fistW2=W<600?W*0.828:W<900?W*0.4:W*0.43;  // desktop gloves +20%
   var fistH2=fistW2*0.56;
   var idleBobL=Math.sin(time*2)*(W<600?3:5);
   var idleBobR=Math.sin(time*2+1)*(W<600?3:5);
