@@ -797,8 +797,9 @@ function showRoundInfo(info){
   // Header
   $('riRound').textContent=info.round;
   var badge=$('riCrashBadge');badge.textContent=v.toFixed(2)+'x';
-  badge.style.background=v>=5?'rgba(0,200,83,.15)':v>=1.5?'rgba(245,197,66,.12)':'rgba(200,0,40,.18)';
-  badge.style.color=v>=5?'var(--acc)':v>=1.5?'var(--wrn)':'var(--dng)';
+  badge.style.background=v>=5?'rgba(0,200,83,.14)':'rgba(242,242,242,.07)';
+  badge.style.border='1px solid '+(v>=5?'rgba(0,200,83,.22)':'rgba(242,242,242,.14)');
+  badge.style.color=v>=5?'#00ff88':'rgba(242,242,242,.85)';
   $('riTime').textContent=info.time||new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   // Server seed
   $('riServerSeed').textContent=info.serverSeed||_rndSeed()+'VabC10zYMe2Z6DZ5rSaEqnwEd';
@@ -822,8 +823,49 @@ function showRoundInfo(info){
   $('riHex').textContent=hex;
   $('riDecimal').textContent=dec.toString();
   var rv=$('riResultVal');rv.textContent=v.toFixed(2);
-  rv.style.color=v>=5?'var(--acc)':v>=1.5?'var(--wrn)':'var(--dng)';
+  rv.style.color=v>=5?'#00ff88':'#f2f2f2';
   document.getElementById('roundInfoModal').classList.add('open');
+}
+// ── Bet history rows: expandable cards with per-round provably-fair data ──
+function _hstRoundInfo(round){
+  try{for(var i=0;i<G.history.length;i++){var h=G.history[i];if(h&&h.round===round)return h}}catch(e){}
+  return null;
+}
+function _renderHstRows(){
+  var list=document.getElementById('hstList');list.innerHTML='';
+  var n=Math.min(window._hstShown||50,G.betHistory.length);
+  for(var i=0;i<n;i++){
+    (function(h,idx){
+      var won=h.win>0,big=h.mult>=5;
+      var t=h.time?new Date(h.time):null;
+      var timeStr=t&&!isNaN(t)?t.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'';
+      var info=_hstRoundInfo(h.round);
+      var row=document.createElement('div');row.className='hst-row';
+      row.innerHTML='<div class="hst-main">'
+        +'<span class="hst-av">'+_selectedAvatar+'</span>'
+        +'<span class="hst-meta"><b>#'+h.round+'</b><span>'+timeStr+'</span></span>'
+        +'<span class="hst-bet">$'+h.bet.toFixed(2)+'</span>'
+        +'<span class="hst-pill'+(big?' big':'')+'">'+h.mult.toFixed(2)+'x</span>'
+        +'<span class="hst-res '+(won?'pos':'neg')+'">'+(won?'+$'+h.win.toFixed(2):'-$'+h.bet.toFixed(2))+'</span>'
+        +'<span class="hst-chev"><svg class="ico ico-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>'
+        +'</div>'
+        +'<div class="hst-detail">'
+        +'<div class="hst-seed"><label>Server seed</label><div>'+((info&&info.serverSeed)||'Not available for this round')+'</div></div>'
+        +'<div class="hst-seed"><label>Combined SHA512 hash</label><div>'+((info&&info.hash)||'Not available for this round')+'</div></div>'
+        +(info?'<button class="hst-verify">Verify this round</button>':'')
+        +'</div>';
+      row.querySelector('.hst-main').addEventListener('click',function(){row.classList.toggle('open')});
+      var vb=row.querySelector('.hst-verify');
+      if(vb)vb.addEventListener('click',function(ev){ev.stopPropagation();document.getElementById('historyModal').classList.remove('open');showRoundInfo(info)});
+      list.appendChild(row);
+    })(G.betHistory[i],i);
+  }
+  if(G.betHistory.length>n){
+    var more=document.createElement('button');more.className='hst-more';
+    more.textContent='Show more ('+(G.betHistory.length-n)+')';
+    more.addEventListener('click',function(){window._hstShown=(window._hstShown||50)+50;_renderHstRows()});
+    list.appendChild(more);
+  }
 }
 function updAlt(){try{$('altN').textContent=Math.round(G.alt).toLocaleString();$('altF').style.height=(Math.min(1,G.alt/G.MAX_ALT)*100)+'%'}catch(e){}}
 function updStats(){}
@@ -1954,25 +1996,15 @@ document.getElementById('menuBetHistory').onclick=()=>{
   else{
     empty.style.display='none';
     let wins=0,losses=0;
-    G.betHistory.forEach(h=>{
-      const won=h.win>0;
-      if(won)wins++;else losses++;
-      const row=document.createElement('div');
-      row.style.cssText='display:grid;grid-template-columns:30px auto 1fr 1fr 1.2fr;gap:0;padding:9px 10px;margin-bottom:6px;background:rgba(242,242,242,.05);border:1px solid rgba(242,242,242,.08);border-radius:12px;font-size:12px;align-items:center';
-      const tint=h.mult<2?['rgba(200,0,40,.18)','#ef4444','rgba(200,0,40,.3)']:h.mult<5?['rgba(245,197,66,.12)','#F5C542','rgba(245,197,66,.25)']:['rgba(0,200,83,.15)','#00ff88','rgba(0,200,83,.25)'];
-      row.innerHTML=`<span style="width:24px;height:24px;border-radius:100px;background:rgba(242,242,242,.08);display:flex;align-items:center;justify-content:center;font-size:12px">${_selectedAvatar}</span>`+
-        `<span style="padding:0 8px;color:rgba(242,242,242,.5);font-family:'Ubuntu',sans-serif;font-size:11px">#${h.round}</span>`+
-        `<span style="font-family:'Ubuntu',sans-serif;font-weight:700;color:#f2f2f2">$${h.bet.toFixed(2)}</span>`+
-        `<span><span style="display:inline-block;padding:3px 10px;border-radius:100px;background:${tint[0]};border:1px solid ${tint[2]};color:${tint[1]};font-family:'Ubuntu',sans-serif;font-size:11px;font-weight:700">${h.mult.toFixed(2)}x</span></span>`+
-        `<span style="text-align:right;font-family:'Ubuntu',sans-serif;font-weight:700;color:${won?'#00ff88':'#ef4444'}">${won?'+$'+h.win.toFixed(2):'-$'+h.bet.toFixed(2)}</span>`;
-      list.appendChild(row);
-    });
+    G.betHistory.forEach(h=>{if(h.win>0)wins++;else losses++});
+    window._hstShown=50;
+    _renderHstRows();
     document.getElementById('hstWins').textContent=wins;
     document.getElementById('hstLosses').textContent=losses;
     const prof=G.totP;
     const profEl=document.getElementById('hstProfit');
-    profEl.textContent=(prof>=0?'+':'')+' $'+prof.toFixed(2);
-    profEl.style.color=prof>=0?'var(--acc)':'var(--dng)';
+    profEl.textContent=(prof>=0?'+':'-')+'$'+Math.abs(prof).toFixed(2);
+    profEl.className=prof>=0?'pos':'neg';
   }
   document.getElementById('historyModal').classList.add('open');
 };

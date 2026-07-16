@@ -19,9 +19,9 @@ canvas{position:fixed;top:0;left:0;z-index:1}
 .hs{display:flex;gap:4px;padding:5px 12px;overflow-x:auto;flex-shrink:0;scrollbar-width:none;-webkit-overflow-scrolling:touch;background:rgba(10,10,10,.7);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid rgba(242,242,242,.06)}.hs::-webkit-scrollbar{display:none}
 .hc{font-family:'Ubuntu',sans-serif;font-size:10px;font-weight:700;padding:3px 10px;border-radius:100px;white-space:nowrap;flex-shrink:0;animation:ci .4s cubic-bezier(.34,1.56,.64,1)}
 @keyframes ci{from{transform:translateY(-20px) scale(0);opacity:0}to{transform:translateY(0) scale(1);opacity:1}}
-.hc.g{background:rgba(0,200,83,.15);color:#00ff88;border:1px solid rgba(0,200,83,.25)}
-.hc.y{background:rgba(245,197,66,.1);color:var(--wrn);border:1px solid rgba(245,197,66,.15)}
-.hc.r{background:rgba(200,0,40,.18);color:#ef4444;border:1px solid rgba(200,0,40,.3)}
+.hc.g{background:rgba(0,200,83,.14);color:#00ff88;border:1px solid rgba(0,200,83,.22)}
+.hc.y{background:rgba(242,242,242,.07);color:rgba(242,242,242,.85);border:1px solid rgba(242,242,242,.14)}
+.hc.r{background:rgba(242,242,242,.07);color:rgba(242,242,242,.85);border:1px solid rgba(242,242,242,.14)}
 .mid{flex:1;min-height:0;position:relative;pointer-events:none;background:transparent}
 .cine{position:absolute;top:12%;left:50%;transform:translate(-50%,-50%) scale(.92);text-align:center;pointer-events:none;opacity:0;transition:opacity .5s,transform .5s cubic-bezier(.23,1,.32,1)}.cine.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
 .cine .c1{font-family:'Oxanium',sans-serif;font-size:56px;font-weight:700;line-height:1;color:#f2f2f2;text-shadow:0 0 60px rgba(0,200,83,.2),0 2px 20px rgba(0,0,0,.4);transition:color .5s,text-shadow .5s;letter-spacing:-1px}
@@ -400,3 +400,45 @@ button:focus:not(:focus-visible){outline:none}
   .bp.single .bet-panel{max-width:480px}
   .bp.single .bp-actions{justify-content:center;gap:20px}
 }
+
+/* ── Bet History modal (prod) ── */
+.hst-stats{display:grid;grid-template-columns:1fr 1fr 1.4fr;gap:8px;margin:12px 0 14px}
+.hst-stat{background:rgba(242,242,242,.05);border:1px solid rgba(242,242,242,.08);border-radius:12px;padding:10px 12px;text-align:center}
+.hst-stat b{display:block;font-family:'Ubuntu',sans-serif;font-size:18px;font-weight:700;color:#f2f2f2}
+.hst-stat span{font-size:9px;font-weight:700;letter-spacing:.5px;color:rgba(242,242,242,.5);text-transform:uppercase}
+.hst-stat b.pos{color:#00ff88}.hst-stat b.neg{color:#ef4444}
+.hst-row{background:rgba(242,242,242,.05);border:1px solid rgba(242,242,242,.08);border-radius:12px;margin-bottom:6px;overflow:hidden;transition:background .15s}
+.hst-row:hover{background:rgba(242,242,242,.08)}
+.hst-main{display:grid;grid-template-columns:30px minmax(70px,auto) 1fr auto auto 22px;gap:8px;align-items:center;padding:9px 10px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.hst-av{width:24px;height:24px;border-radius:100px;background:rgba(242,242,242,.08);display:flex;align-items:center;justify-content:center;font-size:12px}
+.hst-meta{display:flex;flex-direction:column;line-height:1.25}
+.hst-meta b{font-family:'Ubuntu',sans-serif;font-size:12px;font-weight:700;color:#f2f2f2}
+.hst-meta span{font-size:9px;color:rgba(242,242,242,.45)}
+.hst-bet{font-family:'Ubuntu',sans-serif;font-size:12px;font-weight:700;color:rgba(242,242,242,.85)}
+.hst-pill{display:inline-block;padding:3px 10px;border-radius:100px;background:rgba(242,242,242,.07);border:1px solid rgba(242,242,242,.14);color:rgba(242,242,242,.85);font-family:'Ubuntu',sans-serif;font-size:11px;font-weight:700}
+.hst-pill.big{background:rgba(0,200,83,.14);border-color:rgba(0,200,83,.22);color:#00ff88}
+.hst-res{font-family:'Ubuntu',sans-serif;font-size:12px;font-weight:700;text-align:right;min-width:64px}
+.hst-res.pos{color:#00ff88}.hst-res.neg{color:#ef4444}
+.hst-chev{color:rgba(242,242,242,.4);display:flex;transition:transform .2s}
+.hst-row.open .hst-chev{transform:rotate(180deg)}
+.hst-detail{display:none;padding:2px 12px 12px;border-top:1px solid rgba(242,242,242,.07)}
+.hst-row.open .hst-detail{display:block}
+.hst-seed{margin-top:10px}
+.hst-seed label{display:block;font-size:9px;font-weight:700;letter-spacing:.5px;color:rgba(242,242,242,.45);text-transform:uppercase;margin-bottom:3px}
+.hst-seed div{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(242,242,242,.75);word-break:break-all;background:rgba(13,13,13,.5);border-radius:10px;padding:8px 10px}
+.hst-verify{margin-top:10px;width:100%;height:36px;border-radius:100px;background:rgba(242,242,242,.08);border:1px solid rgba(242,242,242,.16);color:#f2f2f2;font-family:'Ubuntu',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:background .2s}
+.hst-verify:hover{background:rgba(242,242,242,.13)}
+.hst-more{width:100%;height:38px;margin-top:4px;border-radius:100px;background:transparent;border:1px solid rgba(242,242,242,.14);color:rgba(242,242,242,.7);font-family:'Ubuntu',sans-serif;font-size:12px;font-weight:700;cursor:pointer}
+.hst-empty{text-align:center;padding:36px 0;color:rgba(242,242,242,.45);font-size:12px}
+/* ── How To Play (prod) ── */
+.htp-step{display:flex;gap:12px;background:rgba(242,242,242,.04);border:1px solid rgba(242,242,242,.08);border-radius:14px;padding:12px;margin-top:8px}
+.htp-num{flex-shrink:0;width:28px;height:28px;border-radius:100px;background:var(--crackle),linear-gradient(180deg,#00c853,#006229);background-size:cover,100% 100%;color:#fff;font-family:'Ubuntu',sans-serif;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center}
+.htp-step h5{font-family:'Ubuntu',sans-serif;font-size:13px;font-weight:700;color:#fff;margin:2px 0 4px;letter-spacing:.2px}
+.htp-step p{font-size:11.5px;color:rgba(242,242,242,.6);line-height:1.55;margin:0}
+.htp-step b{color:rgba(242,242,242,.9);font-weight:700}
+.htp-step .gr{color:#00ff88}
+.htp-step .rd{color:#ef4444}
+.htp-tips{margin-top:12px;background:rgba(0,200,83,.06);border:1px solid rgba(0,200,83,.15);border-radius:14px;padding:12px}
+.htp-tips h5{font-family:'Ubuntu',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;color:#00ff88;margin:0 0 8px;text-transform:uppercase}
+.htp-tips p{font-size:11.5px;color:rgba(242,242,242,.6);line-height:1.7;margin:0}
+.htp-tips b{color:rgba(242,242,242,.9)}
