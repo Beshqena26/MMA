@@ -797,7 +797,7 @@ function showRoundInfo(info){
   // Header
   $('riRound').textContent=info.round;
   var badge=$('riCrashBadge');badge.textContent=v.toFixed(2)+'x';
-  badge.style.background=v>=5?'rgba(76,175,80,.15)':v>=1.5?'rgba(255,170,0,.12)':'rgba(255,34,85,.12)';
+  badge.style.background=v>=5?'rgba(0,200,83,.15)':v>=1.5?'rgba(245,197,66,.12)':'rgba(200,0,40,.18)';
   badge.style.color=v>=5?'var(--acc)':v>=1.5?'var(--wrn)':'var(--dng)';
   $('riTime').textContent=info.time||new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   // Server seed
@@ -1939,7 +1939,7 @@ document.getElementById('menuBetHistory').onclick=()=>{
       if(won)wins++;else losses++;
       const row=document.createElement('div');
       row.style.cssText='display:grid;grid-template-columns:28px auto 1fr 1fr 1fr;gap:0;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:11px;align-items:center';
-      row.innerHTML=`<span style="width:22px;height:22px;border-radius:50%;background:rgba(76,175,80,.12);display:flex;align-items:center;justify-content:center;font-size:11px;margin-left:4px">${_selectedAvatar}</span>`+
+      row.innerHTML=`<span style="width:22px;height:22px;border-radius:50%;background:rgba(0,200,83,.12);display:flex;align-items:center;justify-content:center;font-size:11px;margin-left:4px">${_selectedAvatar}</span>`+
         `<span style="padding:0 6px;color:var(--dim);font-family:'JetBrains Mono',monospace;font-size:10px">#${h.round}</span>`+
         `<span style="font-family:'JetBrains Mono',monospace;font-weight:600">$${h.bet.toFixed(2)}</span>`+
         `<span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:${h.mult<2?'var(--dng)':h.mult<5?'var(--wrn)':'var(--acc)'}">${h.mult.toFixed(2)}×</span>`+
@@ -2020,9 +2020,9 @@ function sendChat(){
   if(!text)return;
   // If Firebase chat is active, send via Firebase (it will come back via listener)
   if(_fbChatActive&&typeof FB!=='undefined'&&FB.isOnline()){
-    FB.sendChatMsg({name:_selectedName,avatar:_selectedAvatar,bg:'rgba(76,175,80,.12)',text:text});
+    FB.sendChatMsg({name:_selectedName,avatar:_selectedAvatar,bg:'rgba(0,200,83,.12)',text:text});
   }else{
-    _addChatMsg(_selectedName,_selectedAvatar,'rgba(76,175,80,.12)',text,true);
+    _addChatMsg(_selectedName,_selectedAvatar,'rgba(0,200,83,.12)',text,true);
   }
   if(inp)inp.value='';
   if(mInp)mInp.value='';
@@ -2036,7 +2036,7 @@ if(typeof FB!=='undefined'){
     _fbChatActive=true;
     _chatHistory=[];// Clear local-only history, Firebase is source of truth
     FB.onChat(function(msg){
-      var m={name:msg.name,avatar:msg.avatar,bg:msg.bg||'rgba(76,175,80,.12)',text:msg.text,time:msg.timeStr,isMe:msg.isMe};
+      var m={name:msg.name,avatar:msg.avatar,bg:msg.bg||'rgba(0,200,83,.12)',text:msg.text,time:msg.timeStr,isMe:msg.isMe};
       _chatHistory.push(m);
       if(_chatHistory.length>80)_chatHistory.shift();
       _renderChat('chatMessages');
@@ -2194,9 +2194,9 @@ function _sendGif(pickerId,gifData){
   document.getElementById(pickerId).classList.remove('open');
   var gifText='__GIF__'+gifData;
   if(_fbChatActive&&typeof FB!=='undefined'&&FB.isOnline()){
-    FB.sendChatMsg({name:_selectedName,avatar:_selectedAvatar,bg:'rgba(76,175,80,.12)',text:gifText});
+    FB.sendChatMsg({name:_selectedName,avatar:_selectedAvatar,bg:'rgba(0,200,83,.12)',text:gifText});
   }else{
-    _addChatMsg(_selectedName,_selectedAvatar,'rgba(76,175,80,.12)',gifText,true);
+    _addChatMsg(_selectedName,_selectedAvatar,'rgba(0,200,83,.12)',gifText,true);
   }
 }
 // Init pickers on load
