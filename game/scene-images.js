@@ -209,6 +209,12 @@ function render(){
   // Wait for the FULL idle set before he first appears: one clean reveal
   // instead of a fighter flickering while frames stream in.
   var heroImg=_povReady('idle')?_povFrame(dt):null;
+  // The branded loading screen lifts as soon as he can be drawn
+  // (index.html also force-hides it after 6s as a safety net).
+  if(heroImg&&!POV._loadHidden){
+    POV._loadHidden=true;
+    try{var ls=document.getElementById('loadingScreen');if(ls)ls.classList.add('hidden')}catch(e){}
+  }
   if(heroImg){
     var pc=POVCFG[POV.cur]||{s:1,ax:0.5,ay:1};
     var isMob=W<600;
