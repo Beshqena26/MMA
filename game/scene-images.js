@@ -374,23 +374,25 @@ function render(){
     cx.fill();return true;
   });
 
-  // ═══ L4a: KO DAMAGE FLASH — red vignette slams in the INSTANT the
-  // multiplier dies and drains away (KingsMove-style hit feedback) ═══
+  // ═══ L4a: BLACKOUT — the lights go out after the KO blow (no blood, no
+  // celebration: guard down, head down, round over). KO text renders above it.
+  if(koT2>0.3){
+    var ba=_easeOutCubic(Math.min(1,(koT2-0.3)/0.8))*0.92;
+    cx.fillStyle='rgba(0,0,0,'+ba+')';cx.fillRect(0,0,W,H);
+  }
+
+  // ═══ L4b: KO DAMAGE VIGNETTE — slams in the INSTANT the multiplier dies,
+  // settles, and STAYS (over the blackout) for the whole crash — it only
+  // clears when the next-round counter takes over (KingsMove-style) ═══
   var koFlashT=(G.phase==='CRASH')?(G.koTimer||0):0;
-  if(koFlashT>0&&koFlashT<0.9){
-    var ra=Math.max(0,1-koFlashT/0.9)*0.5;
+  if(koFlashT>0){
+    // 0.5 slam -> eases to a sustained 0.32 glow
+    var ra=koFlashT<0.5?0.5-(koFlashT/0.5)*0.18:0.32;
     var rg=cx.createRadialGradient(W/2,H/2,H*0.22,W/2,H/2,H*0.95);
     rg.addColorStop(0,'rgba(255,10,40,'+(ra*0.22)+')');
     rg.addColorStop(0.65,'rgba(255,10,40,'+(ra*0.55)+')');
     rg.addColorStop(1,'rgba(180,0,20,'+ra+')');
     cx.fillStyle=rg;cx.fillRect(0,0,W,H);
-  }
-
-  // ═══ L4b: BLACKOUT — the lights go out after the KO blow (no blood, no
-  // celebration: guard down, head down, round over). KO text renders above it.
-  if(koT2>0.3){
-    var ba=_easeOutCubic(Math.min(1,(koT2-0.3)/0.8))*0.92;
-    cx.fillStyle='rgba(0,0,0,'+ba+')';cx.fillRect(0,0,W,H);
   }
 
   // ═══ L5: KO TEXT ═══
