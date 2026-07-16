@@ -1958,12 +1958,13 @@ document.getElementById('menuBetHistory').onclick=()=>{
       const won=h.win>0;
       if(won)wins++;else losses++;
       const row=document.createElement('div');
-      row.style.cssText='display:grid;grid-template-columns:28px auto 1fr 1fr 1fr;gap:0;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:11px;align-items:center';
-      row.innerHTML=`<span style="width:22px;height:22px;border-radius:50%;background:rgba(0,200,83,.12);display:flex;align-items:center;justify-content:center;font-size:11px;margin-left:4px">${_selectedAvatar}</span>`+
-        `<span style="padding:0 6px;color:var(--dim);font-family:'JetBrains Mono',monospace;font-size:10px">#${h.round}</span>`+
-        `<span style="font-family:'JetBrains Mono',monospace;font-weight:600">$${h.bet.toFixed(2)}</span>`+
-        `<span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:${h.mult<2?'var(--dng)':h.mult<5?'var(--wrn)':'var(--acc)'}">${h.mult.toFixed(2)}×</span>`+
-        `<span style="text-align:right;padding-right:4px;font-family:'JetBrains Mono',monospace;font-weight:700;color:${won?'var(--acc)':'var(--dng)'}">${won?'+$'+h.win.toFixed(2):'-$'+h.bet.toFixed(2)}</span>`;
+      row.style.cssText='display:grid;grid-template-columns:30px auto 1fr 1fr 1.2fr;gap:0;padding:9px 10px;margin-bottom:6px;background:rgba(242,242,242,.05);border:1px solid rgba(242,242,242,.08);border-radius:12px;font-size:12px;align-items:center';
+      const tint=h.mult<2?['rgba(200,0,40,.18)','#ef4444','rgba(200,0,40,.3)']:h.mult<5?['rgba(245,197,66,.12)','#F5C542','rgba(245,197,66,.25)']:['rgba(0,200,83,.15)','#00ff88','rgba(0,200,83,.25)'];
+      row.innerHTML=`<span style="width:24px;height:24px;border-radius:100px;background:rgba(242,242,242,.08);display:flex;align-items:center;justify-content:center;font-size:12px">${_selectedAvatar}</span>`+
+        `<span style="padding:0 8px;color:rgba(242,242,242,.5);font-family:'Ubuntu',sans-serif;font-size:11px">#${h.round}</span>`+
+        `<span style="font-family:'Ubuntu',sans-serif;font-weight:700;color:#f2f2f2">$${h.bet.toFixed(2)}</span>`+
+        `<span><span style="display:inline-block;padding:3px 10px;border-radius:100px;background:${tint[0]};border:1px solid ${tint[2]};color:${tint[1]};font-family:'Ubuntu',sans-serif;font-size:11px;font-weight:700">${h.mult.toFixed(2)}x</span></span>`+
+        `<span style="text-align:right;font-family:'Ubuntu',sans-serif;font-weight:700;color:${won?'#00ff88':'#ef4444'}">${won?'+$'+h.win.toFixed(2):'-$'+h.bet.toFixed(2)}</span>`;
       list.appendChild(row);
     });
     document.getElementById('hstWins').textContent=wins;
