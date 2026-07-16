@@ -62,7 +62,7 @@ canvas{position:fixed;top:0;left:0;z-index:1}
 @keyframes boostf{0%{opacity:1;transform:translateY(0) scale(1.2)}30%{opacity:1;transform:translateY(-15px) scale(1.35)}70%{opacity:.9;transform:translateY(-35px) scale(1.1)}100%{opacity:0;transform:translateY(-60px) scale(.7)}}
 /* ============ BOTTOM PANEL — MOBILE FIRST ============ */
 .bottom-dock{display:none}
-.bp{background:rgba(15,21,32,.97);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:4px 4px calc(4px + var(--sab));border-top:1px solid rgba(255,255,255,.04);display:flex;flex-direction:column;gap:2px;position:fixed;bottom:0;left:0;right:0;z-index:15}
+.bp{background:rgba(35,32,78,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);padding:6px;border:1px solid var(--border);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.5);display:flex;flex-direction:column;gap:3px;position:fixed;bottom:calc(8px + var(--sab));left:8px;right:8px;z-index:15}
 .bp-spacer{display:none}
 .bp-panel-tabs{display:none}
 .bet-panel{position:relative}
@@ -238,7 +238,8 @@ canvas{position:fixed;top:0;left:0;z-index:1}
   .rb-bar-text{font-size:11px}
   .cine .c1{font-size:42px}
   .cine .c2{font-size:10px;letter-spacing:2px}
-  .bp{padding:4px;gap:3px}
+  .bp{padding:5px;gap:3px}
+  .ov{padding-bottom:calc(150px + var(--sab))} /* scroll clearance under the floating island */
   .bet-panel{border-radius:8px}
   .bp-body{padding:4px;gap:4px}
   .bp-amt{font-size:14px}
@@ -258,7 +259,7 @@ canvas{position:fixed;top:0;left:0;z-index:1}
   .round-banner{width:270px}
   .rb-title{font-size:17px}
   .cine .c1{font-size:56px}
-  .bp{flex-direction:row;gap:8px;padding:8px;justify-content:center}
+  .bp{flex-direction:row;gap:8px;padding:8px;justify-content:center;left:16px;right:16px}
   .bet-panel{max-width:340px}
 }
 
@@ -278,7 +279,7 @@ canvas{position:fixed;top:0;left:0;z-index:1}
   .ag{right:18px}.at{width:6px;height:220px}.an{font-size:12px}
   .bm{top:42%}.bm .bt{font-size:16px}.bm .bb{font-size:56px}
   .bottom-dock{display:contents}
-  .bp{flex-direction:row;gap:4px;padding:0 4px;justify-content:center}
+  .bp{position:relative;left:auto;right:auto;bottom:auto;flex-direction:row;gap:6px;padding:8px;justify-content:center;margin:0 auto 12px;width:auto;max-width:820px;border-radius:18px}
   .bp-spacer{display:none}
   .bet-panel{border-radius:10px;max-width:380px}
   .bp-tabs{margin:3px 5px 2px;padding:1px}.bp-tab{padding:4px 0;font-size:10px}
