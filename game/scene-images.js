@@ -243,6 +243,8 @@ function updateFighters(){
         G.crowdRoar=last?1:Math.min(1,(G.crowdRoar||0)+0.4);
         if(typeof spawnParticles==='function')spawnParticles(cv.width*0.5,cv.height*0.4,'gold',last?8:4);
         if(typeof SND!=='undefined'){SND.play('punch',last?0.9:0.6);if(last)SND.play('cheer',0.5)}
+        // the KO blow rattles the whole page, not just the canvas
+        if(last){try{document.body.classList.add('ko-shake');setTimeout(function(){document.body.classList.remove('ko-shake')},650)}catch(e){}}
       }
     }
     // After the blow lands: your guard drops and the round fades to black.
@@ -370,6 +372,17 @@ function render(){
     cx.fillStyle='hsla('+(p.hue||20)+','+(p.sat||100)+'%,'+(p.lit||55)+'%,'+a+')';
     cx.fill();return true;
   });
+
+  // ═══ L4a: KO DAMAGE FLASH — red vignette slams in at impact and drains
+  // away as the blackout takes over (KingsMove-style hit feedback) ═══
+  if(koT2>0&&koT2<0.9){
+    var ra=Math.max(0,1-koT2/0.9)*0.5;
+    var rg=cx.createRadialGradient(W/2,H/2,H*0.22,W/2,H/2,H*0.95);
+    rg.addColorStop(0,'rgba(255,10,40,'+(ra*0.22)+')');
+    rg.addColorStop(0.65,'rgba(255,10,40,'+(ra*0.55)+')');
+    rg.addColorStop(1,'rgba(180,0,20,'+ra+')');
+    cx.fillStyle=rg;cx.fillRect(0,0,W,H);
+  }
 
   // ═══ L4b: BLACKOUT — the lights go out after the KO blow (no blood, no
   // celebration: guard down, head down, round over). KO text renders above it.

@@ -36,6 +36,10 @@ canvas{position:fixed;top:0;left:0;z-index:1}
 /* Top-left status line retired — the round banner + cine multiplier carry all
    round states now ("FIGHTERS READY", "FIGHT!", "SYNCING…" were duplicates). */
 .stl{display:none}.stl.show{display:none}
+/* KO impact: brief whole-page rattle (canvas shake alone reads too subtle) */
+@keyframes koShake{0%{transform:translate(0,0)}12%{transform:translate(-9px,5px)}24%{transform:translate(8px,-6px)}38%{transform:translate(-6px,-4px)}52%{transform:translate(5px,4px)}68%{transform:translate(-3px,2px)}84%{transform:translate(2px,-1px)}100%{transform:translate(0,0)}}
+body.ko-shake{animation:koShake .6s cubic-bezier(.36,.07,.19,.97)}
+@media(prefers-reduced-motion:reduce){body.ko-shake{animation:none}}
 .stl.s1{color:var(--acc);border-color:rgba(0,200,83,.2)}.stl.s2{color:var(--acc);border-color:rgba(0,200,83,.2)}.stl.s3{color:var(--wrn);border-color:rgba(255,170,0,.15)}.stl.s4{color:var(--dng);border-color:rgba(255,34,85,.15)}.stl.s5{color:var(--gld);border-color:rgba(255,215,0,.15)}
 .timer-bar{position:absolute;top:0;left:0;height:3px;background:var(--crackle),linear-gradient(180deg,#00c853,#006229);background-size:cover,100% 100%;transition:width .3s linear;z-index:20;border-radius:0 100px 100px 0;box-shadow:0 0 8px rgba(0,200,83,.35)}.timer-bar.urgent{background:linear-gradient(90deg,#c80028,#ef4444);height:4px;box-shadow:0 0 12px rgba(200,0,40,.4)}
 /* Round banner — betting countdown */
