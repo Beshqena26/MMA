@@ -146,7 +146,7 @@ canvas{position:fixed;top:0;left:0;z-index:1}
 .menu-overlay.open+.menu-panel,.menu-panel.open{right:0}
 .menu-head{padding:20px 16px 16px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:12px}
 .menu-avatar{width:44px;height:44px;border-radius:50%;background:rgba(242,242,242,.08);border:2px solid rgba(242,242,242,.25);display:flex;align-items:center;justify-content:center;font-size:22px;position:relative;transition:.2s}
-.menu-avatar::after{content:'✏️';position:absolute;bottom:-2px;right:-2px;font-size:10px;width:16px;height:16px;background:var(--panel);border:1px solid rgba(242,242,242,.3);border-radius:50%;display:flex;align-items:center;justify-content:center;line-height:1}
+.menu-avatar::after{display:none}
 .menu-avatar:active{transform:scale(.93);border-color:var(--acc)}
 .menu-user{flex:1}
 .menu-user-name{font-family:'Ubuntu',sans-serif;font-size:13px;font-weight:700;color:#fff}
@@ -164,7 +164,7 @@ canvas{position:fixed;top:0;left:0;z-index:1}
 .menu-toggle.on::after{left:19px;background:#F2F2F2}
 .menu-divider{height:1px;background:rgba(255,255,255,.04);margin:4px 16px}
 .menu-footer{padding:16px;text-align:center;margin-top:auto;border-top:1px solid rgba(255,255,255,.04)}
-​.menu-footer-logo{font-family:'Ubuntu',sans-serif;font-weight:700;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.4)}
+.menu-footer-logo{font-family:'Ubuntu',sans-serif;font-weight:700;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.4)}
 .menu-footer-ver{font-size:9px;color:var(--dim);margin-top:2px}
 .mobile-sb{display:none}
 .mobile-sb .sb-list{flex:none;overflow:visible}
@@ -354,3 +354,11 @@ button:focus:not(:focus-visible){outline:none}
 .loading-bar{width:100%;height:100%;background:var(--crackle),linear-gradient(180deg,#00c853,#006229);background-size:cover,100% 100%;border-radius:100px;animation:loading-fill 2.5s ease forwards}
 @keyframes loading-fill{0%{width:0}100%{width:100%}}
 .loading-text{font-size:11px;color:rgba(255,255,255,.35);margin-top:4px}
+
+/* ── Inline SVG icons ── */
+.ico{width:16px;height:16px;display:inline-block;vertical-align:middle;flex-shrink:0}
+.ico-sm{width:14px;height:14px}
+.ico-lg{width:28px;height:28px}
+.mi-icon .ico{width:17px;height:17px}
+.ibtn .ico{width:17px;height:17px}
+.alrt .ico{width:13px;height:13px;margin-right:2px}

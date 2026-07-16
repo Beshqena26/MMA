@@ -297,7 +297,7 @@ var SYNC={
           if(w){wonCount++;totalWin+=p.win||0}
           var r2=document.createElement('div');r2.className='sb-row'+(w?' won':'')+(isMe?' me':'');
           var slotLabel=p.slot>1?' #'+p.slot:'';
-          var displayName=isMe?('⭐ '+_esc(p.name||'You')+slotLabel):(_esc(p.name||'Player')+slotLabel);
+          var displayName=isMe?('★ '+_esc(p.name||'You')+slotLabel):(_esc(p.name||'Player')+slotLabel);
           r2.innerHTML='<span class="sb-name"><span class="sb-av" style="background:'+_esc(p.bg||'#333')+'">'+_esc(p.avatar||'🧑‍✈️')+'</span>'+displayName+'</span><span class="sb-bet">'+(p.bet||0).toFixed(2)+'</span><span class="sb-x">'+(w?(p.cashMult||0).toFixed(2)+'x':'')+'</span><span class="sb-win">'+(w?(p.win||0).toFixed(2):'')+'</span>';
           sb.insertBefore(r2,sb.firstChild);
         });
@@ -865,7 +865,7 @@ function betAction(s){
   if(G.phase==='BETTING'){
     if(b.placed){G.balance+=b.amount;b.placed=false;G.totWg-=b.amount;updBal();updPanelBtn(s)}
     else{
-      if(b.amount>G.balance){showAlert('💰 Insufficient balance');return}
+      if(b.amount>G.balance){showAlert('Insufficient balance');return}
       if(b.amount<(CFG.betMin||0.1)||b.amount>(CFG.betMax||100)||!isFinite(b.amount))return;
       G.balance-=b.amount;b.placed=true;b.out=false;b.cashMult=0;G.totWg+=b.amount;updBal();sfx.play('bet');updPanelBtn(s);
       // Write bet to Firebase for other players to see
@@ -1717,7 +1717,7 @@ function _render_skydrop_DISABLED(){
     cx.shadowBlur=0;
     // Label below
     cx.globalAlpha=alpha*.9;cx.fillStyle=mCol;cx.font='bold 11px Oxanium';
-    cx.fillText('🕳️ BLACK HOLE',bs.x,bs.y+r*1.3+16);
+    cx.fillText('BLACK HOLE',bs.x,bs.y+r*1.3+16);
     cx.globalAlpha=1;cx.restore();
   })}
   // === TOKENS ===
