@@ -953,12 +953,14 @@ function hidePanel2(){
     }
     $('panel2').classList.add('hidden');
     $('addPanel2').style.display='';
+    try{$('betPanel').classList.add('single')}catch(e3){}
   }catch(e){}
 }
 function showPanel2(){
   try{
     $('panel2').classList.remove('hidden');
     $('addPanel2').style.display='none';
+    try{$('betPanel').classList.remove('single')}catch(e3){}
   }catch(e){}
 }
 

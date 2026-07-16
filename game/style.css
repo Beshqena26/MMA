@@ -297,8 +297,6 @@ canvas{position:fixed;top:0;left:0;z-index:1}
   .bp-auto-toggle{width:30px;height:16px;border-radius:8px}.bp-auto-toggle .dot{width:12px;height:12px;top:2px;left:2px}.bp-auto-toggle.on .dot{left:16px}
   .bp-auto-input{width:42px;font-size:11px;padding:3px 3px}
   .bp-toolbar{padding:0 5px 2px}
-  .bp-add-btn{width:24px;height:24px;font-size:14px}
-  .bp-remove-btn{width:24px;height:24px;font-size:11px}
   .ri{font-size:7px;padding:1px 0 2px}
   .mo{align-items:center}.mx{border-radius:14px;max-width:520px;padding:24px 28px;max-height:80vh;max-height:80dvh}.mx.has-footer .modal-footer{padding:12px 0 24px}
   .chat-hdr-btn{display:flex}
@@ -387,3 +385,16 @@ button:focus:not(:focus-visible){outline:none}
 .ap-stop{display:none;width:100%;margin-top:10px;height:38px;border-radius:100px;background:rgba(200,0,40,.2);border:1px solid rgba(239,68,68,.4);color:#ef4444;font-weight:700;font-size:12px;font-family:'Ubuntu',sans-serif;cursor:pointer;align-items:center;justify-content:center}
 .ap-stop.show{display:flex}
 .bp-round.on{border-color:rgba(0,200,83,.5);color:#00ff88;background:rgba(0,200,83,.12)}
+
+/* ── Single-slot mode (KingsMove: wider card, centered actions) ── */
+@media(min-width:900px){
+  .bp.single .bet-panel{max-width:507px;flex:0 1 507px}
+  .bp.single .bp-body2{padding:18px 20px 16px;gap:14px}
+  .bp.single .bp-actions{justify-content:center;gap:24px}
+  .bp.single .bp-betbtn{max-width:280px;margin:0}
+  .bp.single .bp-amt{flex:0 1 240px}
+}
+@media(min-width:600px) and (max-width:899px){
+  .bp.single .bet-panel{max-width:480px}
+  .bp.single .bp-actions{justify-content:center;gap:20px}
+}
