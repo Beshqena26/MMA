@@ -108,7 +108,7 @@ function initCrowd(){}
 // i+1 by the fractional part (perceived 60fps from 20-30 source frames), and
 // switching clips crossfades the outgoing pose over MIX seconds instead of
 // hard-cutting — the same idea as Spine's AnimationState mix.
-var MIX=0.18;
+var MIX=0.26;
 function _povSet(name){
   if(POV.cur!==name){
     POV.prev=POV.cur;POV.prevT=POV.t||0;POV.mix=0;
@@ -147,17 +147,26 @@ function _povTick(dt){
   }
 }
 // Sample a clip at fractional time t -> {a:frameA,b:frameB,f:blend 0..1}
+// Loops play PING-PONG (forward then backward): the wrap from the last frame
+// back to frame 0 never happens, so the loop seam can't pop.
 function _povSample(name,t){
   var anim=POV.anims[name];
   if(!anim||!anim.length)return null;
   var loop=!POV_ONESHOT[name];
-  var i,f;
-  if(loop){i=Math.floor(t)%anim.length;f=t-Math.floor(t)}
+  var i,f,b;
+  if(loop){
+    var period=2*(anim.length-1);
+    var p=t%period,fl=Math.floor(p);f=p-fl;
+    var fwd=fl<anim.length-1;
+    i=fwd?fl:period-fl;
+    b=anim[fwd?i+1:i-1];
+  }
   else{
     if(t>=anim.length-1){i=anim.length-1;f=0}
     else{i=Math.floor(t);f=t-i}
+    b=anim[Math.min(i+1,anim.length-1)];
   }
-  var a=anim[i],b=anim[loop?(i+1)%anim.length:Math.min(i+1,anim.length-1)];
+  var a=anim[i];
   var ok=function(im){return im&&im.complete&&im.naturalWidth>0};
   if(!ok(a))return null;
   return {a:a,b:ok(b)?b:a,f:f};
