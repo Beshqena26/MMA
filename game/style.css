@@ -111,7 +111,13 @@ canvas{position:fixed;top:0;left:0;z-index:1}
 .bp-auto-input:focus{border-color:rgba(242,242,242,.4)}
 .bp-auto-input::placeholder{color:var(--dim)}
 .bp-auto-x{margin-left:-3px;font-weight:700;color:var(--dim);font-size:10px}
-.main-row{flex:1;display:flex;flex-direction:column;min-height:0}
+.main-row{flex:1;display:flex;flex-direction:column;min-height:0;position:relative}
+/* Collapsible bets sidebar (desktop): handle rides the sidebar edge */
+.sb-toggle{display:none;position:absolute;z-index:18;top:50%;left:280px;transform:translate(-50%,-50%);width:28px;height:56px;background:var(--panel);border:1px solid var(--border);border-radius:0 10px 10px 0;color:rgba(242,242,242,.7);cursor:pointer;align-items:center;justify-content:center;transition:left .28s ease,color .2s}
+.sb-toggle:hover{color:#fff}
+.sb-toggle .ico{width:16px;height:16px;transition:transform .28s ease}
+.main-row.sb-hidden .sb-toggle{left:0;border-radius:0 10px 10px 0}
+.main-row.sb-hidden .sb-toggle .ico{transform:rotate(180deg)}
 .game-area{flex:1;display:flex;flex-direction:column;min-height:0;background:transparent}
 .sidebar{display:none;flex-direction:column;background:var(--panel);overflow:hidden}
 .sb-tabs{display:flex;background:rgba(242,242,242,.06);border-radius:100px;margin:8px;overflow:hidden;padding:2px}
@@ -283,7 +289,9 @@ canvas{position:fixed;top:0;left:0;z-index:1}
   .bbox{padding:6px 12px;border-radius:10px}.bicon{width:18px;height:18px;font-size:9px}
   .hs{padding:4px 20px;gap:5px}.hc{font-size:12px;padding:3px 8px;border-radius:5px}
   .main-row{flex:1;flex-direction:row;overflow:hidden}
-  .sidebar{display:flex;flex-direction:column;width:280px;min-width:280px;background:var(--panel);border-right:1px solid var(--border);overflow:hidden}
+  .sidebar{display:flex;flex-direction:column;width:280px;min-width:280px;background:var(--panel);border-right:1px solid var(--border);overflow:hidden;transition:width .28s ease,min-width .28s ease}
+  .main-row.sb-hidden .sidebar{width:0;min-width:0;border-right:none}
+  .sb-toggle{display:flex}
   .game-area{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
   .ov{overflow:hidden}
   .cine{top:15%}.cine .c1{font-size:76px}.cine .c2{font-size:14px;letter-spacing:5px}

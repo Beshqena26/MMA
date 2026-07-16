@@ -2043,6 +2043,24 @@ if(menuOverlay)menuOverlay.onclick=closeMenu;
     });
   });
 })();
+// Collapsible bets sidebar (desktop): edge handle hides/shows it, persisted.
+(function(){
+  var row=document.querySelector('.main-row'),btn=document.getElementById('sbToggle');
+  if(!row||!btn)return;
+  try{
+    if(localStorage.getItem('sb-hidden')==='1'){
+      var sb=document.getElementById('sidebar');
+      if(sb)sb.style.transition='none';         // restore without the slide-in flash
+      row.classList.add('sb-hidden');
+      setTimeout(function(){if(sb)sb.style.transition=''},100);
+    }
+  }catch(e){}
+  btn.onclick=function(){
+    var hidden=row.classList.toggle('sb-hidden');
+    try{localStorage.setItem('sb-hidden',hidden?'1':'0')}catch(e){}
+  };
+})();
+
 // Sound toggles in menu — each channel wired independently, knobs synced to
 // the (persisted) SND state on boot so the UI never lies about what's on.
 (function(){
