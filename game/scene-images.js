@@ -1,8 +1,11 @@
 // =====================================================================
 // MMA FRONT SCENE — the pro fighter faces the camera, knees-up shot
-// The whole story is his (2026-07): he idles while the multiplier
-// climbs, throws the single finishing punch toward the camera at the
-// crash, then celebrates. No player gloves, no visible opponent.
+// The round is a tension arc driven by the multiplier (2026-07 boss spec):
+// below 2x he just breathes; from 2x he feints; from 5x a RARE single
+// jab/hook lands on your guard (small shake+thud, multiplier untouched);
+// past ~10x the vignette throbs with the heartbeat. The crash is ONE
+// slow-mo KO blow -> your gloves drop -> blackout. No blood, no
+// celebration. Boxing is the tension metaphor, not a simulator.
 // =====================================================================
 
 // ── Helpers ──
@@ -22,7 +25,7 @@ var _imgsLoaded=0;
 
 // ── Frame sets (video-derived, same pipeline as the side view) ──
 var POV={
-  anims:{},          // {idle:[Image,...], punch:[...], victory:[...], bg:[...]}
+  anims:{},          // {idle:[Image,...], punch:[...], feint:[...], jab:[...], hook:[...], bg:[...]}
   cur:'idle',
   frame:0,timer:0,
   bgFrame:0,bgTimer:0
@@ -34,18 +37,26 @@ var POV={
 var POVCFG={
   idle:   {s:1.015,ax:0.506,ay:1.0},
   punch:  {s:1.017,ax:0.532,ay:1.0},
-  victory:{s:1.040,ax:0.589,ay:1.0}
+  feint:  {s:1.036,ax:0.473,ay:1.0},
+  jab:    {s:1.015,ax:0.477,ay:1.0},
+  hook:   {s:1.019,ax:0.501,ay:1.0}
 };
-var POVFPS={idle:6,idleRamp:5,punch:8,victory:5,bg:10};
+var POVFPS={idle:6,idleRamp:5,punch:8,feint:7,jab:10,hook:10,bg:10};
 var POVSETS=[
-  {name:'idle',   path:'assets/anim3/hero/idle/',   prefix:'idle_',   count:24},
-  {name:'punch',  path:'assets/anim3/hero/punch/',  prefix:'punch_',  count:32},
-  {name:'victory',path:'assets/anim3/hero/victory/',prefix:'victory_',count:32},
-  {name:'bg',     path:'assets/anim3/front/bg/',    prefix:'bg_',     count:16}
+  {name:'idle', path:'assets/anim3/hero/idle/', prefix:'idle_', count:24},
+  {name:'punch',path:'assets/anim3/hero/punch/',prefix:'punch_',count:32},
+  {name:'feint',path:'assets/anim3/hero/feint/',prefix:'feint_',count:24},
+  {name:'jab',  path:'assets/anim3/hero/jab/',  prefix:'jab_',  count:24},
+  {name:'hook', path:'assets/anim3/hero/hook/', prefix:'hook_', count:24},
+  {name:'bg',   path:'assets/anim3/front/bg/',  prefix:'bg_',   count:16}
 ];
+// Clips that play once and hand back to idle (everything except the loops)
+var POV_ONESHOT={punch:1,feint:1,jab:1,hook:1};
 // The punch clip is one slow-motion KO blow: deliberate wind-up, single full
 // extension toward the camera (measured fill peak), slow settle back.
 var PUNCH_HITS=[15];
+// Mid-round strikes land on YOUR guard: contact frame per clip (measured fill peak)
+var STRIKE_HIT={jab:9,hook:9};
 
 function _povLoadSet(s){
   POV.anims[s.name]=[];
@@ -80,7 +91,9 @@ function initFighterState(){
   G.myFists={};
   G.tension=0;G.koTimer=0;G.bellRing=0;G.arenaShake=0;G.crowdRoar=0;G.crowdRoarSmooth=0;
   POV.cur='idle';POV.frame=0;POV.timer=0;
-  POV._hitIdx=0;POV._flashT=0;POV._vic=false;
+  POV._hitIdx=0;POV._flashT=0;
+  POV._nextAct=null;POV._struck=false;POV._lastStrike=null;
+  POV._gloveDipT=0;POV._koT=0;
 }
 function getTension(m){if(m<=1)return 0;if(m<=1.5)return(m-1)/0.5*0.25;if(m<=3)return 0.25+(m-1.5)/1.5*0.25;if(m<=7)return 0.5+(m-3)/4*0.25;return Math.min(1,0.75+(m-7)/13*0.25)}
 function initCrowd(){}
@@ -111,7 +124,7 @@ function _povReady(name){
 
 function _povFPS(name){
   return (name==='idle')?POVFPS.idle+(G.tension||0)*POVFPS.idleRamp
-        :(name==='victory')?POVFPS.victory:POVFPS.punch;
+        :(POVFPS[name]||POVFPS.punch);
 }
 // Advance playback clocks: fractional frame time for the current clip, and
 // the crossfade mix progress toward 1.
@@ -125,14 +138,14 @@ function _povTick(dt){
   // expose integer frame for the game logic (punch contacts, clip-end checks)
   var anim=POV.anims[POV.cur];
   if(anim&&anim.length){
-    POV.frame=(POV.cur==='punch')?Math.min(anim.length-1,Math.floor(POV.t)):Math.floor(POV.t)%anim.length;
+    POV.frame=POV_ONESHOT[POV.cur]?Math.min(anim.length-1,Math.floor(POV.t)):Math.floor(POV.t)%anim.length;
   }
 }
 // Sample a clip at fractional time t -> {a:frameA,b:frameB,f:blend 0..1}
 function _povSample(name,t){
   var anim=POV.anims[name];
   if(!anim||!anim.length)return null;
-  var loop=(name!=='punch');
+  var loop=!POV_ONESHOT[name];
   var i,f;
   if(loop){i=Math.floor(t)%anim.length;f=t-Math.floor(t)}
   else{
@@ -151,19 +164,57 @@ function updateFighters(){
   if(!G.opp)return;
 
   if(G.phase==='BETTING'){
-    G.koTimer=0;POV._hitIdx=0;POV._flashT=0;POV._vic=false;
+    G.koTimer=0;POV._hitIdx=0;POV._flashT=0;
+    POV._nextAct=null;POV._struck=false;POV._koT=0;POV._gloveDipT=0;
     _povSet('idle');
   }
   else if(G.phase==='EXPLODE'){
     G.bellRing=Math.max(0,(G.bellRing||0)-dt);
     if(G.phaseTimer>1.2&&G.bellRing<=0)G.bellRing=0.5;
   }
-  // FREEFALL: nothing — he just breathes; tension lives in the idle rate,
-  // the vignette and the crowd.
+  // FREEFALL: the opponent escalates with the multiplier — calm below 2x,
+  // feints from 2x, a rare single jab/hook from 5x. Strikes land on YOUR
+  // guard: small shake + thud + glove dip, the multiplier is untouched.
+  else if(G.phase==='FREEFALL'){
+    var m=G.mult||1;
+    if(POV.cur==='feint'||POV.cur==='jab'||POV.cur==='hook'){
+      var aAnim=POV.anims[POV.cur];
+      // strike contact frame -> the "hit on your guard" beat
+      var hitF=STRIKE_HIT[POV.cur];
+      if(hitF!=null&&!POV._struck&&POV.frame>=hitF){
+        POV._struck=true;
+        POV._flashT=0.10;
+        POV._gloveDipT=0.35;
+        G.arenaShake=5;
+        G.crowdRoar=Math.min(1,(G.crowdRoar||0)+0.25);
+        if(typeof SND!=='undefined')SND.play('punch',0.35);
+      }
+      if(aAnim&&POV.frame>=aAnim.length-2)_povSet('idle');
+    }
+    else if(POV.cur==='idle'&&m>=2){
+      if(POV._nextAct==null)POV._nextAct=(G.time||0)+2.5+Math.random()*3;
+      if((G.time||0)>=POV._nextAct){
+        var strikeOK=m>=5&&_povReady('jab')&&_povReady('hook');
+        if(strikeOK&&Math.random()<0.4){
+          var st=(POV._lastStrike==='jab')?'hook':'jab';
+          POV._lastStrike=st;POV._struck=false;
+          _povSet(st);
+          POV._nextAct=(G.time||0)+6+Math.random()*6;   // strikes stay rare
+        }else if(_povReady('feint')){
+          _povSet('feint');
+          // one soft whoosh so the feint reads without landing
+          try{var _c=SND._getCtx();if(_c&&_c.state==='running')SND._noiseSweep(_c.currentTime+0.15,0.22,1400,350,2.5,0.10,0.15)}catch(e){}
+          POV._nextAct=(G.time||0)+4+Math.random()*4;
+        }else{
+          POV._nextAct=(G.time||0)+2;                    // set not decoded yet, retry soon
+        }
+      }
+    }
+  }
   else if(G.phase==='CRASH'){
     // koTimer drives the K.O. text — hold it until the slow-mo blow lands
     if(POV._hitIdx>0||POV.cur!=='punch')G.koTimer+=dt;
-    if(POV.cur==='idle'){_povSet('punch');POV._hitIdx=0}
+    if(POV.cur!=='punch'){_povSet('punch');POV._hitIdx=0}
     // Impacts: one per extension of the combo, fired the moment playback
     // reaches each measured contact frame (the final one is the KO blow)
     if(POV.cur==='punch'){
@@ -177,14 +228,12 @@ function updateFighters(){
         if(typeof SND!=='undefined'){SND.play('punch',last?0.9:0.6);if(last)SND.play('cheer',0.5)}
       }
     }
-    // Punch played out -> celebration until the next round resets him
-    var pAnim=POV.anims.punch;
-    if(!POV._vic&&POV.cur==='punch'&&pAnim&&POV.frame>=pAnim.length-4){  // hand off to victory during the settle-back; the crossfade hides the cut
-      POV._vic=true;
-      _povSet('victory');
-    }
+    // After the blow lands: your guard drops and the round fades to black.
+    // No celebration — the hit is the whole story (boss spec: hit rare & meaningful).
+    if(POV._hitIdx>=PUNCH_HITS.length)POV._koT=(POV._koT||0)+dt;
   }
   POV._flashT=Math.max(0,(POV._flashT||0)-dt);
+  POV._gloveDipT=Math.max(0,(POV._gloveDipT||0)-dt);
 
   G.arenaShake=Math.max(0,(G.arenaShake||0)*(1-dt*8));
   G.crowdRoar=Math.max(0,(G.crowdRoar||0)-dt*0.4);
@@ -274,11 +323,16 @@ function render(){
   var idleBobL=Math.sin(time*2)*(W<600?3:5);
   var idleBobR=Math.sin(time*2+1)*(W<600?3:5);
   var fistBottomOffset=W<600?124:W<900?124:-12;  // desktop: gloves hang 12px past the bottom
+  // a landed strike dips your guard for a beat (first-person head reaction)
+  var gDip=(POV._gloveDipT||0)>0?(POV._gloveDipT/0.35)*(W<600?10:15):0;
+  // the KO blow drops your guard for good: gloves slide down and out
+  var koT2=POV._koT||0;
+  var koDrop=koT2>0?_easeOutCubic(Math.min(1,koT2/0.9))*fistH2*1.7:0;
   if(IMG.fistL&&IMG.fistL.complete&&IMG.fistL.naturalWidth>0){
-    cx.drawImage(IMG.fistL,W*0.5-fistW2*0.8,H-fistH2-fistBottomOffset+idleBobL,fistW2,fistH2);
+    cx.drawImage(IMG.fistL,W*0.5-fistW2*0.8-koDrop*0.25,H-fistH2-fistBottomOffset+idleBobL+gDip+koDrop,fistW2,fistH2);
   }
   if(IMG.fistR&&IMG.fistR.complete&&IMG.fistR.naturalWidth>0){
-    cx.drawImage(IMG.fistR,W*0.5-fistW2*0.2,H-fistH2-fistBottomOffset+idleBobR,fistW2,fistH2);
+    cx.drawImage(IMG.fistR,W*0.5-fistW2*0.2+koDrop*0.25,H-fistH2-fistBottomOffset+idleBobR+gDip+koDrop*1.15,fistW2,fistH2);
   }
 
   // ═══ L3: IMPACT FLASH — one burst per landed hit ═══
@@ -303,6 +357,13 @@ function render(){
     cx.fillStyle='hsla('+(p.hue||20)+','+(p.sat||100)+'%,'+(p.lit||55)+'%,'+a+')';
     cx.fill();return true;
   });
+
+  // ═══ L4b: BLACKOUT — the lights go out after the KO blow (no blood, no
+  // celebration: guard down, head down, round over). KO text renders above it.
+  if(koT2>0.3){
+    var ba=_easeOutCubic(Math.min(1,(koT2-0.3)/0.8))*0.92;
+    cx.fillStyle='rgba(0,0,0,'+ba+')';cx.fillRect(0,0,W,H);
+  }
 
   // ═══ L5: KO TEXT ═══
   if(G.phase==='CRASH'){
@@ -329,6 +390,8 @@ function render(){
 
   // ═══ L7: VIGNETTE ═══
   var vS=0.2+t*0.3;
+  // 10x+ danger: the vignette throbs at the heartbeat-loop rate (see _tickLoops)
+  if(t>0.75)vS+=0.10*Math.max(0,Math.sin(time*Math.PI*2*(1+(t-0.3)*0.7)));
   var vG=cx.createRadialGradient(W/2,H*0.4,H*0.2,W/2,H/2,H*0.85);
   vG.addColorStop(0,'transparent');vG.addColorStop(0.5,'rgba(0,0,0,'+vS*0.15+')');vG.addColorStop(1,'rgba(0,0,0,'+vS+')');
   cx.fillStyle=vG;cx.fillRect(0,0,W,H);

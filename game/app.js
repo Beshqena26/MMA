@@ -316,7 +316,7 @@ var SYNC={
 
 // ======================== SFX ENGINE ========================
 var SND={
-  _sounds:{},_bgMusic:null,_bgPlaying:false,soundOn:true,musicOn:true,_ctx:null,
+  _sounds:{},_bgMusic:null,_bgPlaying:false,soundOn:true,musicOn:false,_ctx:null, // music defaults OFF — the round is carried by foley/breath/heartbeat
   _load:function(key,src){var a=new Audio(src);a.preload='auto';this._sounds[key]=a},
   _getCtx:function(){if(!this._ctx){try{this._ctx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}return this._ctx},
   init:function(){
