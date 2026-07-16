@@ -2028,16 +2028,8 @@ document.getElementById('menuBetHistory').onclick=()=>{
   if(G.betHistory.length===0){empty.style.display='block'}
   else{
     empty.style.display='none';
-    let wins=0,losses=0;
-    G.betHistory.forEach(h=>{if(h.win>0)wins++;else losses++});
     window._hstShown=50;
     _renderHstRows();
-    document.getElementById('hstWins').textContent=wins;
-    document.getElementById('hstLosses').textContent=losses;
-    const prof=G.totP;
-    const profEl=document.getElementById('hstProfit');
-    profEl.textContent=(prof>=0?'+':'-')+'$'+Math.abs(prof).toFixed(2);
-    profEl.className=prof>=0?'pos':'neg';
   }
   document.getElementById('historyModal').classList.add('open');
 };
