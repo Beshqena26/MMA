@@ -1146,7 +1146,7 @@ function startCrashPhase(){
   for(var i=0;i<2;i++){if(G.bets[i].placed&&!G.bets[i].out){G.totP-=G.bets[i].amount;G.betHistory.unshift({round:G.roundNum,bet:G.bets[i].amount,mult:G.crashPt,win:0,time:new Date()});if(G.betHistory.length>200)G.betHistory.pop()}}
   // Fake loss feed
   for(var j=0;j<3+Math.floor(Math.random()*4);j++){(function(jj){setTimeout(function(){fakeFeed(0,false)},jj*80)})(j)}
-  try{$('cineMain').textContent=G.crashPt.toFixed(2)+'×';$('cineSub').textContent='KNOCKOUT!';$('cine').className='cine show crashed dng';setSt('KNOCKOUT — '+G.crashPt.toFixed(2)+'×','s4');updAllBtns()}catch(e){}
+  try{$('cineMain').textContent=G.crashPt.toFixed(2)+'×';$('cineSub').textContent='KNOCKOUT!';$('cine').className='cine show crashed dng';setSt('','s4');updAllBtns()}catch(e){}
   G.totR++;if(G.crashPt>G.hiCr)G.hiCr=G.crashPt;
   try{addHist(G.crashPt)}catch(e){}
   try{savePrevRound();populatePrevTab()}catch(e){}
@@ -1163,7 +1163,9 @@ function _updateMultAndUI(){
   // UI
   setCine(G.mult.toFixed(2)+'×','FIGHT');
   try{$('cine').className='cine show'+(G.mult>=8?' gold':G.mult>=4?' wrn':'')}catch(e){}
-  setSt('FIGHT — '+G.mult.toFixed(2)+'×','s3');
+  // top-left status stays clear during the round — the big cine multiplier is
+  // the single source; only the brief "CASH OUT ANYTIME" hint shows, then fades
+  if(G.mult>1.2)setSt('','s3');
   // Update bet button amounts
   try{for(var i=0;i<2;i++){if(G.bets[i].placed&&!G.bets[i].out){$('btn'+(i+1)).querySelector('.bb-amount').textContent=(G.bets[i].amount*G.mult).toFixed(2)+' USD'}}}catch(e){}
   // Auto cashout
