@@ -7,7 +7,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Stand-It Fight — LIVE</title>
-<link rel="stylesheet" href="style.css?v=7">
+<link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
 <div class="loading-screen" id="loadingScreen">
@@ -84,15 +84,14 @@
           <div class="bp-body2">
             <div class="bp-amtrow"><button class="bp-btn" onclick="adj(1,-1)">−</button><div class="bp-amt" id="a1">1.00</div><button class="bp-btn" onclick="adj(1,1)">+</button></div>
             <div class="bp-quicks"><button class="bp-q" onclick="sa(1,2)">2.00</button><button class="bp-q" onclick="sa(1,5)">5.00</button><button class="bp-q" onclick="sa(1,10)">10.00</button><button class="bp-q" onclick="betMaxSet(1)">Max</button></div>
-            <div class="bp-actions"><button class="bp-round" onclick="betReset(1)" aria-label="Reset bet"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button><button class="bp-betbtn" id="btn1" onclick="betAction(1)"><span class="bb-label">Bet</span><span class="bb-amount" id="btn1amt">1.00 USD</span></button><button class="bp-round" onclick="betDouble(1)">x2</button></div>
+            <div class="bp-actions"><button class="bp-round" id="apBtn1" onclick="toggleApPop(1)" aria-label="Auto play"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button><button class="bp-betbtn" id="btn1" onclick="betAction(1)"><span class="bb-label">Bet</span><span class="bb-amount" id="btn1amt">1.00 USD</span></button><button class="bp-round" onclick="betDouble(1)">x2</button></div>
           </div>
-          <div class="bp-auto-row">
-            <span>Auto Bet</span>
-            <button class="bp-auto-toggle" id="autoBet1" onclick="toggleAuto(1,'bet')"><div class="dot"></div></button>
-            <span style="margin-left:auto">Cash Out</span>
-            <button class="bp-auto-toggle" id="autoCash1" onclick="toggleAuto(1,'cash')"><div class="dot"></div></button>
-            <input class="bp-auto-input" id="au1" placeholder="2.00" value="" inputmode="decimal" oninput="valAutoCash(1)">
-            <span class="bp-auto-x">×</span>
+          <div class="ap-pop" id="apPop1">
+            <div class="ap-row"><span class="ap-label">Auto Cashout</span><button class="bp-auto-toggle" id="autoCash1" onclick="toggleAuto(1,'cash')"><div class="dot"></div></button><div class="ap-step"><button class="ap-sbtn" onclick="apAdj(1,-1)">−</button><input class="ap-input" id="au1" value="1.50" inputmode="decimal" oninput="valAutoCash(1)"><button class="ap-sbtn" onclick="apAdj(1,1)">+</button></div></div>
+            <div class="ap-div"></div>
+            <div class="ap-grid"><button class="ap-round" onclick="startAutoRounds(1,20)"><b>20</b><span class="lbl">Round</span><span class="ap-play"><svg class="ico ico-sm" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="7 4 21 12 7 20"/></svg></span></button><button class="ap-round" onclick="startAutoRounds(1,50)"><b>50</b><span class="lbl">Round</span><span class="ap-play"><svg class="ico ico-sm" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="7 4 21 12 7 20"/></svg></span></button><button class="ap-round" onclick="startAutoRounds(1,100)"><b>100</b><span class="lbl">Round</span><span class="ap-play"><svg class="ico ico-sm" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="7 4 21 12 7 20"/></svg></span></button><button class="ap-round" onclick="startAutoRounds(1,200)"><b>200</b><span class="lbl">Round</span><span class="ap-play"><svg class="ico ico-sm" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="7 4 21 12 7 20"/></svg></span></button></div>
+            <button class="ap-stop" id="apStop1" onclick="stopAutoRounds(1)">Stop Auto Play — <span id="apLeft1">0</span>&nbsp;left</button>
+            <span id="autoBet1" style="display:none"></span>
           </div>
         </div>
         <div class="bet-panel" id="panel2">
@@ -100,15 +99,14 @@
           <div class="bp-body2">
             <div class="bp-amtrow"><button class="bp-btn" onclick="adj(2,-1)">−</button><div class="bp-amt" id="a2">1.00</div><button class="bp-btn" onclick="adj(2,1)">+</button></div>
             <div class="bp-quicks"><button class="bp-q" onclick="sa(2,2)">2.00</button><button class="bp-q" onclick="sa(2,5)">5.00</button><button class="bp-q" onclick="sa(2,10)">10.00</button><button class="bp-q" onclick="betMaxSet(2)">Max</button></div>
-            <div class="bp-actions"><button class="bp-round" onclick="betReset(2)" aria-label="Reset bet"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button><button class="bp-betbtn" id="btn2" onclick="betAction(2)"><span class="bb-label">Bet</span><span class="bb-amount" id="btn2amt">1.00 USD</span></button><button class="bp-round" onclick="betDouble(2)">x2</button></div>
+            <div class="bp-actions"><button class="bp-round" id="apBtn2" onclick="toggleApPop(2)" aria-label="Auto play"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button><button class="bp-betbtn" id="btn2" onclick="betAction(2)"><span class="bb-label">Bet</span><span class="bb-amount" id="btn2amt">1.00 USD</span></button><button class="bp-round" onclick="betDouble(2)">x2</button></div>
           </div>
-          <div class="bp-auto-row">
-            <span>Auto Bet</span>
-            <button class="bp-auto-toggle" id="autoBet2" onclick="toggleAuto(2,'bet')"><div class="dot"></div></button>
-            <span style="margin-left:auto">Cash Out</span>
-            <button class="bp-auto-toggle" id="autoCash2" onclick="toggleAuto(2,'cash')"><div class="dot"></div></button>
-            <input class="bp-auto-input" id="au2" placeholder="2.00" value="" inputmode="decimal" oninput="valAutoCash(2)">
-            <span class="bp-auto-x">×</span>
+          <div class="ap-pop" id="apPop2">
+            <div class="ap-row"><span class="ap-label">Auto Cashout</span><button class="bp-auto-toggle" id="autoCash2" onclick="toggleAuto(2,'cash')"><div class="dot"></div></button><div class="ap-step"><button class="ap-sbtn" onclick="apAdj(2,-1)">−</button><input class="ap-input" id="au2" value="1.50" inputmode="decimal" oninput="valAutoCash(2)"><button class="ap-sbtn" onclick="apAdj(2,1)">+</button></div></div>
+            <div class="ap-div"></div>
+            <div class="ap-grid"><button class="ap-round" onclick="startAutoRounds(2,20)"><b>20</b><span class="lbl">Round</span><span class="ap-play"><svg class="ico ico-sm" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="7 4 21 12 7 20"/></svg></span></button><button class="ap-round" onclick="startAutoRounds(2,50)"><b>50</b><span class="lbl">Round</span><span class="ap-play"><svg class="ico ico-sm" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="7 4 21 12 7 20"/></svg></span></button><button class="ap-round" onclick="startAutoRounds(2,100)"><b>100</b><span class="lbl">Round</span><span class="ap-play"><svg class="ico ico-sm" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="7 4 21 12 7 20"/></svg></span></button><button class="ap-round" onclick="startAutoRounds(2,200)"><b>200</b><span class="lbl">Round</span><span class="ap-play"><svg class="ico ico-sm" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="7 4 21 12 7 20"/></svg></span></button></div>
+            <button class="ap-stop" id="apStop2" onclick="stopAutoRounds(2)">Stop Auto Play — <span id="apLeft2">0</span>&nbsp;left</button>
+            <span id="autoBet2" style="display:none"></span>
           </div>
         </div>
         <button class="bp-add-btn" id="addPanel2" onclick="showPanel2()" style="display:none" aria-label="Add bet slot">＋</button>
@@ -474,6 +472,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="firebase-init.js"></script>
 <script src="scene-images.js?v=5"></script>
-<script src="app.js?v=6"></script>
+<script src="app.js?v=7"></script>
 </body>
 </html>

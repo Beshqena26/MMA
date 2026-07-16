@@ -842,6 +842,20 @@ function sa(s,v){if(G.bets[s-1].placed)return;v=parseFloat(v);if(isNaN(v))v=0.1;
 function betMaxSet(s){var cap=Math.min(CFG.betMax||100,Math.max(CFG.betMin||0.1,Math.floor(G.balance*100)/100));sa(s,cap)}
 function betDouble(s){sa(s,(G.bets[s-1].amount||CFG.betMin||0.1)*2)}
 function betReset(s){sa(s,CFG.betMin||0.1)}
+// ── Auto Play (KingsMove popover): counted auto-bet rounds + auto cashout ──
+function toggleApPop(s){try{var p=$('apPop'+s);var o=$('apPop'+(s===1?2:1));if(o&&o!==p)o.classList.remove('open');p.classList.toggle('open')}catch(e){}}
+function apAdj(s,d){try{var i=$('au'+s);var v=parseFloat(i.value);if(!isFinite(v))v=1.5;v=Math.max(1.01,Math.round((v+d*0.1)*100)/100);i.value=v.toFixed(2);valAutoCash(s);if(!G.autoCash[s-1])toggleAuto(s,'cash')}catch(e){}}
+function startAutoRounds(s,n){try{G.autoRounds=G.autoRounds||[0,0];G.autoRounds[s-1]=n;G.autoBet[s-1]=true;updApUI(s);$('apPop'+s).classList.remove('open')}catch(e){}}
+function stopAutoRounds(s){try{G.autoRounds=G.autoRounds||[0,0];G.autoRounds[s-1]=0;G.autoBet[s-1]=false;updApUI(s)}catch(e){}}
+function updApUI(s){try{var on=!!G.autoBet[s-1];$('apStop'+s).classList.toggle('show',on);$('apLeft'+s).textContent=(G.autoRounds&&G.autoRounds[s-1])||0;$('apBtn'+s).classList.toggle('on',on)}catch(e){}}
+document.addEventListener('click',function(e){
+  try{
+    var t=e.target;
+    if(t.closest&&(t.closest('.ap-pop')||t.closest('#apBtn1')||t.closest('#apBtn2')))return;
+    var p1=$('apPop1'),p2=$('apPop2');
+    if(p1)p1.classList.remove('open');if(p2)p2.classList.remove('open');
+  }catch(err){}
+});
 
 function updPanelBtn(s){
   try{
@@ -930,7 +944,7 @@ function switchTab(s,tab){
 function hidePanel2(){
   try{
     // Disable auto-bet and auto-cashout for slot 2
-    G.autoBet[1]=false;G.autoCash[1]=false;
+    G.autoBet[1]=false;G.autoCash[1]=false;if(G.autoRounds)G.autoRounds[1]=0;try{updApUI(2)}catch(e3){}
     try{$('autoBet2').classList.remove('on')}catch(e2){}
     try{$('autoCash2').classList.remove('on')}catch(e2){}
     // Cancel any active bet on slot 2
@@ -989,7 +1003,7 @@ function startBettingPhase(){
   try{populateSidebar()}catch(e){}
   try{sfx.stopFreefall();sfx.play('launch')}catch(e){}
   // Auto bet
-  for(var i=0;i<2;i++){try{if(G.autoBet[i]&&G.bets[i].amount>=(CFG.betMin||0.1)&&G.bets[i].amount<=(CFG.betMax||100)&&G.bets[i].amount<=G.balance){G.balance-=G.bets[i].amount;G.bets[i].placed=true;G.bets[i].out=false;G.bets[i].cashMult=0;G.totWg+=G.bets[i].amount;updBal();updPanelBtn(i+1);if(SYNC.enabled){try{FB.writeBet(G.roundNum,{name:_selectedName||'Player',avatar:_selectedAvatar||'🧑‍✈️',bet:G.bets[i].amount,slot:i+1,cashMult:0})}catch(e2){}}}}catch(e){}}
+  for(var i=0;i<2;i++){try{if(G.autoBet[i]&&G.bets[i].amount>=(CFG.betMin||0.1)&&G.bets[i].amount<=(CFG.betMax||100)&&G.bets[i].amount<=G.balance){G.balance-=G.bets[i].amount;G.bets[i].placed=true;G.bets[i].out=false;G.bets[i].cashMult=0;G.totWg+=G.bets[i].amount;updBal();updPanelBtn(i+1);if(G.autoRounds&&G.autoRounds[i]>0){G.autoRounds[i]--;if(G.autoRounds[i]<=0)G.autoBet[i]=false;try{updApUI(i+1)}catch(e4){}}if(SYNC.enabled){try{FB.writeBet(G.roundNum,{name:_selectedName||'Player',avatar:_selectedAvatar||'🧑‍✈️',bet:G.bets[i].amount,slot:i+1,cashMult:0})}catch(e2){}}}}catch(e){}}
 }
 
 function startExplodePhase(){

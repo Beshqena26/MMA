@@ -240,7 +240,7 @@ canvas{position:fixed;top:0;left:0;z-index:1}
   .cine .c2{font-size:10px;letter-spacing:2px}
   /* Mobile: full-width dock at the very bottom (island look is desktop/tablet only) */
   .bp{padding:5px 5px calc(5px + var(--sab));gap:3px;left:0;right:0;bottom:0;border-radius:16px 16px 0 0;border-left:none;border-right:none;border-bottom:none}
-  .ov{padding-bottom:calc(210px + var(--sab))} /* scroll clearance under the docked panel */
+  .ov{padding-bottom:calc(175px + var(--sab))} /* scroll clearance under the docked panel */
   .bet-panel{border-radius:14px}
   .bp-body2{padding:10px 10px 8px;gap:7px}
   .bp-amt{font-size:15px}
@@ -367,3 +367,23 @@ button:focus:not(:focus-visible){outline:none}
 .loading-logo{width:190px;height:auto;display:block;margin-bottom:6px}
 @media(max-width:599px){.logo img{height:38px}}
 @media(min-width:900px){.logo img{height:50px}}
+
+/* ── Auto Play popover (KingsMove) ── */
+.ap-pop{position:absolute;bottom:calc(100% + 12px);left:0;right:0;background:rgba(13,13,13,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(242,242,242,.15);border-radius:16px;padding:14px;display:none;z-index:40;box-shadow:0 12px 40px rgba(0,0,0,.6)}
+.ap-pop.open{display:block}
+.ap-row{display:flex;align-items:center;gap:10px}
+.ap-label{font-family:'Ubuntu',sans-serif;font-size:13px;font-weight:500;color:#f2f2f2;margin-right:auto;white-space:nowrap}
+.ap-step{display:flex;align-items:center;gap:2px;background:rgba(242,242,242,.1);border-radius:100px;padding:3px;height:34px}
+.ap-sbtn{width:28px;height:28px;border-radius:100px;background:transparent;border:none;color:#f2f2f2;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .2s}.ap-sbtn:active{opacity:.5}
+.ap-input{width:58px;background:rgba(13,13,13,.7);border:none;border-radius:100px;height:28px;text-align:center;color:#fff;font-weight:700;font-size:13px;font-family:'Ubuntu',sans-serif;outline:none}
+.ap-input.invalid{color:#ef4444}
+.ap-div{height:1px;background:rgba(242,242,242,.12);margin:12px 0}
+.ap-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ap-round{display:flex;align-items:center;gap:6px;background:rgba(242,242,242,.08);border:1px solid rgba(242,242,242,.1);border-radius:14px;padding:10px 12px;color:#f2f2f2;cursor:pointer;font-family:'Ubuntu',sans-serif;transition:background .2s}.ap-round:hover{background:rgba(242,242,242,.13)}
+.ap-round b{font-size:18px;font-weight:700}
+.ap-round .lbl{font-size:11px;color:rgba(242,242,242,.6)}
+.ap-play{margin-left:auto;width:26px;height:26px;border-radius:100px;background:rgba(13,13,13,.7);display:flex;align-items:center;justify-content:center;color:#f2f2f2}
+.ap-play .ico{width:10px;height:10px}
+.ap-stop{display:none;width:100%;margin-top:10px;height:38px;border-radius:100px;background:rgba(200,0,40,.2);border:1px solid rgba(239,68,68,.4);color:#ef4444;font-weight:700;font-size:12px;font-family:'Ubuntu',sans-serif;cursor:pointer;align-items:center;justify-content:center}
+.ap-stop.show{display:flex}
+.bp-round.on{border-color:rgba(0,200,83,.5);color:#00ff88;background:rgba(0,200,83,.12)}
