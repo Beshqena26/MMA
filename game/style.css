@@ -33,7 +33,9 @@ canvas{position:fixed;top:0;left:0;z-index:1}
 .cine.crashed .c1{color:var(--dng)!important;text-shadow:0 0 80px rgba(255,34,85,.7),0 0 160px rgba(255,34,85,.3),0 2px 20px rgba(0,0,0,.4)!important;-webkit-text-fill-color:var(--dng)}
 .cine.crashed .c2{color:var(--dng);opacity:.7}
 @keyframes crashBoom{0%{transform:translate(-50%,-50%) scale(1)}15%{transform:translate(-50%,-50%) scale(1.35)}30%{transform:translate(-50%,-50%) scale(1.1)}50%{transform:translate(-50%,-50%) scale(1.2)}100%{transform:translate(-50%,-50%) scale(1)}}
-.stl{display:none}.stl.show{display:block}
+/* Top-left status line retired — the round banner + cine multiplier carry all
+   round states now ("FIGHTERS READY", "FIGHT!", "SYNCING…" were duplicates). */
+.stl{display:none}.stl.show{display:none}
 .stl.s1{color:var(--acc);border-color:rgba(0,200,83,.2)}.stl.s2{color:var(--acc);border-color:rgba(0,200,83,.2)}.stl.s3{color:var(--wrn);border-color:rgba(255,170,0,.15)}.stl.s4{color:var(--dng);border-color:rgba(255,34,85,.15)}.stl.s5{color:var(--gld);border-color:rgba(255,215,0,.15)}
 .timer-bar{position:absolute;top:0;left:0;height:3px;background:var(--crackle),linear-gradient(180deg,#00c853,#006229);background-size:cover,100% 100%;transition:width .3s linear;z-index:20;border-radius:0 100px 100px 0;box-shadow:0 0 8px rgba(0,200,83,.35)}.timer-bar.urgent{background:linear-gradient(90deg,#c80028,#ef4444);height:4px;box-shadow:0 0 12px rgba(200,0,40,.4)}
 /* Round banner — betting countdown */
