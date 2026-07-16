@@ -38,28 +38,30 @@ var POV={
 // shifts on his feet inside the union crop, so the mean keeps him wandering
 // around screen center instead of parking off to one side.
 var POVCFG={
-  idle:   {s:1.018,ax:0.440,ay:1.0},
-  punch:  {s:1.065,ax:0.485,ay:1.0},
-  feint:  {s:1.041,ax:0.510,ay:1.0},
-  jab:    {s:1.065,ax:0.679,ay:1.0},
-  hook:   {s:1.015,ax:0.484,ay:1.0}
+  idle:   {s:1.018,ax:0.432,ay:1.0},
+  punch:  {s:1.065,ax:0.484,ay:1.0},
+  feint:  {s:1.059,ax:0.479,ay:1.0},
+  jab:    {s:1.065,ax:0.595,ay:1.0},
+  hook:   {s:1.015,ax:0.474,ay:1.0}
 };
-var POVFPS={idle:6,idleRamp:5,punch:8,feint:7,jab:10,hook:10,bg:10};
+// True-speed playback at 10fps sampling density (idle&feint 50/5s, jab&hook
+// 40/4s, punch 50/5s). Dense frames keep the inter-frame blend ghost-free.
+var POVFPS={idle:10,idleRamp:3,punch:10,feint:10,jab:10,hook:10};
 // Static ring bg (boss spec: the background does not move) — no bg frame set.
 var POVSETS=[
-  {name:'idle', path:'assets/anim3/hero/idle/', prefix:'idle_', count:24},
-  {name:'punch',path:'assets/anim3/hero/punch/',prefix:'punch_',count:32},
-  {name:'feint',path:'assets/anim3/hero/feint/',prefix:'feint_',count:24},
-  {name:'jab',  path:'assets/anim3/hero/jab/',  prefix:'jab_',  count:24},
-  {name:'hook', path:'assets/anim3/hero/hook/', prefix:'hook_', count:24}
+  {name:'idle', path:'assets/anim3/hero/idle/', prefix:'idle_', count:50},
+  {name:'punch',path:'assets/anim3/hero/punch/',prefix:'punch_',count:50},
+  {name:'feint',path:'assets/anim3/hero/feint/',prefix:'feint_',count:50},
+  {name:'jab',  path:'assets/anim3/hero/jab/',  prefix:'jab_',  count:40},
+  {name:'hook', path:'assets/anim3/hero/hook/', prefix:'hook_', count:40}
 ];
 // Clips that play once and hand back to idle (everything except the loops)
 var POV_ONESHOT={punch:1,feint:1,jab:1,hook:1};
 // The punch clip is one slow-motion KO blow: deliberate wind-up, single full
 // extension toward the camera (measured fill peak), slow settle back.
-var PUNCH_HITS=[20];
+var PUNCH_HITS=[31];
 // Mid-round strikes land on YOUR guard: contact frame per clip (measured fill peak)
-var STRIKE_HIT={jab:15,hook:8};
+var STRIKE_HIT={jab:26,hook:12};
 
 function _povLoadSet(s){
   POV.anims[s.name]=[];
