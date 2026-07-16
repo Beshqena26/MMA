@@ -289,8 +289,10 @@ canvas{position:fixed;top:0;left:0;z-index:1}
   .bbox{padding:6px 12px;border-radius:10px}.bicon{width:18px;height:18px;font-size:9px}
   .hs{padding:4px 20px;gap:5px}.hc{font-size:12px;padding:3px 8px;border-radius:5px}
   .main-row{flex:1;flex-direction:row;overflow:hidden}
-  .sidebar{display:flex;flex-direction:column;width:280px;min-width:280px;background:var(--panel);border-right:1px solid var(--border);overflow:hidden;transition:width .28s ease,min-width .28s ease}
-  .main-row.sb-hidden .sidebar{width:0;min-width:0;border-right:none}
+  /* Bets sidebar is an OVERLAY drawer (like the chat): slides in over the
+     game so the layout never shifts when it opens/closes */
+  .sidebar{display:flex;flex-direction:column;position:absolute;top:0;left:0;bottom:0;width:280px;background:var(--panel);border-right:1px solid var(--border);overflow:hidden;z-index:19;transform:translateX(0);transition:transform .28s ease,visibility 0s linear 0s;box-shadow:12px 0 32px rgba(0,0,0,.45);visibility:visible}
+  .main-row.sb-hidden .sidebar{transform:translateX(-100%);visibility:hidden;transition:transform .28s ease,visibility 0s linear .28s}
   .sb-toggle{display:flex}
   .game-area{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
   .ov{overflow:hidden}

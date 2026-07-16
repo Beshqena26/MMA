@@ -2049,14 +2049,16 @@ if(menuOverlay)menuOverlay.onclick=closeMenu;
 (function(){
   var row=document.querySelector('.main-row'),btn=document.getElementById('sbToggle');
   if(!row||!btn)return;
-  try{
-    if(localStorage.getItem('sb-hidden')==='1'){
-      var sb=document.getElementById('sidebar');
-      if(sb)sb.style.transition='none';         // restore without the slide-in flash
-      row.classList.add('sb-hidden');
-      setTimeout(function(){if(sb)sb.style.transition=''},100);
-    }
-  }catch(e){}
+  // Overlay drawer defaults to HIDDEN (KingsMove-style full-width game);
+  // it only starts open if the user explicitly left it open last time.
+  var startHidden=true;
+  try{startHidden=localStorage.getItem('sb-hidden')!=='0'}catch(e){}
+  if(startHidden){
+    var sb=document.getElementById('sidebar');
+    if(sb)sb.style.transition='none';           // restore without the slide-out flash
+    row.classList.add('sb-hidden');
+    setTimeout(function(){if(sb)sb.style.transition=''},100);
+  }
   btn.onclick=function(){
     var hidden=row.classList.toggle('sb-hidden');
     try{localStorage.setItem('sb-hidden',hidden?'1':'0')}catch(e){}
