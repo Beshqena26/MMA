@@ -238,8 +238,9 @@ canvas{position:fixed;top:0;left:0;z-index:1}
   .rb-bar-text{font-size:11px}
   .cine .c1{font-size:42px}
   .cine .c2{font-size:10px;letter-spacing:2px}
-  .bp{padding:5px;gap:3px}
-  .ov{padding-bottom:calc(150px + var(--sab))} /* scroll clearance under the floating island */
+  /* Mobile: full-width dock at the very bottom (island look is desktop/tablet only) */
+  .bp{padding:5px 5px calc(5px + var(--sab));gap:3px;left:0;right:0;bottom:0;border-radius:16px 16px 0 0;border-left:none;border-right:none;border-bottom:none}
+  .ov{padding-bottom:calc(140px + var(--sab))} /* scroll clearance under the docked panel */
   .bet-panel{border-radius:8px}
   .bp-body{padding:4px;gap:4px}
   .bp-amt{font-size:14px}
