@@ -32,9 +32,9 @@ var POV={
 // s = crop height / frame-0 body height; ax = body center inside the crop;
 // ay = the body's bottom edge inside the crop. Filled by extraction metrics.
 var POVCFG={
-  idle:   {s:1.028,ax:0.502,ay:1.0},
-  punch:  {s:1.070,ax:0.654,ay:1.0},  // wide crop: the glove reaches toward the camera
-  victory:{s:1.022,ax:0.538,ay:1.0}
+  idle:   {s:1.015,ax:0.506,ay:1.0},
+  punch:  {s:1.029,ax:0.478,ay:1.0},  // wide crop: the glove reaches toward the camera
+  victory:{s:1.116,ax:0.321,ay:1.0}   // wide crop: raised fist extends right of center
 };
 var POVFPS={idle:6,idleRamp:5,punch:20,victory:12,bg:10};
 var POVSETS=[
@@ -45,7 +45,7 @@ var POVSETS=[
 ];
 // The punch clip is a combo: three full extensions toward the camera, with
 // pull-backs between. Each one gets its own impact (measured fill peaks).
-var PUNCH_HITS=[10,19,25];
+var PUNCH_HITS=[5,12,24];
 
 function _povLoadSet(s){
   POV.anims[s.name]=[];
