@@ -2016,8 +2016,8 @@ try{
 }catch(e){}
 // Menu items open modals
 document.getElementById('menuHowToPlay').onclick=()=>{closeMenu();document.getElementById('infoModal').classList.add('open')};
-document.getElementById('menuGameRules').onclick=()=>{closeMenu();document.getElementById('rulesModal').classList.add('open')};
-document.getElementById('menuGameLimits').onclick=()=>{closeMenu();document.getElementById('limitsModal').classList.add('open')};
+
+
 document.getElementById('menuTerms').onclick=()=>{closeMenu();document.getElementById('termsModal').classList.add('open')};
 document.getElementById('menuBetHistory').onclick=()=>{
   closeMenu();
