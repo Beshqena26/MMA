@@ -201,7 +201,7 @@ function updateFighters(){
         POV._gloveDipT=0.35;
         G.arenaShake=5;
         G.crowdRoar=Math.min(1,(G.crowdRoar||0)+0.25);
-        if(typeof SND!=='undefined')SND.play('punch',0.35);
+        if(typeof SND!=='undefined')SND.play('punch',0.55);
       }
       if(aAnim&&POV.frame>=aAnim.length-2)_povSet('idle');
     }

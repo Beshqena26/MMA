@@ -323,14 +323,14 @@ var SND={
   _sounds:{},_bgMusic:null,_bgPlaying:false,sfxOn:true,fightOn:true,musicOn:false,_ctx:null,
   _loadPrefs:function(){
     try{
-      var p=JSON.parse(localStorage.getItem('snd-prefs')||'{}');
+      var p=JSON.parse(localStorage.getItem('snd-prefs-v2')||'{}');
       if(typeof p.sfx==='boolean')this.sfxOn=p.sfx;
       if(typeof p.fight==='boolean')this.fightOn=p.fight;
       if(typeof p.music==='boolean')this.musicOn=p.music;
     }catch(e){}
   },
   _savePrefs:function(){
-    try{localStorage.setItem('snd-prefs',JSON.stringify({sfx:this.sfxOn,fight:this.fightOn,music:this.musicOn}))}catch(e){}
+    try{localStorage.setItem('snd-prefs-v2',JSON.stringify({sfx:this.sfxOn,fight:this.fightOn,music:this.musicOn}))}catch(e){}
   },
   _load:function(key,src){var a=new Audio(src);a.preload='auto';this._sounds[key]=a},
   _getCtx:function(){if(!this._ctx){try{this._ctx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}return this._ctx},
@@ -447,10 +447,10 @@ var SND={
     if(!this._breath)return;
     var mute=!this.fightOn;
     // Breathing: soft while betting, clearly present through the fight
-    var bTarget=mute?0:(phase==='FREEFALL')?0.30+t*0.30:(phase==='BETTING')?0.12:0;
+    var bTarget=mute?0:(phase==='FREEFALL')?0.42+t*0.35:(phase==='BETTING')?0.18:0;
     var bRate=(phase==='FREEFALL')?1+t*0.35:1;
     // Heartbeat: fades in from ~2x multiplier, swells and quickens to the crash
-    var hTarget=mute?0:(phase==='FREEFALL'&&t>0.3)?Math.min(0.7,(t-0.3)*1.1):0;
+    var hTarget=mute?0:(phase==='FREEFALL'&&t>0.3)?Math.min(0.8,(t-0.3)*1.2):0;
     var hRate=1+Math.max(0,t-0.3)*0.7;
     try{
       this._breath.volume+=(bTarget-this._breath.volume)*0.05;
