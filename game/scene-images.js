@@ -295,9 +295,10 @@ function render(){
   // frame i with i+1, and clip switches crossfade over MIX seconds.
   _povTick(dt);
   var heroReady=_povReady('idle');
-  // The branded loading screen lifts as soon as he can be drawn
-  // (index.html also force-hides it after 6s as a safety net).
-  if(heroReady&&!POV._loadHidden){
+  // The branded loading screen lifts once he can be drawn, but never before
+  // ~2.4s — on fast connections the assets decode in milliseconds and the
+  // logo/progress bar would flash away unseen. (index.html force-hides at 6s.)
+  if(heroReady&&!POV._loadHidden&&performance.now()>2400){
     POV._loadHidden=true;
     try{var ls=document.getElementById('loadingScreen');if(ls)ls.classList.add('hidden')}catch(e){}
   }
