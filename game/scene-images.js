@@ -245,7 +245,7 @@ function render(){
   if(heroReady){
     var isMob=W<600;
     var bodyH=Math.round(H*(isMob?0.78:0.92));
-    var bottomY=Math.round(H*(isMob?0.93:1.0));
+    var bottomY=Math.round(H*(isMob?0.93:1.0))+(isMob?0:124);  // desktop: fighter sits 124px lower
     var drawClip=function(name,t,alpha){
       var smp=_povSample(name,t);if(!smp)return;
       var pc=POVCFG[name]||{s:1,ax:0.5,ay:1};
@@ -272,7 +272,7 @@ function render(){
   var fistH2=fistW2*0.56;
   var idleBobL=Math.sin(time*2)*(W<600?3:5);
   var idleBobR=Math.sin(time*2+1)*(W<600?3:5);
-  var fistBottomOffset=W<600?124:W<900?124:30;
+  var fistBottomOffset=W<600?124:W<900?124:-12;  // desktop: gloves hang 12px past the bottom
   if(IMG.fistL&&IMG.fistL.complete&&IMG.fistL.naturalWidth>0){
     cx.drawImage(IMG.fistL,W*0.5-fistW2*0.8,H-fistH2-fistBottomOffset+idleBobL,fistW2,fistH2);
   }
