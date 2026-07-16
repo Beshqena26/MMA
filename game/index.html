@@ -7,7 +7,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Stand-It Fight — LIVE</title>
-<link rel="stylesheet" href="style.css?v=13">
+<link rel="stylesheet" href="style.css?v=14">
 </head>
 <body>
 <div class="loading-screen" id="loadingScreen">
@@ -244,60 +244,49 @@
   <div class="mx" style="max-width:520px">
     <button class="mc" onclick="document.getElementById('infoModal').classList.remove('open')">✕</button>
     <div class="mt2">HOW TO PLAY</div>
-    <div class="htp-step">
-      <div class="htp-num">1</div>
-      <div><h5>Place your bet</h5><p>You have <b id="limBetTime">6 seconds</b> before the fight starts. Up to <b>2 bets</b> at once — use the <b>+</b> card to add a second slot.</p></div>
-    </div>
-    <div class="htp-step">
-      <div class="htp-num">2</div>
-      <div><h5>The multiplier climbs</h5><p>When the fight begins the multiplier starts at <b>1.00x</b> and keeps rising while the fighter holds his stand-off.</p></div>
-    </div>
-    <div class="htp-step">
-      <div class="htp-num">3</div>
-      <div><h5>Cash out to win</h5><p>Cash out anytime: payout = bet × current multiplier. $5 at 3.50x = <b class="gr">$17.50</b>.</p></div>
-    </div>
-    <div class="htp-step">
-      <div class="htp-num">4</div>
-      <div><h5>Knockout ends the round</h5><p>One punch ends it at a random moment. Not cashed out yet? <b class="rd">The bet is lost.</b> Every round has a different crash point.</p></div>
-    </div>
-    <div class="htp-tips">
-      <h5>Tips</h5>
-      <p><b>Auto Cashout</b> — set a target once, it cashes out for you.<br>
-      <b>Auto Play</b> — the circle button beside BET runs 20–200 rounds hands-free.<br>
-      <b>Two bets</b> — one safe low target, one risky high target.<br>
-      <b>Read the tension</b> — faster breathing means the punch is coming.</p>
-    </div>
-    <div class="htp-step" style="margin-top:12px;display:block">
-      <h5 style="font-family:'Ubuntu',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;color:rgba(242,242,242,.5);margin:0 0 8px;text-transform:uppercase">Game Rules</h5>
-      <p style="font-size:11.5px;color:rgba(242,242,242,.6);line-height:1.8;margin:0">
-        <b>1.</b> Players have 6 seconds to place bets each round.<br>
-        <b>2.</b> After bets close the multiplier starts at 1.00x.<br>
-        <b>3.</b> Cash out anytime to win bet × multiplier.<br>
-        <b>4.</b> Knockout happens at a random point — uncashed bets are lost.<br>
-        <b>5.</b> The crash point is random every round. No pattern.<br>
-        <b>6.</b> House edge applies to all bets.
-      </p>
-    </div>
-    <div class="htp-step" style="margin-top:12px;display:block">
-      <h5 style="font-family:'Ubuntu',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;color:rgba(242,242,242,.5);margin:0 0 10px;text-transform:uppercase">Game Limits</h5>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:0">
-      <div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
-        <div style="font-size:9px;color:var(--dim);letter-spacing:1px;margin-bottom:4px">MIN BET</div>
-        <div id="limMinBet" style="font-family:'Ubuntu',sans-serif;font-size:20px;font-weight:800;color:var(--acc)">$0.10</div>
+    <div class="htp-content">
+      <div class="htp-intro">Bet before the fight starts and watch the multiplier climb. Cash out before the knockout lands — one punch ends the round.</div>
+
+      <div class="htp-card">
+        <div class="htp-card-title">Bet and Cash Out</div>
+        <div class="htp-previews">
+          <div class="htp-preview">
+            <div class="htp-preview-img"><div class="htp-preview-mult">3.50x</div><div class="htp-preview-btn htp-preview-btn--green">Cash Out $17.50</div></div>
+            <div class="htp-preview-texts"><span class="htp-preview-label htp-preview-label--green">Cash Out</span><span class="htp-preview-desc">Take your winnings anytime while the multiplier climbs.</span></div>
+            <span class="htp-chip htp-chip--green">Payout = bet × multiplier</span>
+          </div>
+          <div class="htp-preview">
+            <div class="htp-preview-img"><div class="htp-preview-mult">2.17x</div><div class="htp-preview-btn htp-preview-btn--red">KNOCKOUT!</div></div>
+            <div class="htp-preview-texts"><span class="htp-preview-label htp-preview-label--red">Knockout</span><span class="htp-preview-desc">The punch lands at a random moment every round.</span></div>
+            <span class="htp-chip htp-chip--red">Uncashed bets are lost</span>
+          </div>
+        </div>
+        <div class="htp-stats">
+          <div class="htp-stat-row"><span class="htp-stat-label">Min Bet</span><span class="htp-stat-value" id="limMinBet">$0.10</span></div>
+          <div class="htp-stat-row"><span class="htp-stat-label">Max Bet</span><span class="htp-stat-value" id="limMaxBet">$100</span></div>
+          <div class="htp-stat-row"><span class="htp-stat-label">Max Win</span><span class="htp-stat-value htp-stat-value--green" id="limMaxWin">$10,000</span></div>
+        </div>
+        <div class="htp-warning">Ride the multiplier as long as you dare. If the knockout lands first — <span class="htp-warning-red">the bet is gone</span>.</div>
       </div>
-      <div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
-        <div style="font-size:9px;color:var(--dim);letter-spacing:1px;margin-bottom:4px">MAX BET</div>
-        <div id="limMaxBet" style="font-family:'Ubuntu',sans-serif;font-size:20px;font-weight:800;color:var(--wrn)">$100</div>
+
+      <div class="htp-card" style="padding:12px;gap:12px">
+        <div class="htp-card-title">Features</div>
+        <div class="htp-feature-cards">
+          <div class="htp-feature"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg><b>Auto Cashout</b><span>Set a target multiplier once — it cashes out for you.</span></div>
+          <div class="htp-feature"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg><b>Auto Play</b><span>Run 20–200 rounds hands-free from the circle button.</span></div>
+          <div class="htp-feature"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="12" rx="2"/><path d="M16 4H6a2 2 0 0 0-2 2v10"/></svg><b>Two Bets</b><span>Add a second slot — one safe target, one risky.</span></div>
+        </div>
       </div>
-      <div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
-        <div style="font-size:9px;color:var(--dim);letter-spacing:1px;margin-bottom:4px">MAX WIN</div>
-        <div id="limMaxWin" style="font-family:'Ubuntu',sans-serif;font-size:20px;font-weight:800;color:var(--gld)">$10,000</div>
+
+      <button class="htp-fullrules-btn" onclick="this.nextElementSibling.classList.toggle('open');this.textContent=this.nextElementSibling.classList.contains('open')?'Hide full rules':'Full game rules →'">Full game rules →</button>
+      <div class="htp-rules">
+        <div><h4>1. Rounds</h4><p>Players have <b id="limBetTime">6 seconds</b> to place bets each round. After bets close the multiplier starts at 1.00x and climbs until the knockout.</p></div>
+        <div><h4>2. Cashing out</h4><p>Cash out anytime to win bet × multiplier. Once confirmed it cannot be reversed. If the knockout lands before you cash out, the bet is lost.</p></div>
+        <div><h4>3. Fairness</h4><p>The crash point is random every round, generated before any bets are placed, and verifiable after the round. No pattern exists.</p></div>
+        <div><h4>4. Limits &amp; edge</h4><p>Bets and wins are capped by the limits above. A house edge applies to all bets. Disconnections during a round settle as if you had not cashed out.</p></div>
       </div>
-      <div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
-        <div style="font-size:9px;color:var(--dim);letter-spacing:1px;margin-bottom:4px">BET SLOTS</div>
-        <div style="font-family:'Ubuntu',sans-serif;font-size:20px;font-weight:800;color:var(--acc)">2</div>
-      </div>
-    </div>
+
+      <div class="htp-footer"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m8.5 11.5 2.5 2.5 4.5-4.5"/></svg><div class="htp-footer-text">Every round is cryptographically verifiable. Check the <strong onclick="document.getElementById('infoModal').classList.remove('open');document.getElementById('fairModal').classList.add('open')">Provably Fair</strong> section to view seeds and verify any round.</div></div>
     </div>
   </div>
 </div>
