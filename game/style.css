@@ -113,10 +113,10 @@ canvas{position:fixed;top:0;left:0;z-index:1}
 .bp-auto-x{margin-left:-3px;font-weight:700;color:var(--dim);font-size:10px}
 .main-row{flex:1;display:flex;flex-direction:column;min-height:0;position:relative}
 /* Collapsible bets sidebar (desktop): handle rides the sidebar edge */
-.sb-toggle{display:none;position:absolute;z-index:18;top:50%;left:280px;transform:translate(-50%,-50%);width:28px;height:56px;background:var(--panel);border:1px solid var(--border);border-radius:0 10px 10px 0;color:rgba(242,242,242,.7);cursor:pointer;align-items:center;justify-content:center;transition:left .28s ease,color .2s}
-.sb-toggle:hover{color:#fff}
+.sb-toggle{display:none;position:absolute;z-index:20;top:50%;left:280px;transform:translate(-50%,-50%);width:40px;height:40px;background:var(--panel);border:1px solid var(--border);border-radius:100px;color:rgba(242,242,242,.75);cursor:pointer;align-items:center;justify-content:center;transition:left .28s ease,color .2s,background .2s;box-shadow:0 4px 16px rgba(0,0,0,.5)}
+.sb-toggle:hover{color:#fff;background:rgba(40,40,40,.95)}
 .sb-toggle .ico{width:16px;height:16px;transition:transform .28s ease}
-.main-row.sb-hidden .sb-toggle{left:0;border-radius:0 10px 10px 0}
+.main-row.sb-hidden .sb-toggle{left:34px}
 .main-row.sb-hidden .sb-toggle .ico{transform:rotate(180deg)}
 .game-area{flex:1;display:flex;flex-direction:column;min-height:0;background:transparent}
 .sidebar{display:none;flex-direction:column;background:var(--panel);overflow:hidden}
