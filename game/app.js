@@ -838,6 +838,10 @@ function updateBhSuck(){}
 var STEPS=[0.1,0.2,0.5,1,2,5,10,25,50,100];
 function adj(s,d){if(G.bets[s-1].placed)return;var b=G.bets[s-1];var i=STEPS.indexOf(b.amount);if(i===-1){i=0;for(var j=0;j<STEPS.length;j++){if(STEPS[j]>=b.amount){i=j;break}}}i=Math.max(0,Math.min(STEPS.length-1,i+d));b.amount=STEPS[i];$('a'+s).textContent=b.amount.toFixed(2);updPanelBtn(s)}
 function sa(s,v){if(G.bets[s-1].placed)return;v=parseFloat(v);if(isNaN(v))v=0.1;v=Math.max(0.1,Math.min(100,v));G.bets[s-1].amount=v;$('a'+s).textContent=v.toFixed(2);updPanelBtn(s)}
+// KingsMove-style stake actions: Max chip, x2 doubler, reset-to-min
+function betMaxSet(s){var cap=Math.min(CFG.betMax||100,Math.max(CFG.betMin||0.1,Math.floor(G.balance*100)/100));sa(s,cap)}
+function betDouble(s){sa(s,(G.bets[s-1].amount||CFG.betMin||0.1)*2)}
+function betReset(s){sa(s,CFG.betMin||0.1)}
 
 function updPanelBtn(s){
   try{
