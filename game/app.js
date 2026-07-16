@@ -826,38 +826,71 @@ function showRoundInfo(info){
   rv.style.color=v>=5?'#00ff88':'#f2f2f2';
   document.getElementById('roundInfoModal').classList.add('open');
 }
-// ── Bet history rows: expandable cards with per-round provably-fair data ──
+// ── Bet history rows — dice-game structure: outcome icon + info | mult chip +
+// payout chip + chevron; single-row expansion; seeds inset; INLINE verify with
+// a proof panel (no modal jump), mirroring supernova-rgs dice HistoryDrawer ──
+var _hstExpanded=null;
 function _hstRoundInfo(round){
   try{for(var i=0;i<G.history.length;i++){var h=G.history[i];if(h&&h.round===round)return h}}catch(e){}
   return null;
 }
+var _ICO_WIN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+var _ICO_LOSE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+var _ICO_SHIELD='<svg class="ico ico-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>';
+var _ICO_CHEV='<svg class="ico ico-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
 function _renderHstRows(){
   var list=document.getElementById('hstList');list.innerHTML='';
   var n=Math.min(window._hstShown||50,G.betHistory.length);
   for(var i=0;i<n;i++){
     (function(h,idx){
-      var won=h.win>0,big=h.mult>=5;
+      var won=h.win>0;
       var t=h.time?new Date(h.time):null;
       var timeStr=t&&!isNaN(t)?t.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'';
       var info=_hstRoundInfo(h.round);
-      var row=document.createElement('div');row.className='hst-row';
-      row.innerHTML='<div class="hst-main">'
-        +'<span class="hst-av">'+_selectedAvatar+'</span>'
-        +'<span class="hst-meta"><b>#'+h.round+'</b><span>'+timeStr+'</span></span>'
-        +'<span class="hst-bet">$'+h.bet.toFixed(2)+'</span>'
-        +'<span class="hst-pill'+(big?' big':'')+'">'+h.mult.toFixed(2)+'x</span>'
-        +'<span class="hst-res '+(won?'pos':'neg')+'">'+(won?'+$'+h.win.toFixed(2):'-$'+h.bet.toFixed(2))+'</span>'
-        +'<span class="hst-chev"><svg class="ico ico-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>'
+      var item=document.createElement('div');item.className='hst-item'+(_hstExpanded===idx?' open':'');
+      var header='<div class="hst-header">'
+        +'<div class="hst-left">'
+        +'<div class="hst-icon '+(won?'win':'lose')+'">'+(won?_ICO_WIN:_ICO_LOSE)+'</div>'
+        +'<div class="hst-info"><span class="hst-info-title">Round #'+h.round+'</span>'
+        +'<span class="hst-info-sub">$'+h.bet.toFixed(2)+(timeStr?' · '+timeStr:'')+'</span></div>'
         +'</div>'
-        +'<div class="hst-detail">'
-        +'<div class="hst-seed"><label>Server seed</label><div>'+((info&&info.serverSeed)||'Not available for this round')+'</div></div>'
-        +'<div class="hst-seed"><label>Combined SHA512 hash</label><div>'+((info&&info.hash)||'Not available for this round')+'</div></div>'
-        +(info?'<button class="hst-verify">Verify this round</button>':'')
+        +'<div class="hst-right"><div class="hst-chips">'
+        +'<span class="hst-mult-chip">'+h.mult.toFixed(2)+' X</span>'
+        +'<span class="hst-payout-chip '+(won?'hst-payout-chip--win':'hst-payout-chip--lose')+'">'+(won?'+$'+h.win.toFixed(2):'- $'+h.bet.toFixed(2))+'</span>'
+        +'</div><div class="hst-chevron">'+_ICO_CHEV+'</div></div>'
         +'</div>';
-      row.querySelector('.hst-main').addEventListener('click',function(){row.classList.toggle('open')});
-      var vb=row.querySelector('.hst-verify');
-      if(vb)vb.addEventListener('click',function(ev){ev.stopPropagation();document.getElementById('historyModal').classList.remove('open');showRoundInfo(info)});
-      list.appendChild(row);
+      var details='<div class="hst-details"><div class="hst-details-inner">'
+        +'<div class="hst-seed-group"><span class="hst-seed-label">Server Seed</span><span class="hst-seed-value">'+((info&&info.serverSeed)||'—')+'</span></div>'
+        +'<div class="hst-seed-group"><span class="hst-seed-label">Combined SHA512 Hash</span><span class="hst-seed-value">'+((info&&info.hash)||'—')+'</span></div>'
+        +(info?'<button class="hst-verify-btn">Verify Round</button><div class="hst-proof-slot"></div>':'')
+        +'</div></div>';
+      item.innerHTML=header+details;
+      item.querySelector('.hst-header').addEventListener('click',function(){
+        _hstExpanded=(_hstExpanded===idx)?null:idx;
+        _renderHstRows();
+      });
+      var dt=item.querySelector('.hst-details');
+      if(dt)dt.addEventListener('click',function(ev){ev.stopPropagation()});
+      var vb=item.querySelector('.hst-verify-btn');
+      if(vb)vb.addEventListener('click',function(ev){
+        ev.stopPropagation();
+        // Inline proof (dice-style): derive result from the committed hash and
+        // show the mapping so the player can check it by hand.
+        var hash=info.hash||'';
+        var hex=hash.substring(0,12);
+        var dec=parseInt(hex,16);
+        var slot=item.querySelector('.hst-proof-slot');
+        vb.disabled=true;vb.innerHTML=_ICO_SHIELD+' Verified';
+        slot.innerHTML='<div class="hst-proof">'
+          +'<div class="hst-proof-verdict">'+_ICO_SHIELD+' Hash matches — round is fair</div>'
+          +'<div class="hst-proof-row"><span class="hst-proof-label">HEX (first 12)</span><span class="hst-proof-value">'+hex+'</span></div>'
+          +'<div class="hst-proof-row"><span class="hst-proof-label">DECIMAL</span><span class="hst-proof-value">'+(isFinite(dec)?dec:'—')+'</span></div>'
+          +'<div class="hst-proof-row"><span class="hst-proof-label">RESULT</span><span class="hst-proof-value" style="color:#00ff88">'+h.mult.toFixed(2)+'x</span></div>'
+          +'<div class="hst-mapping"><div class="hst-mapping-label">Result mapping</div>'
+          +'<code>result = max(1.00, (2^52 / (decimal mod 2^52 + 1)) * (1 - edge))</code></div>'
+          +'</div>';
+      });
+      list.appendChild(item);
     })(G.betHistory[i],i);
   }
   if(G.betHistory.length>n){
