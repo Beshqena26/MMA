@@ -226,8 +226,9 @@ function updateFighters(){
     }
   }
   else if(G.phase==='CRASH'){
-    // koTimer drives the K.O. text — hold it until the slow-mo blow lands
-    if(POV._hitIdx>0||POV.cur!=='punch')G.koTimer+=dt;
+    // koTimer runs from the instant the multiplier dies — K.O. text and the
+    // red flash are immediate; only the blackout waits for the blow (POV._koT)
+    G.koTimer+=dt;
     // Start the KO clip 1.4s in: CRASH_WAIT is only ~3s live, and the full
     // wind-up would put the contact frame (32 @10fps = 3.2s) past the reset —
     // the hit, its punch sound and the blackout would never fire.
@@ -373,10 +374,11 @@ function render(){
     cx.fill();return true;
   });
 
-  // ═══ L4a: KO DAMAGE FLASH — red vignette slams in at impact and drains
-  // away as the blackout takes over (KingsMove-style hit feedback) ═══
-  if(koT2>0&&koT2<0.9){
-    var ra=Math.max(0,1-koT2/0.9)*0.5;
+  // ═══ L4a: KO DAMAGE FLASH — red vignette slams in the INSTANT the
+  // multiplier dies and drains away (KingsMove-style hit feedback) ═══
+  var koFlashT=(G.phase==='CRASH')?(G.koTimer||0):0;
+  if(koFlashT>0&&koFlashT<0.9){
+    var ra=Math.max(0,1-koFlashT/0.9)*0.5;
     var rg=cx.createRadialGradient(W/2,H/2,H*0.22,W/2,H/2,H*0.95);
     rg.addColorStop(0,'rgba(255,10,40,'+(ra*0.22)+')');
     rg.addColorStop(0.65,'rgba(255,10,40,'+(ra*0.55)+')');
@@ -394,16 +396,16 @@ function render(){
   // ═══ L5: KO TEXT ═══
   if(G.phase==='CRASH'){
     var koT=G.koTimer||0;
-    if(koT>0.5){
-      var tp=Math.min(1,(koT-0.5)/0.4),ts=0.5+tp*0.5;
+    if(koT>0.03){
+      var tp=Math.min(1,(koT-0.03)/0.3),ts=0.5+tp*0.5;
       cx.save();cx.translate(W/2,H*0.4);cx.scale(ts,ts);cx.globalAlpha=tp;
       cx.shadowColor='#ff2222';cx.shadowBlur=30;
       cx.font='bold 80px sans-serif';cx.textAlign='center';cx.textBaseline='middle';
       cx.fillStyle='#ff2222';cx.fillText('K.O.',0,0);
       cx.strokeStyle='rgba(255,255,255,0.3)';cx.lineWidth=2;cx.strokeText('K.O.',0,0);
       cx.shadowBlur=0;
-      if(koT>1.2){
-        cx.globalAlpha=Math.min(1,(koT-1.2)/0.5);
+      if(koT>0.6){
+        cx.globalAlpha=Math.min(1,(koT-0.6)/0.4);
         cx.font='bold 28px sans-serif';cx.fillStyle='rgba(255,255,255,0.8)';
         cx.fillText((G.mult||1).toFixed(2)+'x',0,50);
       }
