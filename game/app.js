@@ -970,6 +970,22 @@ function updAllBtns(){updPanelBtn(1);updPanelBtn(2)}
 function lockPanels(l){/* no longer locks panels - amount/auto always accessible */}
 
 // ======================== BET ACTION ========================
+// KingsMove-style cashout alert: pill toast top-center of the scene —
+// "CASHED OUT ×mult" + green win badge; slides in, holds, fades. One per
+// cashed-out slot; they stack if both slots cash close together.
+function showCashoutToast(mult,win){
+  var box=$('ctoasts');if(!box)return;
+  var el=document.createElement('div');
+  el.className='ctoast';
+  el.innerHTML='<div class="ct-l"><div class="ct-t">Cashed Out</div><div class="ct-m">'+mult.toFixed(2)+'&times;</div></div>'
+              +'<div class="ct-win">+'+win.toFixed(2)+' USD</div>';
+  box.appendChild(el);
+  while(box.children.length>3)box.removeChild(box.firstChild);
+  requestAnimationFrame(function(){requestAnimationFrame(function(){el.classList.add('show')})});
+  setTimeout(function(){el.classList.remove('show')},2600);
+  setTimeout(function(){try{box.removeChild(el)}catch(e){}},3000);
+}
+
 function betAction(s){
   try{
   sfx.res();var b=G.bets[s-1];if(!b)return;
@@ -990,7 +1006,7 @@ function betAction(s){
     G.betHistory.unshift({round:G.roundNum,bet:b.amount,mult:G.mult,win:w,time:new Date()});
     if(G.betHistory.length>200)G.betHistory.pop();
     updBal();sfx.play('cashout');
-    try{$('winAmt').textContent='+$'+w.toFixed(2)}catch(e){}
+    try{showCashoutToast(G.mult,w)}catch(e){}
     spawnParticles(cv.width/2,cv.height/2,'gold',30);
     // Scene-level cash-out moment: gold rings + multiplier stamp (drawn by the
     // active renderer), a small camera pop, and the crowd reacting to the escape.
