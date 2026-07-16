@@ -996,7 +996,8 @@ function betAction(s){
     // active renderer), a small camera pop, and the crowd reacting to the escape.
     G.cashoutFx={t:0,mult:G.mult,win:w};
     G.camera.shake=Math.max(G.camera.shake||0,2.5);
-    try{SND.play('cheer',0.35)}catch(e){}
+    // (no crowd cheer on cashout — the cash-register chime is enough; the
+    // crowd only reacts to the KO)
     updPanelBtn(s);fakeFeed(G.mult,true);
     // Update bet in Firebase with cashout
     if(SYNC.enabled){try{FB.writeBet(G.roundNum,{name:_selectedName||'Player',avatar:_selectedAvatar||'🧑‍✈️',bet:b.amount,slot:s,cashMult:G.mult,win:w})}catch(e){}}
