@@ -38,11 +38,11 @@ var POV={
 // shifts on his feet inside the union crop, so the mean keeps him wandering
 // around screen center instead of parking off to one side.
 var POVCFG={
-  idle:   {s:1.018,ax:0.432,ay:1.0},
-  punch:  {s:1.065,ax:0.484,ay:1.0},
-  feint:  {s:1.059,ax:0.479,ay:1.0},
-  jab:    {s:1.065,ax:0.595,ay:1.0},
-  hook:   {s:1.015,ax:0.474,ay:1.0}
+  idle:   {s:1.018,ax:0.511,ay:1.0},
+  punch:  {s:1.050,ax:0.611,ay:1.0},
+  feint:  {s:1.056,ax:0.438,ay:1.0},
+  jab:    {s:1.006,ax:0.465,ay:1.0},
+  hook:   {s:1.015,ax:0.402,ay:1.0}
 };
 // True-speed playback at 10fps sampling density (idle&feint 50/5s, jab&hook
 // 40/4s, punch 50/5s). Dense frames keep the inter-frame blend ghost-free.
@@ -59,9 +59,9 @@ var POVSETS=[
 var POV_ONESHOT={punch:1,feint:1,jab:1,hook:1};
 // The punch clip is one slow-motion KO blow: deliberate wind-up, single full
 // extension toward the camera (measured fill peak), slow settle back.
-var PUNCH_HITS=[31];
+var PUNCH_HITS=[32];
 // Mid-round strikes land on YOUR guard: contact frame per clip (measured fill peak)
-var STRIKE_HIT={jab:26,hook:12};
+var STRIKE_HIT={jab:25,hook:13};
 
 function _povLoadSet(s){
   POV.anims[s.name]=[];
