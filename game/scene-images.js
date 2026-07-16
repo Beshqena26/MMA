@@ -85,8 +85,17 @@ function initFighterState(){
 function getTension(m){if(m<=1)return 0;if(m<=1.5)return(m-1)/0.5*0.25;if(m<=3)return 0.25+(m-1.5)/1.5*0.25;if(m<=7)return 0.5+(m-3)/4*0.25;return Math.min(1,0.75+(m-7)/13*0.25)}
 function initCrowd(){}
 
+// ── Spine-style animation mixing (KingsMove principle, canvas edition) ──
+// Playback runs on fractional time and every draw blends frame i with frame
+// i+1 by the fractional part (perceived 60fps from 20-30 source frames), and
+// switching clips crossfades the outgoing pose over MIX seconds instead of
+// hard-cutting — the same idea as Spine's AnimationState mix.
+var MIX=0.18;
 function _povSet(name){
-  if(POV.cur!==name){POV.cur=name;POV.frame=0;POV.timer=0}
+  if(POV.cur!==name){
+    POV.prev=POV.cur;POV.prevT=POV.t||0;POV.mix=0;
+    POV.cur=name;POV.frame=0;POV.timer=0;POV.t=0;
+  }
 }
 
 // A set is animatable only when EVERY frame has decoded — cycling through a
@@ -100,23 +109,40 @@ function _povReady(name){
   return true;
 }
 
-// Advance + fetch the current hero frame. Idle/victory loop; punch plays once, holds.
-function _povFrame(dt){
+function _povFPS(name){
+  return (name==='idle')?POVFPS.idle+(G.tension||0)*POVFPS.idleRamp
+        :(name==='victory')?POVFPS.victory:POVFPS.punch;
+}
+// Advance playback clocks: fractional frame time for the current clip, and
+// the crossfade mix progress toward 1.
+function _povTick(dt){
+  POV.t=(POV.t||0)+dt*_povFPS(POV.cur);
+  if(POV.prev!=null){
+    POV.mix+=dt/MIX;
+    if(POV.mix>=1){POV.prev=null}
+    else POV.prevT+=dt*_povFPS(POV.prev);   // outgoing clip keeps playing while it fades
+  }
+  // expose integer frame for the game logic (punch contacts, clip-end checks)
   var anim=POV.anims[POV.cur];
+  if(anim&&anim.length){
+    POV.frame=(POV.cur==='punch')?Math.min(anim.length-1,Math.floor(POV.t)):Math.floor(POV.t)%anim.length;
+  }
+}
+// Sample a clip at fractional time t -> {a:frameA,b:frameB,f:blend 0..1}
+function _povSample(name,t){
+  var anim=POV.anims[name];
   if(!anim||!anim.length)return null;
-  var fps=(POV.cur==='idle')?POVFPS.idle+(G.tension||0)*POVFPS.idleRamp
-         :(POV.cur==='victory')?POVFPS.victory:POVFPS.punch;
-  POV.timer+=dt;
-  var d=1/fps;
-  while(POV.timer>=d){POV.timer-=d;POV.frame++}
-  var idx;
-  if(POV.cur==='punch'){if(POV.frame>=anim.length)POV.frame=anim.length-1;idx=POV.frame}
-  else idx=POV.frame=POV.frame%anim.length;
-  var img=anim[idx];
-  // Hold the last good frame if this one hasn't decoded (mid-set switch on a
-  // slow connection) — a held pose beats a vanishing fighter.
-  if(img&&img.complete&&img.naturalWidth>0){POV._lastImg=img;return img}
-  return POV._lastImg||null;
+  var loop=(name!=='punch');
+  var i,f;
+  if(loop){i=Math.floor(t)%anim.length;f=t-Math.floor(t)}
+  else{
+    if(t>=anim.length-1){i=anim.length-1;f=0}
+    else{i=Math.floor(t);f=t-i}
+  }
+  var a=anim[i],b=anim[loop?(i+1)%anim.length:Math.min(i+1,anim.length-1)];
+  var ok=function(im){return im&&im.complete&&im.naturalWidth>0};
+  if(!ok(a))return null;
+  return {a:a,b:ok(b)?b:a,f:f};
 }
 
 // ── Update ──
@@ -206,24 +232,39 @@ function render(){
   }
 
   // ═══ L2: THE FIGHTER — knees-up, faces the camera ═══
-  // Wait for the FULL idle set before he first appears: one clean reveal
-  // instead of a fighter flickering while frames stream in.
-  var heroImg=_povReady('idle')?_povFrame(dt):null;
+  // Spine-style playback: fractional time advances the clip, each draw blends
+  // frame i with i+1, and clip switches crossfade over MIX seconds.
+  _povTick(dt);
+  var heroReady=_povReady('idle');
   // The branded loading screen lifts as soon as he can be drawn
   // (index.html also force-hides it after 6s as a safety net).
-  if(heroImg&&!POV._loadHidden){
+  if(heroReady&&!POV._loadHidden){
     POV._loadHidden=true;
     try{var ls=document.getElementById('loadingScreen');if(ls)ls.classList.add('hidden')}catch(e){}
   }
-  if(heroImg){
-    var pc=POVCFG[POV.cur]||{s:1,ax:0.5,ay:1};
+  if(heroReady){
     var isMob=W<600;
-    // Knee-up body height relative to the canvas; bottom pinned near the panel
     var bodyH=Math.round(H*(isMob?0.78:0.92));
-    var drawH=Math.round(bodyH*pc.s);
-    var drawW=Math.round(drawH*(heroImg.naturalWidth/heroImg.naturalHeight));
     var bottomY=Math.round(H*(isMob?0.93:1.0));
-    cx.drawImage(heroImg,Math.round(W*0.5-pc.ax*drawW),bottomY-Math.round(pc.ay*drawH),drawW,drawH);
+    var drawClip=function(name,t,alpha){
+      var smp=_povSample(name,t);if(!smp)return;
+      var pc=POVCFG[name]||{s:1,ax:0.5,ay:1};
+      var drawH=Math.round(bodyH*pc.s);
+      var drawW=Math.round(drawH*(smp.a.naturalWidth/smp.a.naturalHeight));
+      var x=Math.round(W*0.5-pc.ax*drawW),y=bottomY-Math.round(pc.ay*drawH);
+      cx.save();
+      cx.globalAlpha=alpha;
+      cx.drawImage(smp.a,x,y,drawW,drawH);           // base frame, fully weighted
+      if(smp.f>0.02){cx.globalAlpha=alpha*smp.f;cx.drawImage(smp.b,x,y,drawW,drawH)} // next frame fades in on top
+      cx.restore();
+    };
+    if(POV.prev!=null){
+      var mp=_easeOutCubic(Math.min(1,POV.mix));
+      drawClip(POV.prev,POV.prevT,1);                // outgoing clip underneath
+      drawClip(POV.cur,POV.t,mp);                    // incoming clip fades in over it
+    }else{
+      drawClip(POV.cur,POV.t,1);
+    }
   }
 
   // ═══ L2b: MY GLOVES — always present, calm idle bob ═══
