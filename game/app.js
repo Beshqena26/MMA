@@ -337,12 +337,10 @@ var SND={
   init:function(){
     this._loadPrefs();
     this._load('punch','assets/sounds/punch.mp3');
-    this._load('victory','assets/sounds/crowd-victory.wav');
     this._load('fight','assets/sounds/fight-voice.mp3');
     this._load('cheer','assets/sounds/crowd-cheer.mp3');
-    this._load('intro','assets/sounds/intro-music.mp3');
-    this._bgMusic=new Audio('assets/sounds/bg-music.mp3');
-    this._bgMusic.loop=true;this._bgMusic.volume=0.15;
+    // bg music (3.4MB) loads LAZILY on first enable — it defaults OFF, so
+    // most players never download it. (victory/intro tracks were dead weight.)
     // Real recordings (Wikimedia Commons): breathing (public domain),
     // heartbeat (CC BY 3.0, "Heartbeat.ogg" by Benboncan). Looped, volume
     // and playbackRate driven by phase/tension in _tickLoops.
@@ -410,8 +408,14 @@ var SND={
     this._playing[key]=null;
   },
   stopAll:function(){for(var k in this._playing){if(this._playing[k])this.stop(k)}},
+  _ensureBG:function(){
+    if(this._bgMusic)return;
+    this._bgMusic=new Audio('assets/sounds/bg-music.mp3');
+    this._bgMusic.loop=true;this._bgMusic.volume=0.15;
+  },
   startBG:function(){
-    if(!this.musicOn||this._bgPlaying||!this._bgMusic)return;
+    if(!this.musicOn||this._bgPlaying)return;
+    this._ensureBG();
     try{this._bgMusic.play();this._bgPlaying=true}catch(e){}
   },
   stopBG:function(){
