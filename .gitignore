@@ -3,3 +3,8 @@ dist/
 .env
 .DS_Store
 *.tsbuildinfo
+# sprite pipeline sources & scratch (not needed at runtime)
+game/assets/source-videos/
+game/assets/fighters/
+game/assets/_backup_gloves/
+game/assets/sprites/_base/

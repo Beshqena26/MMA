@@ -177,9 +177,13 @@ function updateFighters(){
   var dt=G.dt||0.016;
   if(!G.opp)return;
 
+  // New sprite controller takes over state + fx once its frames are ready.
+  if(typeof SF!=='undefined'&&SF.ready){ SF.update(dt,G.phase,G.mult||1,G.time||0); return; }
+
   if(G.phase==='BETTING'){
     G.koTimer=0;POV._hitIdx=0;POV._flashT=0;
     POV._nextAct=null;POV._struck=false;POV._koT=0;POV._gloveDipT=0;
+    POV._jabT=0;POV._jabSide=1;POV._nextJab=null;POV._jabHit=false;POV._flinchT=0;
     _povSet('idle');
   }
   else if(G.phase==='EXPLODE'){
@@ -191,6 +195,15 @@ function updateFighters(){
   // guard: small shake + thud + glove dip, the multiplier is untouched.
   else if(G.phase==='FREEFALL'){
     var m=G.mult||1;
+    // YOUR guard fights back: throw jabs through the round, alternating hands.
+    // Purely your first-person gloves — the opponent AI above is untouched.
+    if(POV._nextJab==null)POV._nextJab=(G.time||0)+1.0+Math.random()*1.4;
+    if((G.time||0)>=POV._nextJab&&(POV._jabT||0)<=0){
+      POV._jabT=0.24;POV._jabSide=(POV._jabSide===0)?1:0;POV._jabHit=false;
+      // a soft whoosh sells the throw without stealing the KO's thunder
+      try{var _jc=SND._getCtx();if(_jc&&_jc.state==='running')SND._noiseSweep(_jc.currentTime+0.04,0.13,2000,600,2.4,0.07,0.09)}catch(e){}
+      POV._nextJab=(G.time||0)+1.1+Math.random()*1.6;
+    }
     if(POV.cur==='feint'||POV.cur==='jab'||POV.cur==='hook'){
       var aAnim=POV.anims[POV.cur];
       // strike contact frame -> the "hit on your guard" beat
@@ -252,6 +265,13 @@ function updateFighters(){
     // No celebration — the hit is the whole story (boss spec: hit rare & meaningful).
     if(POV._hitIdx>=PUNCH_HITS.length)POV._koT=(POV._koT||0)+dt;
   }
+  // your jab connects at mid-extension: a small flash + the opponent flinches
+  if((POV._jabT||0)>0){
+    var _ju=1-POV._jabT/0.24;
+    if(_ju>=0.5&&!POV._jabHit){POV._jabHit=true;POV._flashT=Math.max(POV._flashT||0,0.07);POV._flinchT=0.20;}
+  }
+  POV._jabT=Math.max(0,(POV._jabT||0)-dt);
+  POV._flinchT=Math.max(0,(POV._flinchT||0)-dt);
   POV._flashT=Math.max(0,(POV._flashT||0)-dt);
   POV._gloveDipT=Math.max(0,(POV._gloveDipT||0)-dt);
 
@@ -281,9 +301,11 @@ function render(){
   var time=G.time||0;
   var dt=G.dt||0.016;
 
-  // ═══ L1: RING BACKGROUND — static (boss spec), cover-fit ═══
+  // ═══ L1: RING BACKGROUND — static fallback; skipped once the animated
+  // sprite bg (SF) is decoded and drawing its own arena frames ═══
+  var _sfBg=(typeof SF!=='undefined')&&SF.ready&&SF.bgReady;
   var bgImg=null;
-  if(IMG.bg&&IMG.bg.complete&&IMG.bg.naturalWidth)bgImg=IMG.bg;
+  if(!_sfBg&&IMG.bg&&IMG.bg.complete&&IMG.bg.naturalWidth)bgImg=IMG.bg;
   if(bgImg){
     var bgA=bgImg.naturalWidth/bgImg.naturalHeight,scA=W/H;
     var dW,dH;
@@ -292,6 +314,11 @@ function render(){
   }else{
     cx.fillStyle='#060414';cx.fillRect(0,0,W,H);
   }
+
+  // ═══ NEW SPRITE SYSTEM — video-sourced sprites draw the opponent + player
+  // gloves (and impact fx) in place of the legacy POV layers below. ═══
+  var _useSF=(typeof SF!=='undefined')&&SF.ready;
+  if(_useSF){ SF.draw(cx,W,H,time); }
 
   // ═══ L2: THE FIGHTER — knees-up, faces the camera ═══
   // Spine-style playback: fractional time advances the clip, each draw blends
@@ -305,18 +332,22 @@ function render(){
     POV._loadHidden=true;
     try{var ls=document.getElementById('loadingScreen');if(ls)ls.classList.add('hidden')}catch(e){}
   }
-  if(heroReady){
+  if(heroReady&&!_useSF){
     // Camera per the boss reference: the boxer is FULL BODY at mid-distance,
     // standing on the ring floor — not the old knees-up close-up.
     var isMob=W<600;
-    var bodyH=Math.round(H*(isMob?0.55:0.66));
-    var bottomY=Math.round(H*(isMob?0.82:0.90));
+    var bodyH=Math.round(H*(isMob?0.62:0.66));   // mobile: bring the fighter more forward
+    var bottomY=Math.round(H*(isMob?0.86:0.90));  // ...and a touch lower/closer
+    // flinch: your landed jab snaps his head back — a quick up + shake recoil
+    var _fl=POV._flinchT>0?POV._flinchT/0.20:0;
+    var flY=-Math.round(bodyH*0.035*_fl);
+    var flX=Math.round(Math.sin(time*55)*7*_fl);
     var drawClip=function(name,t,alpha){
       var smp=_povSample(name,t);if(!smp)return;
       var pc=POVCFG[name]||{s:1,ax:0.5,ay:1};
       var drawH=Math.round(bodyH*pc.s);
       var drawW=Math.round(drawH*(smp.a.naturalWidth/smp.a.naturalHeight));
-      var x=Math.round(W*0.5-pc.ax*drawW),y=bottomY-Math.round(pc.ay*drawH);
+      var x=Math.round(W*0.5-pc.ax*drawW)+flX,y=bottomY-Math.round(pc.ay*drawH)+flY;
       cx.save();
       cx.globalAlpha=alpha;
       cx.drawImage(smp.a,x,y,drawW,drawH);           // base frame, fully weighted
@@ -334,21 +365,36 @@ function render(){
 
   // ═══ L2b: MY GLOVES — black boxing gloves anchored in the bottom corners,
   // forearms bleeding off-frame (boss reference), calm idle bob ═══
-  var fistW2=W<600?W*0.52:W<900?W*0.36:W*0.34;
+  var fistW2=W<600?W*0.72:W<900?W*0.46:W*0.44;  // mobile upscaled; bigger = higher knuckle line (boss: "it's down")
   var fistH2=fistW2*0.715;  // 610x436 source aspect
   var idleBobL=Math.sin(time*2)*(W<600?3:5);
   var idleBobR=Math.sin(time*2+1)*(W<600?3:5);
-  var fistBottomOffset=W<600?124:0;  // mobile: lift above the bet panel
+  var fistBottomOffset=(W<600?124:0)+fistH2*0.08;  // mobile: lift above the bet panel; +8% raises the guard a touch
   // a landed strike dips your guard for a beat (first-person head reaction)
   var gDip=(POV._gloveDipT||0)>0?(POV._gloveDipT/0.35)*(W<600?10:15):0;
   // the KO blow drops your guard for good: gloves slide down and out
   var koT2=POV._koT||0;
   var koDrop=koT2>0?_easeOutCubic(Math.min(1,koT2/0.9))*fistH2*1.7:0;
-  if(IMG.fistL&&IMG.fistL.complete&&IMG.fistL.naturalWidth>0){
-    cx.drawImage(IMG.fistL,-fistW2*0.08-koDrop*0.25,H-fistH2-fistBottomOffset+idleBobL+gDip+koDrop,fistW2,fistH2);
-  }
-  if(IMG.fistR&&IMG.fistR.complete&&IMG.fistR.naturalWidth>0){
-    cx.drawImage(IMG.fistR,W-fistW2*0.92+koDrop*0.25,H-fistH2-fistBottomOffset+idleBobR+gDip+koDrop*1.15,fistW2,fistH2);
+  // Tight guard: gloves near center with forearms bleeding off the bottom
+  // corners (boss ref) — closes the old ~0.37W center gap down to ~0.16W.
+  var fistLx=W*0.42-fistW2-koDrop*0.25;
+  var fistRx=W*0.58+koDrop*0.25;
+  var fistBaseY=H-fistH2-fistBottomOffset;
+  // active jab extension: 0 -> 1 (peak) -> 0 over the clip (sine ease)
+  var jabAmt=(POV._jabT||0)>0?Math.sin((1-POV._jabT/0.24)*Math.PI):0;
+  // draw a glove; the jab side lunges up + inward toward the opponent, scaled up
+  var drawFist=function(img,x,y,side){
+    if(!(img&&img.complete&&img.naturalWidth>0))return;
+    var jp=(side===POV._jabSide)?jabAmt:0;
+    if(jp<=0.002){cx.drawImage(img,x,y,fistW2,fistH2);return;}
+    var sc=1+0.24*jp,w=fistW2*sc,h=fistH2*sc;
+    var ny=(y+fistH2)-h-fistH2*0.40*jp;             // keep bottom anchored, grow up + lunge up
+    var nx=(side===0)?(x+fistW2*0.28*jp):((x+fistW2)-w-fistW2*0.28*jp); // lunge inward, outer edge anchored
+    cx.drawImage(img,nx,ny,w,h);
+  };
+  if(!_useSF){
+    drawFist(IMG.fistL,fistLx,fistBaseY+idleBobL+gDip+koDrop,0);
+    drawFist(IMG.fistR,fistRx,fistBaseY+idleBobR+gDip+koDrop*1.15,1);
   }
 
   // ═══ L3: IMPACT FLASH — one burst per landed hit ═══
