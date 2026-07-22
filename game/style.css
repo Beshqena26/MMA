@@ -308,7 +308,7 @@ body.ko-shake{animation:koShake .6s cubic-bezier(.36,.07,.19,.97)}
   .ag{right:18px}.at{width:6px;height:220px}.an{font-size:12px}
   .bm{top:42%}.bm .bt{font-size:16px}.bm .bb{font-size:56px}
   .bottom-dock{display:contents}
-  .bp{position:relative;left:auto;right:auto;bottom:auto;flex-direction:row;gap:16px;padding:0;justify-content:center;margin:0 auto 14px;width:calc(100% - 48px);max-width:1010px;background:transparent;border:none;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+  .bp{position:relative;left:auto;right:auto;bottom:auto;flex-direction:row;gap:16px;padding:0;justify-content:center;margin:0 auto 14px;width:calc(100% - 48px);max-width:860px;background:transparent;border:none;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
   .bp .bp-add-btn{position:static;transform:none;align-self:center}
   .bet-panel{background:rgba(10,10,10,.75);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(242,242,242,.12);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.6)}
   .bp-spacer{display:none}

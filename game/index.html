@@ -7,7 +7,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>STANDIT BOXING — LIVE</title>
-<link rel="stylesheet" href="style.css?v=14">
+<link rel="stylesheet" href="style.css?v=16">
 </head>
 <body>
 <div class="loading-screen" id="loadingScreen">
@@ -15,7 +15,23 @@
   <div class="loading-bar-wrap"><div class="loading-bar"></div></div>
   <div class="loading-text">Loading game…</div>
 </div>
-<script>setTimeout(function(){var l=document.getElementById('loadingScreen');if(l)l.classList.add('hidden')},6000)</script>
+<script>
+setTimeout(function(){var l=document.getElementById('loadingScreen');if(l)l.classList.add('hidden')},6000);
+// Loading whoosh: browsers block audio before the first user gesture, so try
+// immediately (works on revisits) and otherwise fire on the FIRST tap/click
+// within the opening 20s — an intro sting for the arena reveal.
+(function(){
+  var t0=Date.now();
+  var lw=new Audio('assets/sounds/loading-whoosh.mp3');lw.volume=0.7;lw.preload='auto';
+  var played=false;
+  function tryPlay(){if(played)return;played=true;lw.currentTime=0;lw.play().catch(function(){played=false})}
+  tryPlay();
+  document.addEventListener('pointerdown',function h(){
+    if(Date.now()-t0<20000)tryPlay();
+    if(played||Date.now()-t0>=20000)document.removeEventListener('pointerdown',h);
+  });
+})();
+</script>
 <canvas id="c" aria-label="Game visualization"></canvas>
 <div class="ov">
   <div class="hd">
@@ -216,11 +232,6 @@
       <span class="mi-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
       <span class="mi-label">Fight</span>
       <div class="menu-toggle on" id="gameSndToggle"></div>
-    </div>
-    <div class="menu-item" id="menuMusic">
-      <span class="mi-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
-      <span class="mi-label">Music</span>
-      <div class="menu-toggle on" id="musicToggle"></div>
     </div>
   </div>
 

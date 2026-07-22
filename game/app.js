@@ -338,13 +338,12 @@ var SND={
     this._loadPrefs();
     this._load('punch','assets/sounds/punch.mp3');
     this._load('fight','assets/sounds/fight-voice.mp3');
-    this._load('cheer','assets/sounds/crowd-cheer.mp3');
     // bg music (3.4MB) loads LAZILY on first enable — it defaults OFF, so
     // most players never download it. (victory/intro tracks were dead weight.)
     // Real recordings (Wikimedia Commons): breathing (public domain),
     // heartbeat (CC BY 3.0, "Heartbeat.ogg" by Benboncan). Looped, volume
     // and playbackRate driven by phase/tension in _tickLoops.
-    this._breath=new Audio('assets/sounds/breath-loop.mp3');
+    this._breath=new Audio('assets/sounds/breath-loop.m4a');
     this._breath.loop=true;this._breath.volume=0;
     this._heart=new Audio('assets/sounds/heartbeat-loop.mp3');
     this._heart.loop=true;this._heart.volume=0;
@@ -408,11 +407,7 @@ var SND={
     this._playing[key]=null;
   },
   stopAll:function(){for(var k in this._playing){if(this._playing[k])this.stop(k)}},
-  _ensureBG:function(){
-    if(this._bgMusic)return;
-    this._bgMusic=new Audio('assets/sounds/bg-music.mp3');
-    this._bgMusic.loop=true;this._bgMusic.volume=0.15;
-  },
+  _ensureBG:function(){ /* background music removed */ },
   startBG:function(){
     if(!this.musicOn||this._bgPlaying)return;
     this._ensureBG();
@@ -451,11 +446,11 @@ var SND={
     if(!this._breath)return;
     var mute=!this.fightOn;
     // Breathing: soft while betting, clearly present through the fight
-    var bTarget=mute?0:(phase==='FREEFALL')?0.42+t*0.35:(phase==='BETTING')?0.18:0;
+    var bTarget=(mute?0:(phase==='FREEFALL')?0.42+t*0.35:(phase==='BETTING')?0.18:0)*0.6;
     var bRate=(phase==='FREEFALL')?1+t*0.35:1;
     // Heartbeat: fades in from ~2x multiplier, swells and quickens to the crash
-    var hTarget=mute?0:(phase==='FREEFALL'&&t>0.3)?Math.min(0.8,(t-0.3)*1.2):0;
-    var hRate=1+Math.max(0,t-0.3)*0.7;
+    var hTarget=mute?0:(phase==='FREEFALL'&&t>0.15)?Math.min(0.9,0.25+(t-0.15)*1.3):0;
+    var hRate=1+Math.max(0,t-0.15)*0.7;
     try{
       this._breath.volume+=(bTarget-this._breath.volume)*0.05;
       this._breath.playbackRate=bRate;
