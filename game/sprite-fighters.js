@@ -150,7 +150,21 @@ var SF=(function(){
   }
 
   function _ok(im){ return im&&im.complete&&im.naturalWidth>0; }
-  function _img(bucket,st){ var f=frames[bucket][st.cur]; if(!f)return null; var im=f[Math.min(st.frame,f.length-1)]; return _ok(im)?im:null; }
+  // If the exact frame isn't decoded yet (mobile: clips still streaming in
+  // mid-fight), fall back to the nearest loaded frame in the clip, then to
+  // the last frame we drew — a slightly stale pose beats a vanishing fighter.
+  var _lastDrawn={opponent:null,player:null};
+  function _img(bucket,st){
+    var f=frames[bucket][st.cur]; if(!f)return _lastDrawn[bucket];
+    var idx=Math.min(st.frame,f.length-1), im=f[idx];
+    if(!_ok(im)){
+      im=null;
+      for(var i=idx-1;i>=0&&!im;i--){ if(_ok(f[i]))im=f[i]; }
+      if(!im)im=_lastDrawn[bucket];
+    }
+    if(im)_lastDrawn[bucket]=im;
+    return im;
+  }
 
   function _drawCover(cx,im,W,H,alpha){
     var a=im.naturalWidth/im.naturalHeight, sA=W/H, dW,dH;

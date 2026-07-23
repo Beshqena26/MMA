@@ -1,0 +1,10 @@
+# Source material never requested at runtime (game loads .webp only;
+# verified via grep — no js/css/html references any of these):
+game/assets/source-videos/
+game/assets/fighters/
+game/assets/sprites/_base/
+game/assets/*.png
+game/assets/mobile/*.png
+game/assets/mobile/paper-doll/
+tools/
+audio/

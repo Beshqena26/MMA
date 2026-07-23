@@ -16,7 +16,33 @@
   <div class="loading-text">Loading game…</div>
 </div>
 <script>
-setTimeout(function(){var l=document.getElementById('loadingScreen');if(l)l.classList.add('hidden')},6000);
+// Loading gate: hide when the sprite fighters can actually draw (first idle
+// + arena frames decoded) instead of a blind timer — on mobile the frames
+// arrive well after 6s and the fight used to start half-loaded. The bar
+// shows real progress; 20s is the hard cap so nobody is stuck on a stall.
+(function(){
+  var t0=Date.now();
+  function tick(){
+    var l=document.getElementById('loadingScreen');
+    if(!l||l.classList.contains('hidden'))return;
+    var pct=0,ready=false;
+    try{
+      if(window.SF&&SF._dbg){
+        var d=SF._dbg();
+        pct=d.total?d.loaded/d.total:0;
+        ready=SF.ready&&SF.bgReady;
+      }
+    }catch(e){}
+    try{
+      var bar=l.querySelector('.loading-bar');
+      if(bar&&pct>0){bar.style.animation='none';bar.style.width=Math.round(Math.min(1,pct)*100)+'%'}
+    }catch(e){}
+    var elapsed=Date.now()-t0;
+    if((ready&&elapsed>=2500)||elapsed>20000){l.classList.add('hidden')}
+    else setTimeout(tick,150);
+  }
+  setTimeout(tick,300);
+})();
 // Loading whoosh: browsers block audio before the first user gesture, so try
 // immediately (works on revisits) and otherwise fire on the FIRST tap/click
 // within the opening 20s — an intro sting for the arena reveal.
@@ -440,7 +466,7 @@ setTimeout(function(){var l=document.getElementById('loadingScreen');if(l)l.clas
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="firebase-init.js"></script>
 <script src="scene-images.js?v=7"></script>
-<script src="sprite-fighters.js?v=20"></script>
-<script src="app.js?v=11"></script>
+<script src="sprite-fighters.js?v=21"></script>
+<script src="app.js?v=12"></script>
 </body>
 </html>

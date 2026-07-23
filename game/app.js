@@ -334,10 +334,41 @@ var SND={
   },
   _load:function(key,src){var a=new Audio(src);a.preload='auto';this._sounds[key]=a},
   _getCtx:function(){if(!this._ctx){try{this._ctx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}return this._ctx},
+  // ── Web Audio buffers ─────────────────────────────────────────────
+  // HTMLAudio cloneNode()+playbackRate glitches badly on iOS Safari
+  // (re-fetch per clone, warbly pitch, gap at loop points). Sounds are
+  // fetched once as ArrayBuffers, decoded into AudioBuffers after the
+  // first user gesture, and played via buffer sources. The HTMLAudio
+  // elements stay as a fallback until (or in case) decode succeeds.
+  _bufs:{},_bufData:{},
+  _fetchBuf:function(key,src){
+    var self=this;
+    try{
+      fetch(src).then(function(r){return r.arrayBuffer()}).then(function(ab){
+        self._bufData[key]=ab;
+        if(self._ctx)self._decodeBuf(key);
+      }).catch(function(){});
+    }catch(e){}
+  },
+  _decodeBuf:function(key){
+    var c=this._ctx,ab=this._bufData[key],self=this;
+    if(!c||!ab||this._bufs[key])return;
+    try{
+      c.decodeAudioData(ab.slice(0),function(buf){
+        self._bufs[key]=buf;
+        if(key==='breath'||key==='heart')self._startLoopSrc(key);
+      },function(){});
+    }catch(e){}
+  },
+  _decodeAll:function(){for(var k in this._bufData)this._decodeBuf(k)},
   init:function(){
     this._loadPrefs();
     this._load('punch','assets/sounds/punch.mp3');
     this._load('fight','assets/sounds/fight-voice.mp3');
+    this._fetchBuf('punch','assets/sounds/punch.mp3');
+    this._fetchBuf('fight','assets/sounds/fight-voice.mp3');
+    this._fetchBuf('breath','assets/sounds/breath-loop.m4a');
+    this._fetchBuf('heart','assets/sounds/heartbeat-loop.mp3');
     // bg music (3.4MB) loads LAZILY on first enable — it defaults OFF, so
     // most players never download it. (victory/intro tracks were dead weight.)
     // Real recordings (Wikimedia Commons): breathing (public domain),
@@ -348,18 +379,45 @@ var SND={
     this._heart=new Audio('assets/sounds/heartbeat-loop.mp3');
     this._heart.loop=true;this._heart.volume=0;
   },
-  _loopsOn:false,
+  _loopsOn:false,_loopSrc:{},_loopGain:{},
   startLoops:function(){
     if(this._loopsOn)return;
     this._loopsOn=true;
-    try{var p1=this._breath.play();if(p1&&p1.catch)p1.catch(function(){});}catch(e){}
-    try{var p2=this._heart.play();if(p2&&p2.catch)p2.catch(function(){});}catch(e){}
+    // Gapless Web Audio loops when decoded; HTMLAudio until then.
+    if(this._bufs.breath)this._startLoopSrc('breath');
+    else try{var p1=this._breath.play();if(p1&&p1.catch)p1.catch(function(){});}catch(e){}
+    if(this._bufs.heart)this._startLoopSrc('heart');
+    else try{var p2=this._heart.play();if(p2&&p2.catch)p2.catch(function(){});}catch(e){}
   },
-  _playing:{},
+  _startLoopSrc:function(key){
+    if(!this._loopsOn||this._loopSrc[key])return;
+    var c=this._ctx,buf=this._bufs[key];if(!c||!buf)return;
+    try{
+      var src=c.createBufferSource();src.buffer=buf;src.loop=true;
+      var g=c.createGain();g.gain.value=0;
+      src.connect(g);g.connect(c.destination);
+      src.start();
+      this._loopSrc[key]=src;this._loopGain[key]=g;
+      // hand over from the HTMLAudio fallback loop
+      var el=(key==='breath')?this._breath:this._heart;
+      try{el.pause();el.volume=0}catch(e){}
+    }catch(e){}
+  },
+  _playing:{},_playingBuf:{},
   play:function(key,vol){
     if(!this.fightOn)return;
+    var buf=this._bufs[key],c=this._ctx;
+    if(buf&&c&&c.state==='running'){
+      try{
+        var src=c.createBufferSource();src.buffer=buf;
+        var g=c.createGain();g.gain.value=vol||0.5;
+        src.connect(g);g.connect(c.destination);src.start();
+        this._playingBuf[key]={src:src,gain:g};
+        return;
+      }catch(e){}
+    }
     var s=this._sounds[key];if(!s)return;
-    try{var c=s.cloneNode();c.volume=vol||0.5;var p=c.play();if(p&&p.catch)p.catch(function(){});this._playing[key]=c}catch(e){}
+    try{var cl=s.cloneNode();cl.volume=vol||0.5;var p=cl.play();if(p&&p.catch)p.catch(function(){});this._playing[key]=cl}catch(e){}
   },
   // Procedural UI sounds via Web Audio API
   playTone:function(freq,dur,vol,type){
@@ -394,6 +452,16 @@ var SND={
     this.playTone(800,0.04,0.1,'square');
   },
   stop:function(key){
+    var b=this._playingBuf[key];
+    if(b){
+      try{
+        var n=this._ctx.currentTime;
+        b.gain.gain.setValueAtTime(b.gain.gain.value,n);
+        b.gain.gain.exponentialRampToValueAtTime(0.001,n+0.25);
+        b.src.stop(n+0.3);
+      }catch(e){}
+      this._playingBuf[key]=null;
+    }
     var c=this._playing[key];if(!c)return;
     try{
       // Fade out quickly then pause
@@ -406,7 +474,7 @@ var SND={
     }catch(e){}
     this._playing[key]=null;
   },
-  stopAll:function(){for(var k in this._playing){if(this._playing[k])this.stop(k)}},
+  stopAll:function(){for(var k in this._playing){if(this._playing[k])this.stop(k)}for(var k2 in this._playingBuf){if(this._playingBuf[k2])this.stop(k2)}},
   _ensureBG:function(){ /* background music removed */ },
   startBG:function(){
     if(!this.musicOn||this._bgPlaying)return;
@@ -451,12 +519,31 @@ var SND={
     // Heartbeat: fades in from ~2x multiplier, swells and quickens to the crash
     var hTarget=mute?0:(phase==='FREEFALL'&&t>0.15)?Math.min(0.9,0.25+(t-0.15)*1.3):0;
     var hRate=1+Math.max(0,t-0.15)*0.7;
-    try{
-      this._breath.volume+=(bTarget-this._breath.volume)*0.05;
-      this._breath.playbackRate=bRate;
-      this._heart.volume+=(hTarget-this._heart.volume)*0.05;
-      this._heart.playbackRate=hRate;
-    }catch(e){}
+    // Web Audio path: gain + source playbackRate (clean pitch, no warble)
+    if(this._loopGain.breath){
+      try{
+        var bg=this._loopGain.breath.gain;
+        bg.value+=(bTarget-bg.value)*0.05;
+        this._loopSrc.breath.playbackRate.value=bRate;
+      }catch(e){}
+    }else{
+      try{
+        this._breath.volume+=(bTarget-this._breath.volume)*0.05;
+        this._breath.playbackRate=bRate;
+      }catch(e){}
+    }
+    if(this._loopGain.heart){
+      try{
+        var hg=this._loopGain.heart.gain;
+        hg.value+=(hTarget-hg.value)*0.05;
+        this._loopSrc.heart.playbackRate.value=hRate;
+      }catch(e){}
+    }else{
+      try{
+        this._heart.volume+=(hTarget-this._heart.volume)*0.05;
+        this._heart.playbackRate=hRate;
+      }catch(e){}
+    }
   },
   // ── Idle foley (synthesized: breath / whoosh / shuffle / glove tap) ──
   _noiseBuf:null,
@@ -535,7 +622,13 @@ async function _requestWakeLock(){
 _requestWakeLock();
 document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')_requestWakeLock()});
 // Start audio on first interaction
-function _startAudio(){SND._getCtx();SND.startBG();SND.startLoops();_requestWakeLock();document.removeEventListener('click',_startAudio);document.removeEventListener('touchstart',_startAudio)}
+function _startAudio(){
+  var c=SND._getCtx();
+  if(c&&c.state==='suspended'){try{c.resume()}catch(e){}}
+  SND._decodeAll();
+  SND.startBG();SND.startLoops();_requestWakeLock();
+  document.removeEventListener('click',_startAudio);document.removeEventListener('touchstart',_startAudio);
+}
 // Click sound on all buttons
 document.addEventListener('click',function(e){var t=e.target;if(t&&(t.tagName==='BUTTON'||t.closest('button')||t.classList.contains('bp-q')||t.classList.contains('bp-btn')||t.classList.contains('hc')||t.classList.contains('sb-tab'))){SND.playClick()}});
 document.addEventListener('click',_startAudio);
