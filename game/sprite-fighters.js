@@ -267,7 +267,7 @@ var SF=(function(){
       // halves with separate y offsets (mobile: left glove up / right glove
       // down a touch; desktop: right glove down only). Seam at screen center
       // is empty air between the gloves, so the split is invisible.
-      var offL=isMob?-10:0, offR=isMob?10:8;
+      var offL=isMob?-12:0, offR=isMob?12:32;
       var drawHands=function(im,alpha){
         if(alpha!=null)cx.globalAlpha=alpha;
         cx.save();cx.beginPath();cx.rect(-pw*0.5,-H*2,pw*0.5,H*4);cx.clip();
