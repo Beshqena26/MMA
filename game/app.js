@@ -1032,7 +1032,7 @@ function toggleApPop(s){try{var p=$('apPop'+s);var o=$('apPop'+(s===1?2:1));if(o
 function apAdj(s,d){try{var i=$('au'+s);var v=parseFloat(i.value);if(!isFinite(v))v=1.5;v=Math.max(1.01,Math.round((v+d*0.1)*100)/100);i.value=v.toFixed(2);valAutoCash(s);if(!G.autoCash[s-1])toggleAuto(s,'cash')}catch(e){}}
 function startAutoRounds(s,n){try{G.autoRounds=G.autoRounds||[0,0];G.autoRounds[s-1]=n;G.autoBet[s-1]=true;updApUI(s);$('apPop'+s).classList.remove('open')}catch(e){}}
 function stopAutoRounds(s){try{G.autoRounds=G.autoRounds||[0,0];G.autoRounds[s-1]=0;G.autoBet[s-1]=false;updApUI(s)}catch(e){}}
-function updApUI(s){try{var on=!!G.autoBet[s-1];$('apStop'+s).classList.toggle('show',on);$('apLeft'+s).textContent=(G.autoRounds&&G.autoRounds[s-1])||0;$('apBtn'+s).classList.toggle('on',on)}catch(e){}}
+function updApUI(s){try{var on=!!G.autoBet[s-1];var left=(G.autoRounds&&G.autoRounds[s-1])||0;$('apStop'+s).classList.toggle('show',on);$('apLeft'+s).textContent=left;$('apCount'+s).textContent=left;$('apBtn'+s).classList.toggle('on',on)}catch(e){}}
 document.addEventListener('click',function(e){
   try{
     var t=e.target;
