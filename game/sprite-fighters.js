@@ -263,9 +263,22 @@ var SF=(function(){
       cx.translate(W*0.5+rdx+sx*0.5, H+rdy+sy*0.5);
       if(rrot)cx.rotate(rrot);
       if(rsc!==1)cx.scale(rsc,rsc);
-      cx.drawImage(pi,-pw*0.5,py-H,pw,pdh);
+      // Per-hand tuning: the sprite is one image, so draw it in two clipped
+      // halves with separate y offsets (mobile: left glove up / right glove
+      // down a touch; desktop: right glove down only). Seam at screen center
+      // is empty air between the gloves, so the split is invisible.
+      var offL=isMob?-10:0, offR=isMob?10:8;
+      var drawHands=function(im,alpha){
+        if(alpha!=null)cx.globalAlpha=alpha;
+        cx.save();cx.beginPath();cx.rect(-pw*0.5,-H*2,pw*0.5,H*4);cx.clip();
+        cx.drawImage(im,-pw*0.5,py-H+offL,pw,pdh);cx.restore();
+        cx.save();cx.beginPath();cx.rect(0,-H*2,pw*0.5,H*4);cx.clip();
+        cx.drawImage(im,-pw*0.5,py-H+offR,pw,pdh);cx.restore();
+        if(alpha!=null)cx.globalAlpha=1;
+      };
+      drawHands(pi,null);
       var pb=_blend('player',ply);
-      if(pb&&pb.im!==pi&&pb.mix>0.02){cx.globalAlpha=pb.mix;cx.drawImage(pb.im,-pw*0.5,py-H,pw,pdh);cx.globalAlpha=1;}
+      if(pb&&pb.im!==pi&&pb.mix>0.02)drawHands(pb.im,pb.mix);
       cx.restore();
     }
     // L4: IMPACT FLASH
