@@ -85,7 +85,11 @@ function _loadImages(){
     img.src=item.src;
     IMG[item.key]=img;
   });
-  POVSETS.forEach(_povLoadSet);
+  // The anim3 clips only feed the FALLBACK renderer — when the sprite system
+  // (SF, loaded after this script) is present it draws the whole scene, so
+  // skip ~230 frames / ~9MB of dead download. setTimeout: SF doesn't exist
+  // yet at parse time of this file.
+  setTimeout(function(){ if(typeof SF==='undefined')POVSETS.forEach(_povLoadSet); },0);
 }
 // The first-person scene is the only view — load immediately.
 _loadImages();
@@ -324,7 +328,7 @@ function render(){
   // Spine-style playback: fractional time advances the clip, each draw blends
   // frame i with i+1, and clip switches crossfade over MIX seconds.
   _povTick(dt);
-  var heroReady=_povReady('idle');
+  var heroReady=_useSF||_povReady('idle');
   // The branded loading screen lifts once he can be drawn, but never before
   // ~2.4s — on fast connections the assets decode in milliseconds and the
   // logo/progress bar would flash away unseen. (index.html force-hides at 6s.)

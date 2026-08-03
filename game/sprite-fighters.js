@@ -42,12 +42,26 @@ var SF=(function(){
   // ko/final are terminal for the round and can never be interrupted.
   var PRI={idle:0, jab:2, cross:2, combo:2, step:3, block:3, hitA:4, hitB:4, hitC:4, final:9, ko:9};
 
+  // HALF-RATE DELIVERY: fighter clips ship every 2nd source frame at fps/2 —
+  // the inter-frame blend in draw() restores perceived smoothness. Halves
+  // both the download (~600→~330 files) and the decoded-RAM footprint. The
+  // bg loop is tiny and crossfaded, so it stays full-rate.
+  (function decimate(){
+    function d(c){ if(!c||!c.dir)return; c.step=2;
+      if(c.impact!=null)c.impact=Math.max(1,Math.round(c.impact/2));
+      if(c.impacts)c.impacts=c.impacts.map(function(i){return Math.max(1,Math.round(i/2))});
+      c.n=Math.ceil(c.n/2); c.fps=c.fps/2; }
+    for(var who in CFG){ if(who==='bg')continue;
+      for(var name in CFG[who]){ if(name==='anchor')continue; d(CFG[who][name]); } }
+  })();
+
   var frames={bg:{},opponent:{},player:{}}, loaded=0, total=0;
   function loadAnim(bucket,name,c){
     frames[bucket][name]=[];
     for(var i=1;i<=c.n;i++){
       total++;
-      var src=c.dir+c.pre+(c.pad3?('00'+i).slice(-3):('0'+i).slice(-2))+'.webp'+VER;
+      var si=c.step?((i-1)*c.step+1):i;   // decimated clip: frame i maps to source frame 1,3,5,…
+      var src=c.dir+c.pre+(c.pad3?('00'+si).slice(-3):('0'+si).slice(-2))+'.webp'+VER;
       var im=new Image();
       im.onload=function(){loaded++};
       im.onerror=(function(im,src){return function(){if(!im._r){im._r=1;setTimeout(function(){im.src=src+'&r=1'},1200)}else{loaded++}}})(im,src);
@@ -56,9 +70,18 @@ var SF=(function(){
     }
   }
   (function init(){
+    // PHASE 1 — the playable set: arena loop + both idles (~3MB). The action
+    // clips stream in the background once these land, so a slow connection
+    // gets a playable scene in seconds instead of racing 600 files at once.
     loadAnim('bg','loop',CFG.bg);
+    loadAnim('opponent','idle',CFG.opponent.idle);
+    loadAnim('player','idle',CFG.player.idle);
+    var p1=total, rest=[], started=false;
     for(var who in CFG){ if(who==='bg')continue;
-      for(var name in CFG[who]){ if(name==='anchor')continue; loadAnim(who,name,CFG[who][name]); } }
+      for(var name in CFG[who]){ if(name==='anchor'||name==='idle')continue; rest.push([who,name,CFG[who][name]]); } }
+    function loadRest(){ if(started)return; started=true; rest.forEach(function(r){loadAnim(r[0],r[1],r[2])}); }
+    var iv=setInterval(function(){ if(loaded>=p1){clearInterval(iv);loadRest()} },200);
+    setTimeout(function(){clearInterval(iv);loadRest()},10000);  // safety: never hold the actions hostage
   })();
 
   function mkState(){ return {cur:'idle',frame:0,t:0,once:false,_dir:1}; }
@@ -106,7 +129,8 @@ var SF=(function(){
     var onImpact=function(atk){
       // his punch arrives: mostly you block it, sometimes it rocks your guard
       var blocked=Math.random()<0.7;
-      setState('player',['hitA','hitB','hitC'][(Math.random()*3)|0],true);
+      var hits=['hitA','hitB','hitC'].filter(function(h){return _clipReady('player',h)});
+      if(hits.length)setState('player',hits[(Math.random()*hits.length)|0],true);
       fx.flash=Math.max(fx.flash,0.12); fx.shake=Math.max(fx.shake,blocked?6:9);
       if(typeof G!=='undefined'){G.arenaShake=Math.max(G.arenaShake||0,blocked?5:8);G.crowdRoar=Math.min(1,(G.crowdRoar||0)+0.3);}
       try{if(typeof SND!=='undefined')SND.play('punch',blocked?0.5:0.65)}catch(e){}
@@ -126,7 +150,9 @@ var SF=(function(){
           var pool=['jab'];
           if(mult>=3)pool.push('cross','combo');
           if(mult>=6&&Math.random()<0.35)pool.push('step');
-          setState('opponent',pool[(Math.random()*pool.length)|0],true);
+          // slow connection: only throw punches whose clip has fully streamed in
+          pool=pool.filter(function(p){return _clipReady('opponent',p)});
+          if(pool.length)setState('opponent',pool[(Math.random()*pool.length)|0],true);
           sched.atk=time+1.8+Math.random()*2.4;
         }
       }
@@ -165,6 +191,17 @@ var SF=(function(){
     if(im)_lastDrawn[bucket]=im;
     return im;
   }
+  // Next frame + mix weight for the half-rate blend (perceived 30fps from
+  // 15fps frames). Returns null when there's nothing valid to blend toward.
+  function _blend(bucket,st){
+    var c=CFG[bucket][st.cur], f=frames[bucket][st.cur]; if(!c||!f)return null;
+    var ni=(c.loop&&c.wrap)?(st.frame+1)%c.n:Math.min(st.frame+1,c.n-1);
+    if(ni===st.frame)return null;
+    var im=f[ni]; if(!_ok(im))return null;
+    return {im:im,mix:Math.min(1,st.t*c.fps)};
+  }
+  // A clip counts as ready once its last frame is decoded (frames load in order)
+  function _clipReady(who,name){ var f=frames[who][name]; return f&&f.length&&_ok(f[f.length-1]); }
 
   function _drawCover(cx,im,W,H,alpha){
     var a=im.naturalWidth/im.naturalHeight, sA=W/H, dW,dH;
@@ -202,7 +239,10 @@ var SF=(function(){
       var ax=CFG.opponent.anchor;
       var ayv=(oc.ay!=null)?oc.ay:ax.y;
       var bottomY=H*(isMob?0.93:0.95)-(oc.gap||0)*bodyH;
-      cx.drawImage(oi,W*0.5-ax.x*dw+sx,bottomY-ayv*dh+sy,dw,dh);
+      var _ox=W*0.5-ax.x*dw+sx,_oy=bottomY-ayv*dh+sy;
+      cx.drawImage(oi,_ox,_oy,dw,dh);
+      var ob=_blend('opponent',opp);
+      if(ob&&ob.im!==oi&&ob.mix>0.02){cx.save();cx.globalAlpha=ob.mix;cx.drawImage(ob.im,_ox,_oy,dw,dh);cx.restore();}
     }
     // L3: PLAYER — full-frame first-person overlay (sprite keeps the source
     // video's framing): width-fit, bottom-anchored, lifted clear of the
@@ -224,6 +264,8 @@ var SF=(function(){
       if(rrot)cx.rotate(rrot);
       if(rsc!==1)cx.scale(rsc,rsc);
       cx.drawImage(pi,-pw*0.5,py-H,pw,pdh);
+      var pb=_blend('player',ply);
+      if(pb&&pb.im!==pi&&pb.mix>0.02){cx.globalAlpha=pb.mix;cx.drawImage(pb.im,-pw*0.5,py-H,pw,pdh);cx.globalAlpha=1;}
       cx.restore();
     }
     // L4: IMPACT FLASH
