@@ -265,15 +265,26 @@ var SF=(function(){
       if(rsc!==1)cx.scale(rsc,rsc);
       // Per-hand tuning: the sprite is one image, so draw it in two clipped
       // halves with separate y offsets (mobile: left glove up / right glove
-      // down a touch; desktop: right glove down only). Seam at screen center
-      // is empty air between the gloves, so the split is invisible.
-      var offL=isMob?-32:0, offR=isMob?12:80;
+      // down a touch; desktop: right glove down only). During idle the seam
+      // at screen center is empty air — but when a movement clip plays a
+      // glove can cross the center and the mismatched halves double up, so
+      // the offsets ease to 0 for any non-idle clip and ease back in idle.
+      var _t=SF._offT||time; SF._offT=time;
+      var _dtb=Math.min(0.05,Math.max(0,time-_t));
+      var _tgt=(ply.cur==='idle')?1:0;
+      if(SF._offMix==null)SF._offMix=1;
+      SF._offMix+=(_tgt-SF._offMix)*Math.min(1,_dtb*8);
+      var om=SF._offMix;
+      var offL=(isMob?-32:0)*om, offR=(isMob?12:80)*om;
       var drawHands=function(im,alpha){
         if(alpha!=null)cx.globalAlpha=alpha;
-        cx.save();cx.beginPath();cx.rect(-pw*0.5,-H*2,pw*0.5,H*4);cx.clip();
-        cx.drawImage(im,-pw*0.5,py-H+offL,pw,pdh);cx.restore();
-        cx.save();cx.beginPath();cx.rect(0,-H*2,pw*0.5,H*4);cx.clip();
-        cx.drawImage(im,-pw*0.5,py-H+offR,pw,pdh);cx.restore();
+        if(Math.abs(offL-offR)<0.5){cx.drawImage(im,-pw*0.5,py-H+offR,pw,pdh);}
+        else{
+          cx.save();cx.beginPath();cx.rect(-pw*0.5,-H*2,pw*0.5,H*4);cx.clip();
+          cx.drawImage(im,-pw*0.5,py-H+offL,pw,pdh);cx.restore();
+          cx.save();cx.beginPath();cx.rect(0,-H*2,pw*0.5,H*4);cx.clip();
+          cx.drawImage(im,-pw*0.5,py-H+offR,pw,pdh);cx.restore();
+        }
         if(alpha!=null)cx.globalAlpha=1;
       };
       drawHands(pi,null);
