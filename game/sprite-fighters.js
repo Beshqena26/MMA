@@ -276,14 +276,23 @@ var SF=(function(){
       SF._offMix+=(_tgt-SF._offMix)*Math.min(1,_dtb*8);
       var om=SF._offMix;
       var offL=(isMob?-32:0)*om, offR=(isMob?12:80)*om;
+      // outward tilt per hand (degrees): left rotates left, right rotates
+      // right, pivoting at the bottom of each half where the forearm exits
+      var ROT=6*Math.PI/180*om;
       var drawHands=function(im,alpha){
         if(alpha!=null)cx.globalAlpha=alpha;
-        if(Math.abs(offL-offR)<0.5){cx.drawImage(im,-pw*0.5,py-H+offR,pw,pdh);}
+        if(om<0.02){cx.drawImage(im,-pw*0.5,py-H,pw,pdh);}
         else{
-          cx.save();cx.beginPath();cx.rect(-pw*0.5,-H*2,pw*0.5,H*4);cx.clip();
-          cx.drawImage(im,-pw*0.5,py-H+offL,pw,pdh);cx.restore();
-          cx.save();cx.beginPath();cx.rect(0,-H*2,pw*0.5,H*4);cx.clip();
-          cx.drawImage(im,-pw*0.5,py-H+offR,pw,pdh);cx.restore();
+          var half=function(side,off,ang){
+            cx.save();cx.beginPath();
+            cx.rect(side===0?-pw*0.5:0,-H*2,pw*0.5,H*4);cx.clip();
+            var pvx=(side===0)?-pw*0.25:pw*0.25;
+            cx.translate(pvx,0);cx.rotate(ang);cx.translate(-pvx,0);
+            cx.drawImage(im,-pw*0.5,py-H+off,pw,pdh);
+            cx.restore();
+          };
+          half(0,offL,-ROT);
+          half(1,offR,ROT);
         }
         if(alpha!=null)cx.globalAlpha=1;
       };
