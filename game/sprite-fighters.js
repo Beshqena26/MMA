@@ -196,12 +196,12 @@ var SF=(function(){
     var oi=_img('opponent',opp);
     if(oi){
       var oc=_clip('opponent',opp)||{};
-      var bodyH=H*(isMob?0.62:0.70);
+      var bodyH=H*(isMob?0.74:0.82);
       var dh=bodyH*(oc.s||1);
       var dw=dh*(oi.naturalWidth/oi.naturalHeight);
       var ax=CFG.opponent.anchor;
       var ayv=(oc.ay!=null)?oc.ay:ax.y;
-      var bottomY=H*(isMob?0.90:0.92)-(oc.gap||0)*bodyH;
+      var bottomY=H*(isMob?0.93:0.95)-(oc.gap||0)*bodyH;
       cx.drawImage(oi,W*0.5-ax.x*dw+sx,bottomY-ayv*dh+sy,dw,dh);
     }
     // L3: PLAYER — full-frame first-person overlay (sprite keeps the source

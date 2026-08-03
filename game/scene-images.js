@@ -336,8 +336,8 @@ function render(){
     // Camera per the boss reference: the boxer is FULL BODY at mid-distance,
     // standing on the ring floor — not the old knees-up close-up.
     var isMob=W<600;
-    var bodyH=Math.round(H*(isMob?0.62:0.66));   // mobile: bring the fighter more forward
-    var bottomY=Math.round(H*(isMob?0.86:0.90));  // ...and a touch lower/closer
+    var bodyH=Math.round(H*(isMob?0.74:0.78));   // mobile: bring the fighter more forward
+    var bottomY=Math.round(H*(isMob?0.90:0.93));  // ...and a touch lower/closer
     // flinch: your landed jab snaps his head back — a quick up + shake recoil
     var _fl=POV._flinchT>0?POV._flinchT/0.20:0;
     var flY=-Math.round(bodyH*0.035*_fl);
@@ -441,6 +441,7 @@ function render(){
     cx.fillStyle=rg;cx.fillRect(0,0,W,H);
   }
 
+
   // ═══ L5: KO TEXT ═══
   if(G.phase==='CRASH'){
     var koT=G.koTimer||0;
@@ -452,11 +453,6 @@ function render(){
       cx.fillStyle='#ff2222';cx.fillText('K.O.',0,0);
       cx.strokeStyle='rgba(255,255,255,0.3)';cx.lineWidth=2;cx.strokeText('K.O.',0,0);
       cx.shadowBlur=0;
-      if(koT>0.6){
-        cx.globalAlpha=Math.min(1,(koT-0.6)/0.4);
-        cx.font='bold 28px sans-serif';cx.fillStyle='rgba(255,255,255,0.8)';
-        cx.fillText((G.mult||1).toFixed(2)+'x',0,50);
-      }
       cx.restore();
     }
   }
