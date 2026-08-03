@@ -278,7 +278,7 @@ var SF=(function(){
       var offL=(isMob?-32:0)*om, offR=(isMob?12:80)*om;
       // outward tilt per hand (degrees): left rotates left, right rotates
       // right, pivoting at the bottom of each half where the forearm exits
-      var ROT=6*Math.PI/180*om;
+      var ROT=12*Math.PI/180*om;
       var drawHands=function(im,alpha){
         if(alpha!=null)cx.globalAlpha=alpha;
         if(om<0.02){cx.drawImage(im,-pw*0.5,py-H,pw,pdh);}
